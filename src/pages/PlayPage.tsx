@@ -6,7 +6,7 @@ import { YouTubeSection } from '@/components/play/YouTubeSection';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { User, MapPin, BarChart3, Youtube, Monitor, Gamepad2 } from 'lucide-react';
+import { User, MapPin,BarChart, Youtube, Monitor, Gamepad2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PlayPage() {
