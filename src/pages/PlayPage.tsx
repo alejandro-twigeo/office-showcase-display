@@ -6,7 +6,6 @@ import { YouTubeSection } from '@/components/play/YouTubeSection';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { User, MapPin, BarChart3, Youtube, Monitor, Gamepad2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,7 +31,7 @@ export default function PlayPage() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Monitor className="h-4 w-4" />
-              <Label htmlFor="mode-switch">TV</Label>
+              <span>TV</span>
             </div>
             <Switch 
               id="mode-switch" 
@@ -40,7 +39,7 @@ export default function PlayPage() {
               onCheckedChange={handleModeSwitch}
             />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Label htmlFor="mode-switch">Play</Label>
+              <span>Play</span>
               <Gamepad2 className="h-4 w-4" />
             </div>
           </div>
