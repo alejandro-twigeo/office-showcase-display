@@ -88,7 +88,20 @@ export function usePolls() {
     },
   });
 
-  return { activePolls, isLoading, createPoll, closePoll };
+  const updatePoll = useMutation({
+    mutationFn: async (data: { pollId: string; question: string; options: string[] }) => {
+      const { error } = await supabase
+        .from('polls')
+        .update({ question: data.question, options: data.options })
+        .eq('id', data.pollId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-polls'] });
+    },
+  });
+
+  return { activePolls, isLoading, createPoll, closePoll, updatePoll };
 }
 
 export function useVotes(pollId: string | undefined) {

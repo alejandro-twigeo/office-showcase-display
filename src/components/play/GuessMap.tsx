@@ -69,15 +69,18 @@ export function GuessMap({ playerName }: GuessMapProps) {
       activeLocation.lng
     );
 
+    const guessNumber = userGuesses.length + 1;
+    const playerNameWithSuffix = `${playerName}_${guessNumber}`;
+
     submitGuess.mutate(
       {
         location_id: activeLocation.id,
         device_id: deviceId,
-        player_name: playerName,
+        player_name: playerNameWithSuffix,
         lat: selectedPosition.lat,
         lng: selectedPosition.lng,
         distance_km: distance,
-        guess_number: userGuesses.length + 1,
+        guess_number: guessNumber,
       },
       {
         onSuccess: () => {

@@ -87,10 +87,25 @@ export function useYoutubeQueue() {
     },
   });
 
+  const updateVideo = useMutation({
+    mutationFn: async (data: { id: string; video_id: string; title: string }) => {
+      const { error } = await supabase
+        .from('youtube_queue')
+        .update({ video_id: data.video_id, title: data.title })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-video'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-videos'] });
+    },
+  });
+
   return {
     currentVideo,
     recentVideos,
     isLoading: loadingCurrent || loadingRecent,
     playVideo,
+    updateVideo,
   };
 }
