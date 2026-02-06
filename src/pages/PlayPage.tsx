@@ -5,10 +5,20 @@ import { PollSection } from '@/components/play/PollSection';
 import { YouTubeSection } from '@/components/play/YouTubeSection';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, MapPin, BarChart3, Youtube } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { User, MapPin, BarChart3, Youtube, Monitor, Gamepad2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function PlayPage() {
   const [playerName, setPlayerName] = usePlayerName();
+  const navigate = useNavigate();
+
+  const handleModeSwitch = (checked: boolean) => {
+    if (!checked) {
+      navigate('/');
+    }
+  };
 
   if (!playerName) {
     return <NameEntry onSubmit={setPlayerName} />;
@@ -19,7 +29,21 @@ export default function PlayPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-bold">🎮 Play</h1>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Monitor className="h-4 w-4" />
+              <Label htmlFor="mode-switch">TV</Label>
+            </div>
+            <Switch 
+              id="mode-switch" 
+              checked={true}
+              onCheckedChange={handleModeSwitch}
+            />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Label htmlFor="mode-switch">Play</Label>
+              <Gamepad2 className="h-4 w-4" />
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <User className="h-4 w-4" />

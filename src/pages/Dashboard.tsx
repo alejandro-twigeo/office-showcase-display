@@ -1,8 +1,20 @@
 import { StreetViewDisplay } from '@/components/dashboard/StreetViewDisplay';
 import { PollDisplay } from '@/components/dashboard/PollDisplay';
 import { YouTubeDisplay } from '@/components/dashboard/YouTubeDisplay';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
+import { Monitor, Gamepad2 } from 'lucide-react';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const handleModeSwitch = (checked: boolean) => {
+    if (checked) {
+      navigate('/play');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-[1920px] mx-auto space-y-4">
@@ -11,8 +23,20 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-foreground">
             🎮 Office TV Dashboard
           </h1>
-          <div className="text-sm text-muted-foreground">
-            Visit <span className="font-mono bg-secondary px-2 py-1 rounded">/play</span> to join!
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Monitor className="h-4 w-4" />
+              <Label htmlFor="mode-switch">TV</Label>
+            </div>
+            <Switch 
+              id="mode-switch" 
+              checked={false}
+              onCheckedChange={handleModeSwitch}
+            />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Label htmlFor="mode-switch">Play</Label>
+              <Gamepad2 className="h-4 w-4" />
+            </div>
           </div>
         </header>
 
