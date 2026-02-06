@@ -1,23 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useYoutubeQueue } from '@/hooks/useYoutubeQueue';
-import { Youtube, Play, Clock, Search } from 'lucide-react';
+import { Youtube, Play, Clock, Search, Edit2, X, Check } from 'lucide-react';
 
 interface YouTubeSectionProps {
   playerName: string;
 }
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
-  const { currentVideo, recentVideos, playVideo } = useYoutubeQueue();
+  const { currentVideo, recentVideos, playVideo, updateVideo } = useYoutubeQueue();
   const [videoUrl, setVideoUrl] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUrl, setEditUrl] = useState('');
+
+  // Populate edit field when entering edit mode
+  useEffect(() => {
+    if (isEditing && currentVideo) {
+      setEditUrl(`https://youtube.com/watch?v=${currentVideo.video_id}`);
+    }
+  }, [isEditing, currentVideo]);
 
   const extractVideoId = (url: string): string | null => {
-    // Handle various YouTube URL formats
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
+      /^([a-zA-Z0-9_-]{11})$/,
     ];
     
     for (const pattern of patterns) {
@@ -33,7 +41,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
       playVideo.mutate(
         {
           video_id: videoId,
-          title: `Video ${videoId}`, // In a real app, we'd fetch the title from YouTube API
+          title: `Video ${videoId}`,
           queued_by: playerName,
         },
         {
@@ -43,6 +51,30 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
         }
       );
     }
+  };
+
+  const handleUpdateVideo = () => {
+    const videoId = extractVideoId(editUrl.trim());
+    if (videoId && currentVideo) {
+      updateVideo.mutate(
+        {
+          id: currentVideo.id,
+          video_id: videoId,
+          title: `Video ${videoId}`,
+        },
+        {
+          onSuccess: () => {
+            setIsEditing(false);
+            setEditUrl('');
+          },
+        }
+      );
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditUrl('');
   };
 
   return (
@@ -57,12 +89,50 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
         {/* Current video */}
         {currentVideo && (
           <div className="bg-secondary/20 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Play className="h-3 w-3" />
-              Now Playing
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Play className="h-3 w-3" />
+                Now Playing
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+                className="h-7 w-7 p-0"
+              >
+                {isEditing ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+              </Button>
             </div>
-            <p className="font-medium line-clamp-1">{currentVideo.title}</p>
-            <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
+            
+            {isEditing ? (
+              <div className="space-y-2 mt-2">
+                <Input
+                  placeholder="New YouTube URL..."
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  className="text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleUpdateVideo}
+                    disabled={!extractVideoId(editUrl.trim()) || updateVideo.isPending}
+                    className="flex-1"
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    Update
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="font-medium line-clamp-1">{currentVideo.title}</p>
+                <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
+              </>
+            )}
           </div>
         )}
 
