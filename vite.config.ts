@@ -5,7 +5,13 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/office-showcase-display/",
+  const repoBase = "/office-showcase-display/";
+
+export default defineConfig(({ mode }) => ({
+  base: process.env.VITE_BASE || (mode === "production" ? repoBase : "/"),
+  // ...the rest stays the same
+}));
+
   server: {
     host: "::",
     port: 8080,
