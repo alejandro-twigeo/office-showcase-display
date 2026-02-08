@@ -143,13 +143,13 @@ export function GuessMap({ playerName }: GuessMapProps) {
           </div>
         ) : (
           <>
-            <div className="h-[300px] rounded-lg overflow-hidden border">
+           
               <MapContainer
                 center={[20, 0]}
                 zoom={2}
-                className="h-full w-full"
+                style={{ height: "300px", width: "100%" }}
                 scrollWheelZoom={true}
-              >
+              
 <TileLayer
   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
   attribution="© OpenStreetMap contributors"
