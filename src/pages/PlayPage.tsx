@@ -2,7 +2,7 @@ import { usePlayerName } from '@/hooks/usePlayerName';
 import { NameEntry } from '@/components/play/NameEntry';
 import { GuessMap } from '@/components/play/GuessMap';
 import { PollSection } from '@/components/play/PollSection';
-import { YouTubeSection } from '@/components/play/YouT;ubeSection';
+import { YouTubeSection } from '@/components/play/YouTubeSection';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
