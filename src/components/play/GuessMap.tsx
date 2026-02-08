@@ -153,7 +153,6 @@ export function GuessMap({ playerName }: GuessMapProps) {
 <TileLayer
   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
   attribution="© OpenStreetMap contributors"
-/>
 
                 />
                 <MapClickHandler onMapClick={handleMapClick} />
