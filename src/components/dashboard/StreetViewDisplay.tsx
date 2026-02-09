@@ -202,12 +202,12 @@ export function StreetViewDisplay() {
   const { activeLocation, createNewLocation } = useActiveLocation();
   const { guesses } = useGuesses(activeLocation?.id);
 
-  const [now, setNow] = useState(() => new Date());
+  //const [now, setNow] = useState(() => new Date());
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 10_000);
-    return () => clearInterval(t);
-  }, []);
+  //useEffect(() => {
+  //  const t = setInterval(() => setNow(new Date()), 10_000);
+  //  return () => clearInterval(t);
+  //}, []);
 
   const step = useMemo(() => getStepIndex(now), [now]);
   const scale = useMemo(() => scaleForStep(step), [step]);
@@ -219,15 +219,15 @@ export function StreetViewDisplay() {
     if (createNewLocation.isPending) return;
 
     const minutes = stockholmMinutesSinceMidnight(now);
-    const afterStart = minutes >= START_HOUR * 60;
-    if (!afterStart) return;
+    //const afterStart = minutes >= START_HOUR * 60;
+    //if (!afterStart) return;
 
-    const createdDayKey = activeLocation?.created_at
-      ? dayKeyStockholm(new Date(activeLocation.created_at))
-      : null;
+   // const createdDayKey = activeLocation?.created_at
+   //   ? dayKeyStockholm(new Date(activeLocation.created_at))
+   //   : null;
 
     // If the current active location is from today already, do not reset.
-    if (activeLocation && createdDayKey === todayKey) return;
+   // if (activeLocation && createdDayKey === todayKey) return;
 
     (async () => {
       const round = await fetchRandomWikiRoundWithRetry();
