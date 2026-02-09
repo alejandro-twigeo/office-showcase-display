@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Globe } from 'lucide-react';
-import { useActiveLocation } from '@/hooks/useActiveLocation';
-import { Leaderboard } from './Leaderboard';
-import { useGuesses } from '@/hooks/useGuesses';
+import { useEffect, useMemo, useRef, useCallback, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Globe } from "lucide-react";
+import { useActiveLocation } from "@/hooks/useActiveLocation";
+import { Leaderboard } from "./Leaderboard";
+import { useGuesses } from "@/hooks/useGuesses";
 
-const LOCAL_META_KEY = 'wikiguess_meta';
+const LOCAL_META_KEY = "wikiguess_meta";
 
 interface StoredRoundMeta {
   roundId: string;
@@ -15,21 +15,21 @@ interface StoredRoundMeta {
 }
 
 const CANDIDATE_TITLES = [
-  'Eiffel Tower',
-  'Colosseum',
-  'Sydney Opera House',
-  'Statue of Liberty',
-  'Big Ben',
-  'Golden Gate Bridge',
-  'Christ the Redeemer (statue)',
-  'Sagrada Família',
-  'Burj Khalifa',
-  'Mount Fuji',
-  'Taj Mahal',
-  'Leaning Tower of Pisa',
-  'Tower Bridge',
-  'Louvre',
-  'Machu Picchu',
+  "Eiffel Tower",
+  "Colosseum",
+  "Sydney Opera House",
+  "Statue of Liberty",
+  "Big Ben",
+  "Golden Gate Bridge",
+  "Christ the Redeemer (statue)",
+  "Sagrada Família",
+  "Burj Khalifa",
+  "Mount Fuji",
+  "Taj Mahal",
+  "Leaning Tower of Pisa",
+  "Tower Bridge",
+  "Louvre",
+  "Machu Picchu",
 ];
 
 function pickRandom<T>(arr: T[]) {
@@ -52,21 +52,19 @@ function getStoredMeta(roundId: string): StoredRoundMeta | null {
 
 async function fetchWikiRound(title: string) {
   const url =
-    'https://en.wikipedia.org/w/api.php' +
-    '?action=query' +
-    '&format=json' +
-    '&origin=*' +
-    '&prop=coordinates|pageimages|info' +
-    '&inprop=url' +
-    '&piprop=thumbnail' +
-    '&pithumbsize=1280' +
-    '&titles=' +
+    "https://en.wikipedia.org/w/api.php" +
+    "?action=query" +
+    "&format=json" +
+    "&origin=*" +
+    "&prop=coordinates|pageimages|info" +
+    "&inprop=url" +
+    "&piprop=thumbnail" +
+    "&pithumbsize=1280" +
+    "&titles=" +
     encodeURIComponent(title);
 
   const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Wikipedia fetch failed: ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Wikipedia fetch failed: ${res.status}`);
 
   const data = await res.json();
   const pages = data?.query?.pages;
@@ -101,11 +99,10 @@ async function fetchRandomWikiRoundWithRetry(maxTries = 12) {
     }
   }
 
-  try {
-    return await fetchWikiRound('Eiffel Tower');
-  } catch {
-    throw lastErr ?? new Error('Failed to fetch a wiki round');
-  }
+  // fallback
+  return await fetchWikiRound("Eiffel Tower").catch(() => {
+    throw lastErr ?? new Error("Failed to fetch a wiki round");
+  });
 }
 
 export function StreetViewDisplay() {
@@ -113,6 +110,7 @@ export function StreetViewDisplay() {
   const { guesses } = useGuesses(activeLocation?.id);
 
   const creatingRef = useRef(false);
+  const [isCreatingUi, setIsCreatingUi] = useState(false);
 
   const meta = useMemo(() => {
     const roundId = activeLocation?.id;
@@ -120,58 +118,56 @@ export function StreetViewDisplay() {
     return getStoredMeta(roundId);
   }, [activeLocation?.id]);
 
-async function createRound() {
-  if (creatingRef.current || createNewLocation.isPending) return;
-  creatingRef.current = true;
+  const createRound = useCallback(async () => {
+    if (creatingRef.current || createNewLocation.isPending) return;
+    creatingRef.current = true;
+    setIsCreatingUi(true);
 
-  try {
-    const round = await fetchRandomWikiRoundWithRetry();
+    try {
+      const round = await fetchRandomWikiRoundWithRetry();
 
-    // 🔒 HARD GUARANTEE
-    if (!round.imageUrl || !round.lat || !round.lng) {
-      throw new Error('Invalid round data');
-    }
-
-    createNewLocation.mutate(
-      {
-        lat: round.lat,
-        lng: round.lng,
-        pano_id: round.imageUrl, // ALWAYS present
-      },
-      {
-        onSuccess: (data: { id: string }) => {
-          localStorage.setItem(
-            LOCAL_META_KEY,
-            JSON.stringify({
-              roundId: data.id,
-              sourceUrl: round.sourceUrl,
-              answerTitle: round.answerTitle,
-            })
-          );
-          creatingRef.current = false;
-        },
-        onError: () => {
-          creatingRef.current = false;
-        },
+      if (!round.imageUrl || typeof round.lat !== "number" || typeof round.lng !== "number") {
+        throw new Error("Invalid round data");
       }
-    );
-  } catch (err) {
-    console.error('Round creation failed', err);
-    creatingRef.current = false;
-  }
-}
 
+      createNewLocation.mutate(
+        {
+          lat: round.lat,
+          lng: round.lng,
+          pano_id: round.imageUrl, // store the image URL in pano_id for now
+        },
+        {
+          onSuccess: (data: { id: string }) => {
+            localStorage.setItem(
+              LOCAL_META_KEY,
+              JSON.stringify({
+                roundId: data.id,
+                sourceUrl: round.sourceUrl,
+                answerTitle: round.answerTitle,
+              })
+            );
+            creatingRef.current = false;
+            setIsCreatingUi(false);
+          },
+          onError: () => {
+            creatingRef.current = false;
+            setIsCreatingUi(false);
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Round creation failed", err);
+      creatingRef.current = false;
+      setIsCreatingUi(false);
+    }
+  }, [createNewLocation]);
 
-<Button
-  variant="outline"
-  size="sm"
-  onClick={() => void createRound()}
-  disabled={createNewLocation.isPending}
->
-  <RefreshCw className="h-4 w-4 mr-2" />
-  New Location
-</Button>
-
+  // Auto-create a round if none exists or if pano_id is missing
+  useEffect(() => {
+    if (!activeLocation || !activeLocation.pano_id) {
+      void createRound();
+    }
+  }, [activeLocation?.id, activeLocation?.pano_id, createRound]);
 
   return (
     <div className="grid grid-cols-3 gap-4 h-full">
@@ -182,16 +178,15 @@ async function createRound() {
               <Globe className="h-5 w-5 text-primary" />
               Mystery location
             </CardTitle>
+
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                void createRound();
-              }}
-              disabled={createNewLocation.isPending}
+              onClick={() => void createRound()}
+              disabled={createNewLocation.isPending || isCreatingUi}
             >
               <RefreshCw
-                className={`h-4 w-4 mr-2 ${createNewLocation.isPending ? 'animate-spin' : ''}`}
+                className={`h-4 w-4 mr-2 ${createNewLocation.isPending || isCreatingUi ? "animate-spin" : ""}`}
               />
               New round
             </Button>
