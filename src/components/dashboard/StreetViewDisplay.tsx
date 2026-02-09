@@ -121,51 +121,57 @@ export function StreetViewDisplay() {
   }, [activeLocation?.id]);
 
 async function createRound() {
-    if (creatingRef.current || createNewLocation.isPending) return;
-    creatingRef.current = true;
+  if (creatingRef.current || createNewLocation.isPending) return;
+  creatingRef.current = true;
 
-    try {
-      const round = await fetchRandomWikiRoundWithRetry();
+  try {
+    const round = await fetchRandomWikiRoundWithRetry();
 
-      createNewLocation.mutate(
-        {
-          lat: round.lat,
-          lng: round.lng,
-          pano_id: round.imageUrl,
-        },
-        {
-          onSuccess: (data: { id: string }) => {
-            try {
-              localStorage.setItem(
-                LOCAL_META_KEY,
-                JSON.stringify({
-                  roundId: data.id,
-                  sourceUrl: round.sourceUrl,
-                  answerTitle: round.answerTitle,
-                }),
-              );
-            } catch {
-              // ignore
-            }
-            creatingRef.current = false;
-          },
-          onError: () => {
-            creatingRef.current = false;
-          },
-        },
-      );
-    } catch {
-      creatingRef.current = false;
-      // If we cannot fetch, avoid creating an empty round.
+    // 🔒 HARD GUARANTEE
+    if (!round.imageUrl || !round.lat || !round.lng) {
+      throw new Error('Invalid round data');
     }
+
+    createNewLocation.mutate(
+      {
+        lat: round.lat,
+        lng: round.lng,
+        pano_id: round.imageUrl, // ALWAYS present
+      },
+      {
+        onSuccess: (data: { id: string }) => {
+          localStorage.setItem(
+            LOCAL_META_KEY,
+            JSON.stringify({
+              roundId: data.id,
+              sourceUrl: round.sourceUrl,
+              answerTitle: round.answerTitle,
+            })
+          );
+          creatingRef.current = false;
+        },
+        onError: () => {
+          creatingRef.current = false;
+        },
+      }
+    );
+  } catch (err) {
+    console.error('Round creation failed', err);
+    creatingRef.current = false;
   }
+}
 
-useEffect(() => {
-    const hasImage = Boolean(activeLocation?.pano_id);
-    if (!activeLocation || !hasImage) {
-      void createRound();
-    }
-  }, [activeLocation?.id, activeLocation?.pano_id]);
+
+<Button
+  variant="outline"
+  size="sm"
+  onClick={() => void createRound()}
+  disabled={createNewLocation.isPending}
+>
+  <RefreshCw className="h-4 w-4 mr-2" />
+  New Location
+</Button>
+
 
   return (
     <div className="grid grid-cols-3 gap-4 h-full">
