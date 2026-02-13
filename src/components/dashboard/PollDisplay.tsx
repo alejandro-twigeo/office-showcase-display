@@ -7,7 +7,8 @@ import { BarChart3, Clock, Users } from "lucide-react";
 const ROTATE_SECONDS = 30;
 
 export function PollDisplay() {
-  const { activePolls } = usePolls();
+  const { activePolls, isLoading } = usePolls(); 
+
 
   const [currentPollId, setCurrentPollId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROTATE_SECONDS);
@@ -103,15 +104,23 @@ export function PollDisplay() {
       </CardHeader>
 
       <CardContent>
-        {!currentPoll ? (
-          <div className="text-center py-8">
-            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No active polls</p>
-            <p className="text-muted-foreground text-xs mt-1">
-              Create one from the Play page!
-            </p>
-          </div>
-        ) : (
+        {isLoading ? (
+  <div className="text-center py-8">
+    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+    <p className="text-muted-foreground text-sm">Loading polls…</p>
+  </div>
+) : !currentPoll ? (
+  <div className="text-center py-8">
+    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+    <p className="text-muted-foreground text-sm">No active polls</p>
+    <p className="text-muted-foreground text-xs mt-1">
+      Create one from the Play page!
+    </p>
+  </div>
+) : (
+  // ... current poll UI ...
+)}
+
           <div className="space-y-4">
             <div className="mb-4">
               <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-1" />
