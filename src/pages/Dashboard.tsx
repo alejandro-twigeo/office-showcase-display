@@ -39,18 +39,19 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Main Grid */}
+        {/* Top Row: YouTube 2/3 + Polls 1/3 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* GeoGuessr Section - Takes 2 columns */}
-          <div className="lg:col-span-2 min-h-[400px]">
-            <StreetViewDisplay />
-          </div>
-
-          {/* Right Column - Polls & YouTube */}
-          <div className="space-y-4">
-            <PollDisplay />
+          <div className="lg:col-span-2">
             <YouTubeDisplay />
           </div>
+          <div>
+            <PollDisplay />
+          </div>
+        </div>
+
+        {/* Bottom Row: Mystery Location 1/2 + Leaderboard 1/2 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-[400px]">
+          <StreetViewDisplay />
         </div>
       </div>
     </div>

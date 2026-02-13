@@ -182,63 +182,59 @@ export function StreetViewDisplay() {
   }, [activeLocation?.id, activeLocation?.pano_id, createRound]);
 
   return (
-    <div className="grid grid-cols-3 gap-4 h-full">
-      <div className="col-span-2">
-        <Card className="h-full flex flex-col">
-          <CardHeader className="pb-2 flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Globe className="h-5 w-5 text-primary" />
-              Mystery location
-              {activeLocation && (
-                <Badge variant={activeLocation.difficulty === 1 ? "default" : activeLocation.difficulty === 2 ? "secondary" : "destructive"} className="ml-2">
-                  {DIFFICULTY_LABELS[(activeLocation.difficulty || 1) as Difficulty]}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="flex-1 flex flex-col gap-3">
-            {activeLocation?.pano_id ? (
-              <>
-                <div className="relative w-full flex-1 min-h-[360px] overflow-hidden rounded-lg border bg-black">
-                  <img
-                    src={activeLocation.pano_id}
-                    alt="mystery"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000"
-                    style={{ transform: `scale(${scale})` }}
-                  />
-                </div>
-
-                <div className="text-xs text-muted-foreground flex justify-between items-center gap-3">
-                  <span className="truncate">ID: {activeLocation.id.slice(0, 8)}...</span>
-
-                  {meta?.sourceUrl ? (
-                    <a
-                      href={meta.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline truncate"
-                    >
-                      Wiki source
-                    </a>
-                  ) : (
-                    <span className="truncate">Wiki source</span>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="text-center p-8">
-                <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">Creating a round...</p>
-              </div>
+    <>
+      <Card className="h-full flex flex-col">
+        <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Globe className="h-5 w-5 text-primary" />
+            Mystery location
+            {activeLocation && (
+              <Badge variant={activeLocation.difficulty === 1 ? "default" : activeLocation.difficulty === 2 ? "secondary" : "destructive"} className="ml-2">
+                {DIFFICULTY_LABELS[(activeLocation.difficulty || 1) as Difficulty]}
+              </Badge>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </CardTitle>
+        </CardHeader>
 
-      <div className="col-span-1">
-        <Leaderboard guesses={guesses} />
-      </div>
-    </div>
+        <CardContent className="flex-1 flex flex-col gap-3">
+          {activeLocation?.pano_id ? (
+            <>
+              <div className="relative w-full flex-1 min-h-[300px] overflow-hidden rounded-lg border bg-black">
+                <img
+                  src={activeLocation.pano_id}
+                  alt="mystery"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000"
+                  style={{ transform: `scale(${scale})` }}
+                />
+              </div>
+
+              <div className="text-xs text-muted-foreground flex justify-between items-center gap-3">
+                <span className="truncate">ID: {activeLocation.id.slice(0, 8)}...</span>
+
+                {meta?.sourceUrl ? (
+                  <a
+                    href={meta.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline truncate"
+                  >
+                    Wiki source
+                  </a>
+                ) : (
+                  <span className="truncate">Wiki source</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center p-8">
+              <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">Creating a round...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Leaderboard guesses={guesses} />
+    </>
   );
 }
