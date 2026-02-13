@@ -12,11 +12,10 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ guesses }: LeaderboardProps) {
-  // Get best guess per player
   const bestGuesses = guesses.reduce((acc, guess) => {
-    const existing = acc.find(g => g.player_name === guess.player_name);
+    const existing = acc.find((g) => g.player_name === guess.player_name);
     if (!existing || guess.distance_km < existing.distance_km) {
-      return [...acc.filter(g => g.player_name !== guess.player_name), guess];
+      return [...acc.filter((g) => g.player_name !== guess.player_name), guess];
     }
     return acc;
   }, [] as Guess[]);
@@ -37,16 +36,16 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
   };
 
   return (
-    <Card className="h-full">
+    <Card className="h-full min-h-0 flex flex-col">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Trophy className="h-5 w-5 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,28px)]">
+          <Trophy className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,26px)] text-primary" />
           Leaderboard
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 overflow-y-auto max-h-[300px]">
+      <CardContent className="space-y-2 overflow-y-auto min-h-0 flex-1">
         {sorted.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4 text-sm">
+          <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,18px)]">
             No guesses yet. Be the first!
           </p>
         ) : (
@@ -58,11 +57,11 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
               <div className="flex items-center justify-center w-6">
                 {getRankIcon(index + 1)}
               </div>
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium truncate">{guess.player_name}</span>
+                <span className="font-medium truncate text-[clamp(14px,1vw,18px)]">{guess.player_name}</span>
               </div>
-              <span className="text-sm font-mono text-accent font-semibold">
+              <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold">
                 {formatDistance(guess.distance_km)}
               </span>
             </div>
