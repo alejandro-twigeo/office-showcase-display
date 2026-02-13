@@ -3,10 +3,8 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-const repoBase = "/office-showcase-display/";
-
 export default defineConfig(({ mode }) => ({
-  base: process.env.VITE_BASE || (mode === "production" ? repoBase : "/"),
+  base: "/",
   server: {
     host: "::",
     port: 8080,
