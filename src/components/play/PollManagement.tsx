@@ -9,7 +9,6 @@ interface PollManagementProps {
 }
 
 export function PollManagement({ playerName }: PollManagementProps) {
-  const DELETE_POLL_PASSWORD = '1234';
   const { activePolls, createPoll, closePoll, updatePoll } = usePolls();
   const [showCreate, setShowCreate] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
@@ -84,14 +83,16 @@ export function PollManagement({ playerName }: PollManagementProps) {
   const handleDeletePoll = (pollId: string) => {
     const enteredPassword = window.prompt('Enter password to delete this poll');
 
-    if (enteredPassword === null) return;
+    if (!enteredPassword) return;
 
-    if (enteredPassword !== DELETE_POLL_PASSWORD) {
-      window.alert('Incorrect password. Poll was not deleted.');
-      return;
-    }
-
-    closePoll.mutate({ pollId, password: enteredPassword });
+    closePoll.mutate(
+      { pollId, password: enteredPassword },
+      {
+        onError: () => {
+          window.alert('Incorrect password. Poll was not deleted.');
+        },
+      }
+    );
   };
 
   return (
