@@ -230,46 +230,46 @@ export function GuessMap({ playerName }: GuessMapProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Make Your Guess
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-muted-foreground">
-              {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
-              <span className="text-xs ml-1">(zoom {zoomIndex + 1}/{ZOOM_LEVELS.length})</span>
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowZoomPassword((v) => !v)}
-              title="Manual zoom out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            {([1, 2, 3] as Difficulty[]).map((d) => (
-              <Button
-                key={d}
-                variant={selectedDifficulty === d ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedDifficulty(d)}
-                className="h-7 px-2 text-xs"
-              >
-                {DIFFICULTY_LABELS[d]}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void createRound(selectedDifficulty)}
-              disabled={createNewLocation.isPending || isCreatingRound}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
-              New round
-            </Button>
-          </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Target className="h-5 w-5 text-primary" />
+          Make Your Guess
         </CardTitle>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <span className="text-xs text-muted-foreground">
+            {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
+            <span className="ml-1">(zoom {zoomIndex + 1}/{ZOOM_LEVELS.length})</span>
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setShowZoomPassword((v) => !v)}
+            title="Manual zoom out"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          {([1, 2, 3] as Difficulty[]).map((d) => (
+            <Button
+              key={d}
+              variant={selectedDifficulty === d ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedDifficulty(d)}
+              className="h-7 px-2 text-xs"
+            >
+              {DIFFICULTY_LABELS[d]}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7"
+            onClick={() => void createRound(selectedDifficulty)}
+            disabled={createNewLocation.isPending || isCreatingRound}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
+            New
+          </Button>
+        </div>
       </CardHeader>
 
         {showZoomPassword && (
