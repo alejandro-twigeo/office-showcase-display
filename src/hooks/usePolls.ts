@@ -76,11 +76,11 @@ export function usePolls() {
   });
 
   const closePoll = useMutation({
-    mutationFn: async (pollId: string) => {
-      const { error } = await supabase
-        .from('polls')
-        .update({ is_active: false })
-        .eq('id', pollId);
+    mutationFn: async (data: { pollId: string; password: string }) => {
+      const { error } = await supabase.rpc('close_poll_with_password', {
+        p_poll_id: data.pollId,
+        p_password: data.password,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -15,7 +15,6 @@ interface StoredRoundMeta {
   answerTitle: string;
 }
 
-// Use shared difficulty config for candidate titles
 function pickRandom<T>(arr: T[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -84,21 +83,22 @@ async function fetchRandomWikiRoundWithRetry(difficulty: Difficulty = 1, maxTrie
     }
   }
 
-  // fallback
   return await fetchWikiRound("Eiffel Tower").catch(() => {
     throw lastErr ?? new Error("Failed to fetch a wiki round");
   });
 }
 
-// Zoom levels: starts at 6x, zooms out one step every 30 min
 const ZOOM_LEVELS = [6, 4.5, 3, 2, 1.5, 1];
-const ZOOM_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+const ZOOM_INTERVAL_MS = 30 * 60 * 1000;
 
 function useTimedZoom(createdAt: string | null | undefined) {
   const [zoomIndex, setZoomIndex] = useState(0);
 
   useEffect(() => {
-    if (!createdAt) { setZoomIndex(0); return; }
+    if (!createdAt) {
+      setZoomIndex(0);
+      return;
+    }
 
     const calcIndex = () => {
       const elapsed = Date.now() - new Date(createdAt).getTime();
@@ -107,7 +107,7 @@ function useTimedZoom(createdAt: string | null | undefined) {
     };
 
     setZoomIndex(calcIndex());
-    const id = setInterval(() => setZoomIndex(calcIndex()), 60_000); // check every minute
+    const id = setInterval(() => setZoomIndex(calcIndex()), 60_000);
     return () => clearInterval(id);
   }, [createdAt]);
 
@@ -130,53 +130,55 @@ export function StreetViewDisplay() {
     return getStoredMeta(roundId);
   }, [activeLocation?.id]);
 
-  const createRound = useCallback(async (difficulty: Difficulty = 1) => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setIsCreatingUi(true);
+  const createRound = useCallback(
+    async (difficulty: Difficulty = 1) => {
+      if (creatingRef.current) return;
+      creatingRef.current = true;
+      setIsCreatingUi(true);
 
-    try {
-      const round = await fetchRandomWikiRoundWithRetry(difficulty);
+      try {
+        const round = await fetchRandomWikiRoundWithRetry(difficulty);
 
-      if (!round.imageUrl || typeof round.lat !== "number" || typeof round.lng !== "number") {
-        throw new Error("Invalid round data");
-      }
-
-      createNewLocation.mutate(
-        {
-          lat: round.lat,
-          lng: round.lng,
-          pano_id: round.imageUrl,
-          difficulty,
-        },
-        {
-          onSuccess: (data: { id: string }) => {
-            lastCreatedIdRef.current = data.id;
-            localStorage.setItem(
-              LOCAL_META_KEY,
-              JSON.stringify({
-                roundId: data.id,
-                sourceUrl: round.sourceUrl,
-                answerTitle: round.answerTitle,
-              })
-            );
-            creatingRef.current = false;
-            setIsCreatingUi(false);
-          },
-          onError: () => {
-            creatingRef.current = false;
-            setIsCreatingUi(false);
-          },
+        if (!round.imageUrl || typeof round.lat !== "number" || typeof round.lng !== "number") {
+          throw new Error("Invalid round data");
         }
-      );
-    } catch (err) {
-      console.error("Round creation failed", err);
-      creatingRef.current = false;
-      setIsCreatingUi(false);
-    }
-  }, [createNewLocation]);
 
-  // Auto-create only once if there's no active location at all
+        createNewLocation.mutate(
+          {
+            lat: round.lat,
+            lng: round.lng,
+            pano_id: round.imageUrl,
+            difficulty,
+          },
+          {
+            onSuccess: (data: { id: string }) => {
+              lastCreatedIdRef.current = data.id;
+              localStorage.setItem(
+                LOCAL_META_KEY,
+                JSON.stringify({
+                  roundId: data.id,
+                  sourceUrl: round.sourceUrl,
+                  answerTitle: round.answerTitle,
+                })
+              );
+              creatingRef.current = false;
+              setIsCreatingUi(false);
+            },
+            onError: () => {
+              creatingRef.current = false;
+              setIsCreatingUi(false);
+            },
+          }
+        );
+      } catch (err) {
+        console.error("Round creation failed", err);
+        creatingRef.current = false;
+        setIsCreatingUi(false);
+      }
+    },
+    [createNewLocation]
+  );
+
   const hasAutoCreated = useRef(false);
   useEffect(() => {
     if (hasAutoCreated.current || creatingRef.current) return;
@@ -187,24 +189,33 @@ export function StreetViewDisplay() {
   }, [activeLocation, isCreatingUi, createRound]);
 
   return (
-    <>
-      <Card className="h-full flex flex-col">
+    <div className="h-full min-h-0 grid grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
+      <Card className="h-full min-h-0 flex flex-col">
         <CardHeader className="pb-2 flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Globe className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,28px)]">
+            <Globe className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,26px)] text-primary" />
             Mystery location
             {activeLocation && (
-              <Badge variant={activeLocation.difficulty === 1 ? "default" : activeLocation.difficulty === 2 ? "secondary" : "destructive"} className="ml-2">
+              <Badge
+                variant={
+                  activeLocation.difficulty === 1
+                    ? "default"
+                    : activeLocation.difficulty === 2
+                      ? "secondary"
+                      : "destructive"
+                }
+                className="ml-2 text-[clamp(12px,0.8vw,14px)]"
+              >
                 {DIFFICULTY_LABELS[(activeLocation.difficulty || 1) as Difficulty]}
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col gap-3">
+        <CardContent className="flex-1 min-h-0 flex flex-col gap-3">
           {activeLocation?.pano_id ? (
             <>
-              <div className="relative w-full flex-1 min-h-[300px] overflow-hidden rounded-lg border bg-black">
+              <div className="relative w-full flex-1 min-h-0 overflow-hidden rounded-lg border bg-black">
                 <img
                   src={activeLocation.pano_id}
                   alt="mystery"
@@ -213,7 +224,7 @@ export function StreetViewDisplay() {
                 />
               </div>
 
-              <div className="text-xs text-muted-foreground flex justify-between items-center gap-3">
+              <div className="text-[clamp(12px,0.9vw,16px)] text-muted-foreground flex justify-between items-center gap-3">
                 <span className="truncate">ID: {activeLocation.id.slice(0, 8)}...</span>
 
                 {meta?.sourceUrl ? (
@@ -239,7 +250,9 @@ export function StreetViewDisplay() {
         </CardContent>
       </Card>
 
-      <Leaderboard guesses={guesses} />
-    </>
+      <div className="h-full min-h-0">
+        <Leaderboard guesses={guesses} />
+      </div>
+    </div>
   );
 }
