@@ -1,0 +1,1 @@
+ALTER TABLE public.locations ADD COLUMN difficulty smallint NOT NULL DEFAULT 1;

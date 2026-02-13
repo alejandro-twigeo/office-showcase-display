@@ -4,6 +4,8 @@ import { Globe } from "lucide-react";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { Leaderboard } from "./Leaderboard";
 import { useGuesses } from "@/hooks/useGuesses";
+import { Badge } from "@/components/ui/badge";
+import { DIFFICULTY_LABELS, DIFFICULTY_LOCATIONS, type Difficulty } from "@/lib/difficulty";
 
 const LOCAL_META_KEY = "wikiguess_meta";
 
@@ -13,24 +15,7 @@ interface StoredRoundMeta {
   answerTitle: string;
 }
 
-const CANDIDATE_TITLES = [
-  "Eiffel Tower",
-  "Colosseum",
-  "Sydney Opera House",
-  "Statue of Liberty",
-  "Big Ben",
-  "Golden Gate Bridge",
-  "Christ the Redeemer (statue)",
-  "Sagrada Família",
-  "Burj Khalifa",
-  "Mount Fuji",
-  "Taj Mahal",
-  "Leaning Tower of Pisa",
-  "Tower Bridge",
-  "Louvre",
-  "Machu Picchu",
-];
-
+// Use shared difficulty config for candidate titles
 function pickRandom<T>(arr: T[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -86,12 +71,13 @@ async function fetchWikiRound(title: string) {
   };
 }
 
-async function fetchRandomWikiRoundWithRetry(maxTries = 12) {
+async function fetchRandomWikiRoundWithRetry(difficulty: Difficulty = 1, maxTries = 12) {
   let lastErr: unknown = null;
+  const titles = DIFFICULTY_LOCATIONS[difficulty];
 
   for (let i = 0; i < maxTries; i++) {
     try {
-      const title = pickRandom(CANDIDATE_TITLES);
+      const title = pickRandom(titles);
       return await fetchWikiRound(title);
     } catch (e) {
       lastErr = e;
@@ -143,13 +129,13 @@ export function StreetViewDisplay() {
     return getStoredMeta(roundId);
   }, [activeLocation?.id]);
 
-  const createRound = useCallback(async () => {
+  const createRound = useCallback(async (difficulty: Difficulty = 1) => {
     if (creatingRef.current || createNewLocation.isPending) return;
     creatingRef.current = true;
     setIsCreatingUi(true);
 
     try {
-      const round = await fetchRandomWikiRoundWithRetry();
+      const round = await fetchRandomWikiRoundWithRetry(difficulty);
 
       if (!round.imageUrl || typeof round.lat !== "number" || typeof round.lng !== "number") {
         throw new Error("Invalid round data");
@@ -160,6 +146,7 @@ export function StreetViewDisplay() {
           lat: round.lat,
           lng: round.lng,
           pano_id: round.imageUrl,
+          difficulty,
         },
         {
           onSuccess: (data: { id: string }) => {
@@ -202,6 +189,11 @@ export function StreetViewDisplay() {
             <CardTitle className="flex items-center gap-2 text-lg">
               <Globe className="h-5 w-5 text-primary" />
               Mystery location
+              {activeLocation && (
+                <Badge variant={activeLocation.difficulty === 1 ? "default" : activeLocation.difficulty === 2 ? "secondary" : "destructive"} className="ml-2">
+                  {DIFFICULTY_LABELS[(activeLocation.difficulty || 1) as Difficulty]}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
 

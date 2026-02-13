@@ -9,6 +9,7 @@ interface Location {
   pano_id: string | null;
   is_active: boolean;
   created_at: string | null;
+  difficulty: number;
 }
 
 export function useActiveLocation() {
@@ -48,7 +49,7 @@ export function useActiveLocation() {
   }, [queryClient]);
 
   const createNewLocation = useMutation({
-    mutationFn: async (coords: { lat: number; lng: number; pano_id?: string }) => {
+    mutationFn: async (coords: { lat: number; lng: number; pano_id?: string; difficulty?: number }) => {
       // Deactivate current location
       await supabase
         .from('locations')
@@ -63,6 +64,7 @@ export function useActiveLocation() {
           lng: coords.lng,
           pano_id: coords.pano_id || null,
           is_active: true,
+          difficulty: coords.difficulty ?? 1,
         })
         .select()
         .single();
