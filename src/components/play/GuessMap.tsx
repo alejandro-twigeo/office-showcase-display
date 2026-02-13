@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
+import { RefreshCw } from "lucide-react";
 import { MapPin, Target, Check, AlertCircle } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -61,7 +62,40 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export function GuessMap({ playerName }: GuessMapProps) {
   const deviceId = useDeviceId();
-  const { activeLocation } = useActiveLocation();
+  const { activeLocation, createNewLocation } = useActiveLocation();
+
+  const creatingRef = useRef(false);
+  const [isCreatingRound, setIsCreatingRound] = useState(false);
+
+  const createRound = useCallback(async () => {
+    if (creatingRef.current || createNewLocation.isPending) return;
+    creatingRef.current = true;
+    setIsCreatingRound(true);
+    try {
+      const res = await fetch(
+        "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=coordinates|pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=1280&titles=" +
+          encodeURIComponent(
+            ["Eiffel Tower","Colosseum","Sydney Opera House","Statue of Liberty","Big Ben","Golden Gate Bridge","Christ the Redeemer (statue)","Sagrada Família","Burj Khalifa","Mount Fuji","Taj Mahal","Leaning Tower of Pisa","Tower Bridge","Louvre","Machu Picchu"][Math.floor(Math.random() * 15)]
+          )
+      );
+      const data = await res.json();
+      const pages = data?.query?.pages;
+      const page = pages ? pages[Object.keys(pages)[0]] : null;
+      const coord = page?.coordinates?.[0];
+      const thumb = page?.thumbnail?.source;
+      if (!coord || !thumb) throw new Error("No data");
+      createNewLocation.mutate(
+        { lat: coord.lat, lng: coord.lon, pano_id: thumb },
+        {
+          onSuccess: () => { creatingRef.current = false; setIsCreatingRound(false); },
+          onError: () => { creatingRef.current = false; setIsCreatingRound(false); },
+        }
+      );
+    } catch {
+      creatingRef.current = false;
+      setIsCreatingRound(false);
+    }
+  }, [createNewLocation]);
 
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
     activeLocation?.id,
@@ -134,9 +168,20 @@ export function GuessMap({ playerName }: GuessMapProps) {
             <Target className="h-5 w-5 text-primary" />
             Make Your Guess
           </span>
-          <span className="text-sm font-normal text-muted-foreground">
-            {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-normal text-muted-foreground">
+              {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void createRound()}
+              disabled={createNewLocation.isPending || isCreatingRound}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
+              New round
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
 

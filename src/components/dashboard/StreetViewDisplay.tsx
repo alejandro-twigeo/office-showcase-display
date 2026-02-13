@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { Leaderboard } from "./Leaderboard";
 import { useGuesses } from "@/hooks/useGuesses";
@@ -105,12 +104,38 @@ async function fetchRandomWikiRoundWithRetry(maxTries = 12) {
   });
 }
 
+// Zoom levels: starts at 6x, zooms out one step every 30 min
+const ZOOM_LEVELS = [6, 4.5, 3, 2, 1.5, 1];
+const ZOOM_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
+function useTimedZoom(createdAt: string | null | undefined) {
+  const [zoomIndex, setZoomIndex] = useState(0);
+
+  useEffect(() => {
+    if (!createdAt) { setZoomIndex(0); return; }
+
+    const calcIndex = () => {
+      const elapsed = Date.now() - new Date(createdAt).getTime();
+      const idx = Math.floor(elapsed / ZOOM_INTERVAL_MS);
+      return Math.min(idx, ZOOM_LEVELS.length - 1);
+    };
+
+    setZoomIndex(calcIndex());
+    const id = setInterval(() => setZoomIndex(calcIndex()), 60_000); // check every minute
+    return () => clearInterval(id);
+  }, [createdAt]);
+
+  return ZOOM_LEVELS[zoomIndex];
+}
+
 export function StreetViewDisplay() {
   const { activeLocation, createNewLocation } = useActiveLocation();
   const { guesses } = useGuesses(activeLocation?.id);
 
   const creatingRef = useRef(false);
   const [isCreatingUi, setIsCreatingUi] = useState(false);
+
+  const scale = useTimedZoom(activeLocation?.created_at);
 
   const meta = useMemo(() => {
     const roundId = activeLocation?.id;
@@ -134,7 +159,7 @@ export function StreetViewDisplay() {
         {
           lat: round.lat,
           lng: round.lng,
-          pano_id: round.imageUrl, // store the image URL in pano_id for now
+          pano_id: round.imageUrl,
         },
         {
           onSuccess: (data: { id: string }) => {
@@ -178,18 +203,6 @@ export function StreetViewDisplay() {
               <Globe className="h-5 w-5 text-primary" />
               Mystery location
             </CardTitle>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void createRound()}
-              disabled={createNewLocation.isPending || isCreatingUi}
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${createNewLocation.isPending || isCreatingUi ? "animate-spin" : ""}`}
-              />
-              New round
-            </Button>
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col gap-3">
@@ -199,7 +212,8 @@ export function StreetViewDisplay() {
                   <img
                     src={activeLocation.pano_id}
                     alt="mystery"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000"
+                    style={{ transform: `scale(${scale})` }}
                   />
                 </div>
 
