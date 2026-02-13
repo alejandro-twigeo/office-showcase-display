@@ -1,7 +1,6 @@
 import { StreetViewDisplay } from '@/components/dashboard/StreetViewDisplay';
 import { PollDisplay } from '@/components/dashboard/PollDisplay';
 import { YouTubeDisplay } from '@/components/dashboard/YouTubeDisplay';
-import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { Monitor, Gamepad2 } from 'lucide-react';
 
@@ -27,11 +26,12 @@ export default function Dashboard() {
               <Monitor className="h-4 w-4" />
               <span>TV</span>
             </div>
-            <Switch 
-              id="mode-switch" 
-              checked={false}
-              onCheckedChange={handleModeSwitch}
-            />
+            <button
+              onClick={() => navigate('/play')}
+              className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted transition-colors"
+            >
+              <span className="inline-block h-4 w-4 transform rounded-full bg-foreground transition-transform translate-x-1" />
+            </button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Play</span>
               <Gamepad2 className="h-4 w-4" />

@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw } from "lucide-react";
-import { MapPin, Target, Check, AlertCircle } from "lucide-react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import { RefreshCw, MapPin, Target, Check, AlertCircle } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -22,42 +20,75 @@ interface GuessMapProps {
   playerName: string;
 }
 
-function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click: (e) => onMapClick(e.latlng.lat, e.latlng.lng),
-  });
-  return null;
-}
-
-// When the map is inside tabs / conditional render, Leaflet can mount with 0x0 size.
-// This forces a resize after mount so tiles display correctly.
-function MapInvalidateOnMount() {
-  const map = useMap();
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      map.invalidateSize();
-    }, 0);
-    return () => clearTimeout(t);
-  }, [map]);
-
-  return null;
-}
-
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
-
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
-
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/** Pure Leaflet map (no react-leaflet) to avoid Context.Consumer crash in React 18. */
+function LeafletMap({
+  onMapClick,
+  markerPosition,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+  markerPosition: { lat: number; lng: number } | null;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // Initialise map once
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = L.map(containerRef.current).setView([20, 0], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+    }).addTo(map);
+
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    });
+
+    mapRef.current = map;
+
+    // Fix tiles when container is initially 0×0 (inside tabs)
+    setTimeout(() => map.invalidateSize(), 0);
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+    // onMapClick is stable (useCallback) so this is fine
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync marker
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (markerPosition) {
+      if (markerRef.current) {
+        markerRef.current.setLatLng([markerPosition.lat, markerPosition.lng]);
+      } else {
+        markerRef.current = L.marker([markerPosition.lat, markerPosition.lng]).addTo(mapRef.current);
+      }
+    } else if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  }, [markerPosition]);
+
+  return <div ref={containerRef} className="h-full w-full" />;
 }
 
 export function GuessMap({ playerName }: GuessMapProps) {
@@ -102,9 +133,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
     deviceId
   );
 
-  const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
+  const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
 
   const handleMapClick = useCallback(
     (lat: number, lng: number) => {
@@ -115,17 +144,12 @@ export function GuessMap({ playerName }: GuessMapProps) {
 
   const handleSubmitGuess = () => {
     if (!selectedPosition || !activeLocation || !deviceId) return;
-
     const distance = calculateDistance(
-      selectedPosition.lat,
-      selectedPosition.lng,
-      activeLocation.lat,
-      activeLocation.lng
+      selectedPosition.lat, selectedPosition.lng,
+      activeLocation.lat, activeLocation.lng
     );
-
     const guessNumber = userGuesses.length + 1;
     const playerNameWithSuffix = `${playerName}_${guessNumber}`;
-
     submitGuess.mutate(
       {
         location_id: activeLocation.id,
@@ -136,9 +160,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
         distance_km: distance,
         guess_number: guessNumber,
       },
-      {
-        onSuccess: () => setSelectedPosition(null),
-      }
+      { onSuccess: () => setSelectedPosition(null) }
     );
   };
 
@@ -190,14 +212,10 @@ export function GuessMap({ playerName }: GuessMapProps) {
           <div className="text-center py-6">
             <Check className="h-12 w-12 text-success mx-auto mb-3" />
             <p className="font-medium">You've used all your guesses!</p>
-
             <div className="mt-4 space-y-2">
               <p className="text-sm text-muted-foreground">Your guesses:</p>
               {userGuesses.map((guess, i) => (
-                <div
-                  key={guess.id}
-                  className="text-sm bg-secondary px-3 py-2 rounded-md flex justify-between"
-                >
+                <div key={guess.id} className="text-sm bg-secondary px-3 py-2 rounded-md flex justify-between">
                   <span>Guess #{i + 1}</span>
                   <span className="font-mono text-accent">{formatDistance(guess.distance_km)}</span>
                 </div>
@@ -207,20 +225,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
         ) : (
           <>
             <div className="w-full h-[320px] overflow-hidden rounded-lg border">
-              <MapContainer center={[20, 0]} zoom={2} scrollWheelZoom className="h-full w-full">
-                <MapInvalidateOnMount />
-
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution="© OpenStreetMap contributors"
-                />
-
-                <MapClickHandler onMapClick={handleMapClick} />
-
-                {selectedPosition && (
-                  <Marker position={[selectedPosition.lat, selectedPosition.lng]} />
-                )}
-              </MapContainer>
+              <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
             </div>
 
             <div className="flex items-center gap-2">
@@ -249,10 +254,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
             <p className="text-sm text-muted-foreground mb-2">Previous guesses:</p>
             <div className="space-y-1">
               {userGuesses.map((guess, i) => (
-                <div
-                  key={guess.id}
-                  className="text-sm bg-secondary/50 px-3 py-1 rounded flex justify-between"
-                >
+                <div key={guess.id} className="text-sm bg-secondary/50 px-3 py-1 rounded flex justify-between">
                   <span>#{i + 1}</span>
                   <span className="font-mono">{formatDistance(guess.distance_km)}</span>
                 </div>
