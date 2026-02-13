@@ -43,7 +43,8 @@ export function PollDisplay() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activePolls.length, currentPoll, closePoll]);
+  }, [activePolls, currentPollId]);
+
 
   // Reset index when polls change
 useEffect(() => {
