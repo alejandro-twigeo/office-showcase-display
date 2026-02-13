@@ -112,9 +112,9 @@ export function GuessMap({ playerName }: GuessMapProps) {
 
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
-  const [showZoomPassword, setShowZoomPassword] = useState(false);
-  const [zoomPassword, setZoomPassword] = useState('');
-  const [zoomError, setZoomError] = useState('');
+  const [passwordAction, setPasswordAction] = useState<'zoom' | 'new' | null>(null);
+  const [actionPassword, setActionPassword] = useState('');
+  const [actionError, setActionError] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(1);
 
   // Compute current zoom index & max guesses allowed so far
@@ -151,25 +151,25 @@ export function GuessMap({ playerName }: GuessMapProps) {
     }
   }, [createNewLocation]);
 
-  const handleManualZoom = async () => {
-    if (zoomPassword !== '1234') {
-      setZoomError('Wrong password');
+  const handlePasswordConfirm = async () => {
+    if (actionPassword !== '1234') {
+      setActionError('Wrong password');
       return;
     }
-    if (!activeLocation?.created_at) return;
-
-    // Shift created_at back by 30 min to simulate one zoom step
-    const current = new Date(activeLocation.created_at);
-    current.setMinutes(current.getMinutes() - 30);
-
-    await supabase
-      .from('locations')
-      .update({ created_at: current.toISOString() })
-      .eq('id', activeLocation.id);
-
-    setShowZoomPassword(false);
-    setZoomPassword('');
-    setZoomError('');
+    if (passwordAction === 'zoom') {
+      if (!activeLocation?.created_at) return;
+      const current = new Date(activeLocation.created_at);
+      current.setMinutes(current.getMinutes() - 30);
+      await supabase
+        .from('locations')
+        .update({ created_at: current.toISOString() })
+        .eq('id', activeLocation.id);
+    } else if (passwordAction === 'new') {
+      void createRound(selectedDifficulty);
+    }
+    setPasswordAction(null);
+    setActionPassword('');
+    setActionError('');
   };
 
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
@@ -243,7 +243,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
             variant="outline"
             size="icon"
             className="h-7 w-7"
-            onClick={() => setShowZoomPassword((v) => !v)}
+            onClick={() => setPasswordAction(passwordAction === 'zoom' ? null : 'zoom')}
             title="Manual zoom out"
           >
             <ZoomOut className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
             variant="outline"
             size="sm"
             className="h-7"
-            onClick={() => void createRound(selectedDifficulty)}
+            onClick={() => setPasswordAction(passwordAction === 'new' ? null : 'new')}
             disabled={createNewLocation.isPending || isCreatingRound}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
@@ -272,22 +272,22 @@ export function GuessMap({ playerName }: GuessMapProps) {
         </div>
       </CardHeader>
 
-        {showZoomPassword && (
+        {passwordAction && (
           <div className="px-6 pb-2">
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-muted-foreground" />
               <Input
                 type="password"
-                placeholder="Enter password to zoom out"
-                value={zoomPassword}
-                onChange={(e) => { setZoomPassword(e.target.value); setZoomError(''); }}
+                placeholder={passwordAction === 'zoom' ? "Password to zoom out" : `Password to start ${DIFFICULTY_LABELS[selectedDifficulty]} round`}
+                value={actionPassword}
+                onChange={(e) => { setActionPassword(e.target.value); setActionError(''); }}
                 className="flex-1 h-8 text-sm"
               />
-              <Button size="sm" onClick={handleManualZoom} className="h-8">
-                Zoom Out
+              <Button size="sm" onClick={handlePasswordConfirm} className="h-8">
+                {passwordAction === 'zoom' ? 'Zoom Out' : 'Start'}
               </Button>
             </div>
-            {zoomError && <p className="text-xs text-destructive mt-1">{zoomError}</p>}
+            {actionError && <p className="text-xs text-destructive mt-1">{actionError}</p>}
           </div>
         )}
 
