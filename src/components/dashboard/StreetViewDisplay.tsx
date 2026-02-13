@@ -120,6 +120,7 @@ export function StreetViewDisplay() {
 
   const creatingRef = useRef(false);
   const [isCreatingUi, setIsCreatingUi] = useState(false);
+  const lastCreatedIdRef = useRef<string | null>(null);
 
   const scale = useTimedZoom(activeLocation?.created_at);
 
@@ -130,7 +131,7 @@ export function StreetViewDisplay() {
   }, [activeLocation?.id]);
 
   const createRound = useCallback(async (difficulty: Difficulty = 1) => {
-    if (creatingRef.current || createNewLocation.isPending) return;
+    if (creatingRef.current) return;
     creatingRef.current = true;
     setIsCreatingUi(true);
 
@@ -150,6 +151,7 @@ export function StreetViewDisplay() {
         },
         {
           onSuccess: (data: { id: string }) => {
+            lastCreatedIdRef.current = data.id;
             localStorage.setItem(
               LOCAL_META_KEY,
               JSON.stringify({
@@ -174,12 +176,15 @@ export function StreetViewDisplay() {
     }
   }, [createNewLocation]);
 
-  // Auto-create a round if none exists or if pano_id is missing
+  // Auto-create only once if there's no active location at all
+  const hasAutoCreated = useRef(false);
   useEffect(() => {
-    if (!activeLocation || !activeLocation.pano_id) {
+    if (hasAutoCreated.current || creatingRef.current) return;
+    if (!activeLocation && !isCreatingUi) {
+      hasAutoCreated.current = true;
       void createRound();
     }
-  }, [activeLocation?.id, activeLocation?.pano_id, createRound]);
+  }, [activeLocation, isCreatingUi, createRound]);
 
   return (
     <>
