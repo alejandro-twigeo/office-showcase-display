@@ -62,7 +62,7 @@ export function useGuesses(locationId: string | undefined) {
   return { guesses, isLoading };
 }
 
-export function useUserGuesses(locationId: string | undefined, deviceId: string) {
+export function useUserGuesses(locationId: string | undefined, deviceId: string, maxGuesses?: number) {
   const queryClient = useQueryClient();
 
   const { data: userGuesses = [], isLoading } = useQuery({
@@ -102,7 +102,8 @@ export function useUserGuesses(locationId: string | undefined, deviceId: string)
     },
   });
 
-  const remainingGuesses = 3 - userGuesses.length;
+  const limit = maxGuesses ?? 3;
+  const remainingGuesses = Math.max(0, limit - userGuesses.length);
 
   return { userGuesses, isLoading, submitGuess, remainingGuesses };
 }
