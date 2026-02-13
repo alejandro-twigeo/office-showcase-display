@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -91,12 +93,30 @@ function LeafletMap({
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
+// Same zoom config as dashboard
+const ZOOM_LEVELS = [6, 4.5, 3, 2, 1.5, 1];
+const ZOOM_INTERVAL_MS = 30 * 60 * 1000;
+const GUESSES_PER_ZOOM = 3;
+
+function getZoomIndex(createdAt: string | null | undefined): number {
+  if (!createdAt) return 0;
+  const elapsed = Date.now() - new Date(createdAt).getTime();
+  return Math.min(Math.floor(elapsed / ZOOM_INTERVAL_MS), ZOOM_LEVELS.length - 1);
+}
+
 export function GuessMap({ playerName }: GuessMapProps) {
   const deviceId = useDeviceId();
   const { activeLocation, createNewLocation } = useActiveLocation();
 
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
+  const [showZoomPassword, setShowZoomPassword] = useState(false);
+  const [zoomPassword, setZoomPassword] = useState('');
+  const [zoomError, setZoomError] = useState('');
+
+  // Compute current zoom index & max guesses allowed so far
+  const zoomIndex = getZoomIndex(activeLocation?.created_at);
+  const maxTotalGuesses = (zoomIndex + 1) * GUESSES_PER_ZOOM;
 
   const createRound = useCallback(async () => {
     if (creatingRef.current || createNewLocation.isPending) return;
@@ -128,9 +148,31 @@ export function GuessMap({ playerName }: GuessMapProps) {
     }
   }, [createNewLocation]);
 
+  const handleManualZoom = async () => {
+    if (zoomPassword !== '1234') {
+      setZoomError('Wrong password');
+      return;
+    }
+    if (!activeLocation?.created_at) return;
+
+    // Shift created_at back by 30 min to simulate one zoom step
+    const current = new Date(activeLocation.created_at);
+    current.setMinutes(current.getMinutes() - 30);
+
+    await supabase
+      .from('locations')
+      .update({ created_at: current.toISOString() })
+      .eq('id', activeLocation.id);
+
+    setShowZoomPassword(false);
+    setZoomPassword('');
+    setZoomError('');
+  };
+
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
     activeLocation?.id,
-    deviceId
+    deviceId,
+    maxTotalGuesses
   );
 
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -193,7 +235,16 @@ export function GuessMap({ playerName }: GuessMapProps) {
           <div className="flex items-center gap-2">
             <span className="text-sm font-normal text-muted-foreground">
               {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
+              <span className="text-xs ml-1">(zoom {zoomIndex + 1}/{ZOOM_LEVELS.length})</span>
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowZoomPassword((v) => !v)}
+              title="Manual zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -207,11 +258,31 @@ export function GuessMap({ playerName }: GuessMapProps) {
         </CardTitle>
       </CardHeader>
 
+        {showZoomPassword && (
+          <div className="px-6 pb-2">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="password"
+                placeholder="Enter password to zoom out"
+                value={zoomPassword}
+                onChange={(e) => { setZoomPassword(e.target.value); setZoomError(''); }}
+                className="flex-1 h-8 text-sm"
+              />
+              <Button size="sm" onClick={handleManualZoom} className="h-8">
+                Zoom Out
+              </Button>
+            </div>
+            {zoomError && <p className="text-xs text-destructive mt-1">{zoomError}</p>}
+          </div>
+        )}
+
       <CardContent className="space-y-4">
         {remainingGuesses === 0 ? (
           <div className="text-center py-6">
             <Check className="h-12 w-12 text-success mx-auto mb-3" />
-            <p className="font-medium">You've used all your guesses!</p>
+            <p className="font-medium">You've used all guesses for this zoom level!</p>
+            <p className="text-sm text-muted-foreground">Wait for the next zoom out to get 3 more guesses.</p>
             <div className="mt-4 space-y-2">
               <p className="text-sm text-muted-foreground">Your guesses:</p>
               {userGuesses.map((guess, i) => (
