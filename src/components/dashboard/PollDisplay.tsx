@@ -19,12 +19,14 @@ export function PollDisplay() {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
+          setCurrentPollIndex((i) => (i + 1) % activePolls.length);
+  return 30;
           // Close current poll and move to next
-          if (currentPoll) {
-            closePoll.mutate(currentPoll.id);
-          }
-          setCurrentPollIndex((i) => (i + 1) % Math.max(1, activePolls.length - 1));
-          return 30;
+         // if (currentPoll) {
+           // closePoll.mutate(currentPoll.id);
+         // }
+         // setCurrentPollIndex((i) => (i + 1) % Math.max(1, activePolls.length - 1));
+         // return 30;
         }
         return prev - 1;
       });
