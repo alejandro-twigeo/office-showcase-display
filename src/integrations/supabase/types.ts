@@ -61,6 +61,7 @@ export type Database = {
       locations: {
         Row: {
           created_at: string | null
+          difficulty: number
           id: string
           is_active: boolean | null
           lat: number
@@ -69,6 +70,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          difficulty?: number
           id?: string
           is_active?: boolean | null
           lat: number
@@ -77,6 +79,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          difficulty?: number
           id?: string
           is_active?: boolean | null
           lat?: number

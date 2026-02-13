@@ -7,6 +7,8 @@ import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DIFFICULTY_LOCATIONS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
+import { Badge } from "@/components/ui/badge";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -113,21 +115,22 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [showZoomPassword, setShowZoomPassword] = useState(false);
   const [zoomPassword, setZoomPassword] = useState('');
   const [zoomError, setZoomError] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(1);
 
   // Compute current zoom index & max guesses allowed so far
   const zoomIndex = getZoomIndex(activeLocation?.created_at);
   const maxTotalGuesses = (zoomIndex + 1) * GUESSES_PER_ZOOM;
 
-  const createRound = useCallback(async () => {
+  const createRound = useCallback(async (difficulty: Difficulty) => {
     if (creatingRef.current || createNewLocation.isPending) return;
     creatingRef.current = true;
     setIsCreatingRound(true);
     try {
+      const titles = DIFFICULTY_LOCATIONS[difficulty];
+      const title = titles[Math.floor(Math.random() * titles.length)];
       const res = await fetch(
         "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=coordinates|pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=1280&titles=" +
-          encodeURIComponent(
-            ["Eiffel Tower","Colosseum","Sydney Opera House","Statue of Liberty","Big Ben","Golden Gate Bridge","Christ the Redeemer (statue)","Sagrada Família","Burj Khalifa","Mount Fuji","Taj Mahal","Leaning Tower of Pisa","Tower Bridge","Louvre","Machu Picchu"][Math.floor(Math.random() * 15)]
-          )
+          encodeURIComponent(title)
       );
       const data = await res.json();
       const pages = data?.query?.pages;
@@ -136,7 +139,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
       const thumb = page?.thumbnail?.source;
       if (!coord || !thumb) throw new Error("No data");
       createNewLocation.mutate(
-        { lat: coord.lat, lng: coord.lon, pano_id: thumb },
+        { lat: coord.lat, lng: coord.lon, pano_id: thumb, difficulty },
         {
           onSuccess: () => { creatingRef.current = false; setIsCreatingRound(false); },
           onError: () => { creatingRef.current = false; setIsCreatingRound(false); },
@@ -245,10 +248,21 @@ export function GuessMap({ playerName }: GuessMapProps) {
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
+            {([1, 2, 3] as Difficulty[]).map((d) => (
+              <Button
+                key={d}
+                variant={selectedDifficulty === d ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedDifficulty(d)}
+                className="h-7 px-2 text-xs"
+              >
+                {DIFFICULTY_LABELS[d]}
+              </Button>
+            ))}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => void createRound()}
+              onClick={() => void createRound(selectedDifficulty)}
               disabled={createNewLocation.isPending || isCreatingRound}
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
