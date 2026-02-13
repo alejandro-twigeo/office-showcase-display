@@ -1,57 +1,69 @@
-import { StreetViewDisplay } from '@/components/dashboard/StreetViewDisplay';
-import { PollDisplay } from '@/components/dashboard/PollDisplay';
-import { YouTubeDisplay } from '@/components/dashboard/YouTubeDisplay';
-import { useNavigate } from 'react-router-dom';
-import { Monitor, Gamepad2 } from 'lucide-react';
+import { StreetViewDisplay } from "@/components/dashboard/StreetViewDisplay";
+import { PollDisplay } from "@/components/dashboard/PollDisplay";
+import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
+import { useNavigate } from "react-router-dom";
+import { Monitor, Gamepad2 } from "lucide-react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const handleModeSwitch = (checked: boolean) => {
-    if (checked) {
-      navigate('/play');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-[1920px] mx-auto space-y-4">
-        {/* Header */}
-        <header className="flex items-center justify-between py-2">
-          <h1 className="text-2xl font-bold text-foreground">
-            🎮 Office TV Dashboard
-          </h1>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Monitor className="h-4 w-4" />
-              <span>TV</span>
-            </div>
-            <button
-              onClick={() => navigate('/play')}
-              className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted transition-colors"
-            >
-              <span className="inline-block h-4 w-4 transform rounded-full bg-foreground transition-transform translate-x-1" />
-            </button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Play</span>
-              <Gamepad2 className="h-4 w-4" />
-            </div>
-          </div>
-        </header>
+    <div className="h-[100dvh] w-screen overflow-hidden bg-background">
+      {/* Use responsive padding that still feels big on TVs */}
+      <div className="h-full w-full p-[clamp(12px,1.4vw,24px)]">
+        {/* Full-height layout: header + content fills the rest */}
+        <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(10px,1.2vw,18px)]">
+          {/* Header */}
+          <header className="flex items-center justify-between">
+            <h1 className="font-bold text-foreground text-[clamp(22px,2.2vw,44px)] leading-none">
+              🎮 Office TV Dashboard
+            </h1>
 
-        {/* Top Row: YouTube 2/3 + Polls 1/3 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <YouTubeDisplay />
-          </div>
-          <div>
-            <PollDisplay />
-          </div>
-        </div>
+            <div className="flex items-center gap-[clamp(10px,1vw,16px)]">
+              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(14px,1.1vw,20px)]">
+                <Monitor className="h-[clamp(16px,1.2vw,22px)] w-[clamp(16px,1.2vw,22px)]" />
+                <span>TV</span>
+              </div>
 
-        {/* Bottom Row: Mystery Location 1/2 + Leaderboard 1/2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-[400px]">
-          <StreetViewDisplay />
+              <button
+                onClick={() => navigate("/play")}
+                className="relative inline-flex items-center rounded-full bg-muted transition-colors
+                           h-[clamp(28px,2.0vw,40px)] w-[clamp(52px,3.6vw,72px)]"
+                aria-label="Switch to play mode"
+              >
+                <span
+                  className="inline-block rounded-full bg-foreground transition-transform
+                             h-[clamp(20px,1.4vw,30px)] w-[clamp(20px,1.4vw,30px)] translate-x-1"
+                />
+              </button>
+
+              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(14px,1.1vw,20px)]">
+                <span>Play</span>
+                <Gamepad2 className="h-[clamp(16px,1.2vw,22px)] w-[clamp(16px,1.2vw,22px)]" />
+              </div>
+            </div>
+          </header>
+
+          {/* Content area must be allowed to shrink */}
+          <div className="min-h-0">
+            {/* Split remaining height into two rows: top (YouTube+Poll) + bottom (StreetView) */}
+            <div className="h-full grid grid-rows-[60%_40%] gap-[clamp(10px,1.2vw,18px)] min-h-0">
+              {/* Top row */}
+              <div className="min-h-0 grid grid-cols-3 gap-[clamp(10px,1.2vw,18px)]">
+                <div className="col-span-2 min-h-0 overflow-hidden rounded-xl">
+                  <YouTubeDisplay />
+                </div>
+                <div className="col-span-1 min-h-0 overflow-hidden rounded-xl">
+                  <PollDisplay />
+                </div>
+              </div>
+
+              {/* Bottom row */}
+              <div className="min-h-0 overflow-hidden rounded-xl">
+                <StreetViewDisplay />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
