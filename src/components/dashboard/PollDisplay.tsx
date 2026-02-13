@@ -12,7 +12,7 @@ export function PollDisplay() {
   const [currentPollId, setCurrentPollId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROTATE_SECONDS);
 
-  // refs to avoid stale closures inside setInterval
+  // Refs to avoid stale closures inside setInterval
   const currentPollIdRef = useRef<string | null>(null);
   const activePollsRef = useRef<typeof activePolls>([]);
 
@@ -24,7 +24,7 @@ export function PollDisplay() {
     activePollsRef.current = activePolls;
   }, [activePolls]);
 
-  // keep currentPollId valid whenever polls list changes
+  // Keep currentPollId valid whenever polls list changes
   useEffect(() => {
     if (activePolls.length === 0) {
       setCurrentPollId(null);
@@ -45,7 +45,7 @@ export function PollDisplay() {
     }
   }, [activePolls, currentPollId]);
 
-  // single interval that always uses latest refs
+  // Single interval that always uses latest refs
   useEffect(() => {
     if (activePolls.length === 0) return;
 
