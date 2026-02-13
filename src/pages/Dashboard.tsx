@@ -9,47 +9,41 @@ export default function Dashboard() {
 
   return (
     <div className="h-[100dvh] w-screen overflow-hidden bg-background">
-      {/* Use responsive padding that still feels big on TVs */}
-      <div className="h-full w-full p-[clamp(12px,1.4vw,24px)]">
-        {/* Full-height layout: header + content fills the rest */}
-        <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(10px,1.2vw,18px)]">
-          {/* Header */}
+      <div className="h-full w-full p-[clamp(16px,1.6vw,28px)]">
+        <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(12px,1.2vw,20px)]">
           <header className="flex items-center justify-between">
-            <h1 className="font-bold text-foreground text-[clamp(22px,2.2vw,44px)] leading-none">
+            <h1 className="font-bold text-foreground text-[clamp(26px,2.4vw,48px)] leading-none">
               🎮 Office TV Dashboard
             </h1>
 
             <div className="flex items-center gap-[clamp(10px,1vw,16px)]">
-              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(14px,1.1vw,20px)]">
-                <Monitor className="h-[clamp(16px,1.2vw,22px)] w-[clamp(16px,1.2vw,22px)]" />
+              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(15px,1.2vw,22px)]">
+                <Monitor className="h-[clamp(18px,1.3vw,24px)] w-[clamp(18px,1.3vw,24px)]" />
                 <span>TV</span>
               </div>
 
               <button
                 onClick={() => navigate("/play")}
                 className="relative inline-flex items-center rounded-full bg-muted transition-colors
-                           h-[clamp(28px,2.0vw,40px)] w-[clamp(52px,3.6vw,72px)]"
+                           h-[clamp(30px,2vw,42px)] w-[clamp(56px,3.8vw,76px)]"
                 aria-label="Switch to play mode"
               >
                 <span
                   className="inline-block rounded-full bg-foreground transition-transform
-                             h-[clamp(20px,1.4vw,30px)] w-[clamp(20px,1.4vw,30px)] translate-x-1"
+                             h-[clamp(22px,1.5vw,32px)] w-[clamp(22px,1.5vw,32px)] translate-x-1"
                 />
               </button>
 
-              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(14px,1.1vw,20px)]">
+              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(15px,1.2vw,22px)]">
                 <span>Play</span>
-                <Gamepad2 className="h-[clamp(16px,1.2vw,22px)] w-[clamp(16px,1.2vw,22px)]" />
+                <Gamepad2 className="h-[clamp(18px,1.3vw,24px)] w-[clamp(18px,1.3vw,24px)]" />
               </div>
             </div>
           </header>
 
-          {/* Content area must be allowed to shrink */}
           <div className="min-h-0">
-            {/* Split remaining height into two rows: top (YouTube+Poll) + bottom (StreetView) */}
-            <div className="h-full grid grid-rows-[60%_40%] gap-[clamp(10px,1.2vw,18px)] min-h-0">
-              {/* Top row */}
-              <div className="min-h-0 grid grid-cols-3 gap-[clamp(10px,1.2vw,18px)]">
+            <div className="h-full grid grid-rows-[56%_44%] gap-[clamp(12px,1.2vw,20px)] min-h-0">
+              <div className="min-h-0 grid grid-cols-3 gap-[clamp(12px,1.2vw,20px)]">
                 <div className="col-span-2 min-h-0 overflow-hidden rounded-xl">
                   <YouTubeDisplay />
                 </div>
@@ -58,7 +52,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Bottom row */}
               <div className="min-h-0 overflow-hidden rounded-xl">
                 <StreetViewDisplay />
               </div>
