@@ -5,11 +5,15 @@ import { usePolls, useVotes } from '@/hooks/usePolls';
 import { BarChart3, Clock, Users } from 'lucide-react';
 
 export function PollDisplay() {
-  const { activePolls, closePoll } = usePolls();
-  const [currentPollIndex, setCurrentPollIndex] = useState(0);
+  const { activePolls } = usePolls();
+//  const [currentPollIndex, setCurrentPollIndex] = useState(0);
+  const [currentPollId, setCurrentPollId] = useState<string | null>(null);
+
   const [timeLeft, setTimeLeft] = useState(30);
 
-  const currentPoll = activePolls[currentPollIndex];
+ // const currentPoll = activePolls[currentPollIndex];
+  const currentPoll = activePolls.find((p) => p.id === currentPollId);
+
   const { votes } = useVotes(currentPoll?.id);
 
   // Auto-rotate polls every 30 seconds
@@ -19,8 +23,14 @@ export function PollDisplay() {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setCurrentPollIndex((i) => (i + 1) % activePolls.length);
-  return 30;
+
+          const idx = activePolls.findIndex((p) => p.id === currentPollId);
+        const nextIdx = idx === -1 ? 0 : (idx + 1) % activePolls.length;
+
+        setCurrentPollId(activePolls[nextIdx].id);
+        return 30;
+          //setCurrentPollIndex((i) => (i + 1) % activePolls.length);
+  //return 30;
           // Close current poll and move to next
          // if (currentPoll) {
            // closePoll.mutate(currentPoll.id);
@@ -36,11 +46,28 @@ export function PollDisplay() {
   }, [activePolls.length, currentPoll, closePoll]);
 
   // Reset index when polls change
-  useEffect(() => {
-    if (currentPollIndex >= activePolls.length) {
-      setCurrentPollIndex(0);
-    }
-  }, [activePolls.length, currentPollIndex]);
+useEffect(() => {
+  if (activePolls.length === 0) {
+    setCurrentPollId(null);
+    setTimeLeft(30);
+    return;
+  }
+
+  // initial pick
+  if (!currentPollId) {
+    setCurrentPollId(activePolls[0].id);
+    setTimeLeft(30);
+    return;
+  }
+
+  // if current poll disappeared, fall back safely
+  const stillExists = activePolls.some((p) => p.id === currentPollId);
+  if (!stillExists) {
+    setCurrentPollId(activePolls[0].id);
+    setTimeLeft(30);
+  }
+}, [activePolls, currentPollId]);
+
 
   const getVoteCounts = () => {
     if (!currentPoll) return [];
