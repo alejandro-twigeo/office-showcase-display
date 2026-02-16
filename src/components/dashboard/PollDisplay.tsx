@@ -105,22 +105,19 @@ export function PollDisplay() {
 
       <CardContent>
         {isLoading ? (
-  <div className="text-center py-8">
-    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-    <p className="text-muted-foreground text-sm">Loading polls…</p>
-  </div>
-) : !currentPoll ? (
-  <div className="text-center py-8">
-    <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-    <p className="text-muted-foreground text-sm">No active polls</p>
-    <p className="text-muted-foreground text-xs mt-1">
-      Create one from the Play page!
-    </p>
-  </div>
-) : (
-  // ... current poll UI ...
-)}
-
+          <div className="text-center py-8">
+            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">Loading polls…</p>
+          </div>
+        ) : !currentPoll ? (
+          <div className="text-center py-8">
+            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">No active polls</p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Create one from the Play page!
+            </p>
+          </div>
+        ) : (
           <div className="space-y-4">
             <div className="mb-4">
               <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-1" />
