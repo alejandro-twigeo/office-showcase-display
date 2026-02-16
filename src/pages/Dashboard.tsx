@@ -12,9 +12,13 @@ export default function Dashboard() {
       <div className="h-full w-full p-[clamp(16px,1.6vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(12px,1.2vw,20px)]">
           <header className="flex items-center justify-between">
-            <h1 className="font-bold text-foreground text-[clamp(26px,2.4vw,48px)] leading-none">
-              🎮 Office TV Dashboard
-            </h1>
+<h1 className="flex items-center">
+  <img
+    src="https://usercontent.one/wp/www.twigeo.com/wp-content/uploads/2023/09/favicon2-150x150.png?media=1770653196"
+    alt="Twigeo logo"
+    className="h-[clamp(40px,4vw,90px)] w-auto object-contain"
+  />
+</h1>
 
             <div className="flex items-center gap-[clamp(10px,1vw,16px)]">
               <div className="flex items-center gap-2 text-muted-foreground text-[clamp(15px,1.2vw,22px)]">
