@@ -90,6 +90,10 @@ export type Database = {
       }
       polls: {
         Row: {
+          closed_at: string | null
+          closed_by: string | null
+          closed_reason: string | null
+          closed_source: string | null
           created_at: string | null
           created_by: string
           id: string
@@ -99,6 +103,10 @@ export type Database = {
           started_at: string | null
         }
         Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
+          closed_source?: string | null
           created_at?: string | null
           created_by: string
           id?: string
@@ -108,6 +116,10 @@ export type Database = {
           started_at?: string | null
         }
         Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
+          closed_source?: string | null
           created_at?: string | null
           created_by?: string
           id?: string
@@ -115,6 +127,48 @@ export type Database = {
           options?: Json
           question?: string
           started_at?: string | null
+        }
+        Relationships: []
+      }
+      polls_active_audit: {
+        Row: {
+          application_name: string | null
+          audit_id: number
+          auth_uid: string | null
+          backend_pid: number | null
+          changed_at: string
+          client_addr: unknown
+          db_user: string
+          new_is_active: boolean | null
+          old_is_active: boolean | null
+          poll_id: string
+          query_text: string | null
+        }
+        Insert: {
+          application_name?: string | null
+          audit_id?: number
+          auth_uid?: string | null
+          backend_pid?: number | null
+          changed_at?: string
+          client_addr?: unknown
+          db_user?: string
+          new_is_active?: boolean | null
+          old_is_active?: boolean | null
+          poll_id: string
+          query_text?: string | null
+        }
+        Update: {
+          application_name?: string | null
+          audit_id?: number
+          auth_uid?: string | null
+          backend_pid?: number | null
+          changed_at?: string
+          client_addr?: unknown
+          db_user?: string
+          new_is_active?: boolean | null
+          old_is_active?: boolean | null
+          poll_id?: string
+          query_text?: string | null
         }
         Relationships: []
       }
@@ -188,7 +242,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      close_poll: {
+        Args: {
+          p_closed_by?: string
+          p_poll_id: string
+          p_reason: string
+          p_source: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
