@@ -55,27 +55,7 @@ async function fetchYouTubeMeta(
   }
 }
 
-//async function fetchYouTubeMeta(videoId: string): Promise<{ title: string; thumbnail_url: string }> {
-  // No API key required
-//  const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
-//    `https://www.youtube.com/watch?v=${videoId}`
-//  )}&format=json`;
 
-//  const res = await fetch(url);
-//  if (!res.ok) {
-//    // fallback (still gives you a thumbnail)
-//    return {
-//      title: `Video ${videoId}`,
- //     thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-   // };
-  //}
-
-  const json = (await res.json()) as { title?: string; thumbnail_url?: string };
-  return {
-    title: json.title ?? `Video ${videoId}`,
-    thumbnail_url: json.thumbnail_url ?? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-  };
-}
 
 export function useYoutubeQueue() {
   const queryClient = useQueryClient();
