@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useYoutubeQueue } from '@/hooks/useYoutubeQueue';
-import { Youtube, Play, Clock, Search, Edit2, X, Check } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
+import { Youtube, Play, Clock, Search, Edit2, X, Check } from "lucide-react";
 
 interface YouTubeSectionProps {
   playerName: string;
@@ -11,70 +11,116 @@ interface YouTubeSectionProps {
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const { currentVideo, recentVideos, playVideo, updateVideo } = useYoutubeQueue();
-  const [videoUrl, setVideoUrl] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editUrl, setEditUrl] = useState('');
 
-  // Populate edit field when entering edit mode
-  useEffect(() => {
-    if (isEditing && currentVideo) {
-      setEditUrl(`https://youtube.com/watch?v=${currentVideo.video_id}`);
-    }
-  }, [isEditing, currentVideo]);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUrl, setEditUrl] = useState("");
+
+  const [error, setError] = useState<string | null>(null);
+  const userTouchedEditRef = useRef(false);
 
   const extractVideoId = (url: string): string | null => {
+    const trimmed = url.trim();
+
+    // Support raw video id
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+    // Support common URL formats
     const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /^([a-zA-Z0-9_-]{11})$/,
+      /youtube\.com\/watch\?v=([^&\n?#]+)/i,
+      /youtu\.be\/([^&\n?#]+)/i,
+      /youtube\.com\/embed\/([^&\n?#]+)/i,
+      /youtube\.com\/shorts\/([^&\n?#]+)/i,
     ];
-    
+
     for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
+      const match = trimmed.match(pattern);
+      if (match?.[1]) return match[1];
     }
+
     return null;
   };
 
-  const handlePlayVideo = () => {
-    const videoId = extractVideoId(videoUrl.trim());
-    if (videoId) {
-      playVideo.mutate(
-        {
-          video_id: videoId,
-          title: `Video ${videoId}`,
-          queued_by: playerName,
-        },
-        {
-          onSuccess: () => {
-            setVideoUrl('');
-          },
-        }
-      );
+  const getVideoTitle = async (videoId: string): Promise<string | null> => {
+    // oEmbed returns title for public videos without needing an API key.
+    // If the video is private/blocked, this can fail, so we fall back gracefully.
+    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`;
+
+    try {
+      const res = await fetch(oembedUrl);
+      if (!res.ok) return null;
+      const json = (await res.json()) as { title?: string };
+      return json.title ?? null;
+    } catch {
+      return null;
     }
   };
 
-  const handleUpdateVideo = () => {
-    const videoId = extractVideoId(editUrl.trim());
-    if (videoId && currentVideo) {
-      updateVideo.mutate(
-        {
-          id: currentVideo.id,
-          video_id: videoId,
-          title: `Video ${videoId}`,
-        },
-        {
-          onSuccess: () => {
-            setIsEditing(false);
-            setEditUrl('');
-          },
-        }
-      );
+  // Entering edit mode: set default value once, but do not overwrite if user starts typing.
+  useEffect(() => {
+    if (!isEditing) {
+      userTouchedEditRef.current = false;
+      setEditUrl("");
+      setError(null);
+      return;
     }
+
+    if (isEditing && currentVideo && !userTouchedEditRef.current) {
+      setEditUrl(`https://youtube.com/watch?v=${currentVideo.video_id}`);
+    }
+  }, [isEditing, currentVideo?.video_id]);
+
+  const canPlay = useMemo(() => !!extractVideoId(videoUrl), [videoUrl]);
+  const canUpdate = useMemo(() => !!extractVideoId(editUrl), [editUrl]);
+
+  const handlePlayVideo = async () => {
+    setError(null);
+    const videoId = extractVideoId(videoUrl);
+    if (!videoId) {
+      setError("Paste a valid YouTube URL or 11-character video ID.");
+      return;
+    }
+
+    const title = (await getVideoTitle(videoId)) ?? `Video ${videoId}`;
+
+    playVideo.mutate(
+      { video_id: videoId, title, queued_by: playerName },
+      {
+        onSuccess: () => setVideoUrl(""),
+        onError: () => setError("Could not start the video. Try again."),
+      }
+    );
+  };
+
+  const handleUpdateVideo = async () => {
+    setError(null);
+    const videoId = extractVideoId(editUrl);
+    if (!videoId || !currentVideo) {
+      setError("Paste a valid YouTube URL or 11-character video ID.");
+      return;
+    }
+
+    const title = (await getVideoTitle(videoId)) ?? `Video ${videoId}`;
+
+    updateVideo.mutate(
+      { id: currentVideo.id, video_id: videoId, title },
+      {
+        onSuccess: () => {
+          setIsEditing(false);
+          userTouchedEditRef.current = false;
+          setEditUrl("");
+        },
+        onError: () => setError("Could not update the video. Try again."),
+      }
+    );
   };
 
   const cancelEdit = () => {
     setIsEditing(false);
-    setEditUrl('');
+    userTouchedEditRef.current = false;
+    setEditUrl("");
+    setError(null);
   };
 
   return (
@@ -85,6 +131,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
           YouTube
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-4">
         {/* Current video */}
         {currentVideo && (
@@ -94,29 +141,34 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                 <Play className="h-3 w-3" />
                 Now Playing
               </div>
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => setIsEditing((v) => !v)}
                 className="h-7 w-7 p-0"
+                aria-label={isEditing ? "Close edit" : "Edit current video"}
               >
                 {isEditing ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
               </Button>
             </div>
-            
+
             {isEditing ? (
               <div className="space-y-2 mt-2">
                 <Input
-                  placeholder="New YouTube URL..."
+                  placeholder="New YouTube URL or video ID..."
                   value={editUrl}
-                  onChange={(e) => setEditUrl(e.target.value)}
+                  onChange={(e) => {
+                    userTouchedEditRef.current = true;
+                    setEditUrl(e.target.value);
+                  }}
                   className="text-sm"
                 />
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     onClick={handleUpdateVideo}
-                    disabled={!extractVideoId(editUrl.trim()) || updateVideo.isPending}
+                    disabled={!canUpdate || updateVideo.isPending}
                     className="flex-1"
                   >
                     <Check className="h-4 w-4 mr-1" />
@@ -147,12 +199,15 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
               className="pl-9"
             />
           </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+
           <Button
             onClick={handlePlayVideo}
-            disabled={!extractVideoId(videoUrl.trim()) || playVideo.isPending}
+            disabled={!canPlay || playVideo.isPending}
             className="w-full"
           >
-            {playVideo.isPending ? 'Loading...' : 'Play Now'}
+            {playVideo.isPending ? "Loading..." : "Play now"}
           </Button>
         </div>
 
@@ -161,19 +216,19 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
           <div className="border-t pt-4">
             <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              Recently Played
+              Recently played
             </p>
             <div className="space-y-2">
               {recentVideos.slice(0, 5).map((video) => (
                 <button
                   key={video.id}
-                  onClick={() => {
+                  onClick={() =>
                     playVideo.mutate({
                       video_id: video.video_id,
                       title: video.title,
                       queued_by: playerName,
-                    });
-                  }}
+                    })
+                  }
                   disabled={playVideo.isPending}
                   className="w-full text-left p-2 rounded-md hover:bg-secondary/50 transition-colors"
                 >
