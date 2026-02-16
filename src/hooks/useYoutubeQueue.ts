@@ -14,20 +14,57 @@ export interface YouTubeVideo {
   created_at: string | null;
 }
 
-async function fetchYouTubeMeta(videoId: string): Promise<{ title: string; thumbnail_url: string }> {
-  // No API key required
-  const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
-    `https://www.youtube.com/watch?v=${videoId}`
-  )}&format=json`;
+async function fetchYouTubeMeta(
+  videoId: string
+): Promise<{ title: string; thumbnail_url: string }> {
+  const fallback = {
+    title: `Video ${videoId}`,
+    thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+  };
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    // fallback (still gives you a thumbnail)
+  try {
+    console.log("Fetching YouTube meta for:", videoId);
+
+    const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+      `https://www.youtube.com/watch?v=${videoId}`
+    )}&format=json`;
+
+    const res = await fetch(url);
+
+    console.log("oEmbed status:", res.status);
+
+    if (!res.ok) {
+      console.warn("oEmbed response not OK, using fallback");
+      return fallback;
+    }
+
+    const json = await res.json();
+    console.log("oEmbed JSON:", json);
+
     return {
-      title: `Video ${videoId}`,
-      thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      title: json?.title ?? fallback.title,
+      thumbnail_url: json?.thumbnail_url ?? fallback.thumbnail_url,
     };
+  } catch (error) {
+    console.error("YouTube meta fetch failed:", error);
+    return fallback;
   }
+}
+
+//async function fetchYouTubeMeta(videoId: string): Promise<{ title: string; thumbnail_url: string }> {
+  // No API key required
+//  const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+//    `https://www.youtube.com/watch?v=${videoId}`
+//  )}&format=json`;
+
+//  const res = await fetch(url);
+//  if (!res.ok) {
+//    // fallback (still gives you a thumbnail)
+//    return {
+//      title: `Video ${videoId}`,
+ //     thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+   // };
+  //}
 
   const json = (await res.json()) as { title?: string; thumbnail_url?: string };
   return {
