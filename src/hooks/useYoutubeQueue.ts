@@ -5,8 +5,12 @@ import { useEffect } from "react";
 export interface YouTubeVideo {
   id: string;
   video_id: string;
-  title: string | null;
-  thumbnail_url: string | null;
+  title: string
+  //| null
+  ;
+  thumbnail_url: string
+  //| null
+  ;
   queued_by: string;
   is_playing: boolean;
   is_favorite: boolean | null;
@@ -121,7 +125,7 @@ export function useYoutubeQueue() {
   }, [queryClient]);
 
   const playVideo = useMutation({
-    mutationFn: async (data: { video_id: string; queued_by: string }) => {
+    mutationFn: async (data: { video_id: string; title: string; queued_by: string }) => {
       // stop current
       await supabase
         .from("youtube_queue")
@@ -148,7 +152,7 @@ export function useYoutubeQueue() {
   });
 
   const updateVideo = useMutation({
-    mutationFn: async (data: { id: string; video_id: string }) => {
+    mutationFn: async (data: { id: string; video_id: string; title: string }) => {
       const meta = await fetchYouTubeMeta(data.video_id);
 
       const { error } = await supabase
