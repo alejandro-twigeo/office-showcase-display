@@ -93,25 +93,34 @@ const ZOOM_INTERVAL_MS = 30 * 60 * 1000;
 
 function useTimedZoom(createdAt: string | null | undefined) {
   const [zoomIndex, setZoomIndex] = useState(0);
+  const [secondsUntilNext, setSecondsUntilNext] = useState<number | null>(null);
 
   useEffect(() => {
     if (!createdAt) {
       setZoomIndex(0);
+      setSecondsUntilNext(null);
       return;
     }
 
-    const calcIndex = () => {
+    const tick = () => {
       const elapsed = Date.now() - new Date(createdAt).getTime();
-      const idx = Math.floor(elapsed / ZOOM_INTERVAL_MS);
-      return Math.min(idx, ZOOM_LEVELS.length - 1);
+      const idx = Math.min(Math.floor(elapsed / ZOOM_INTERVAL_MS), ZOOM_LEVELS.length - 1);
+      setZoomIndex(idx);
+
+      if (idx < ZOOM_LEVELS.length - 1) {
+        const nextAt = (idx + 1) * ZOOM_INTERVAL_MS;
+        setSecondsUntilNext(Math.max(0, Math.ceil((nextAt - elapsed) / 1000)));
+      } else {
+        setSecondsUntilNext(null);
+      }
     };
 
-    setZoomIndex(calcIndex());
-    const id = setInterval(() => setZoomIndex(calcIndex()), 60_000);
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [createdAt]);
 
-  return ZOOM_LEVELS[zoomIndex];
+  return { scale: ZOOM_LEVELS[zoomIndex], zoomIndex, secondsUntilNext };
 }
 
 export function StreetViewDisplay() {
@@ -122,7 +131,7 @@ export function StreetViewDisplay() {
   const [isCreatingUi, setIsCreatingUi] = useState(false);
   const lastCreatedIdRef = useRef<string | null>(null);
 
-  const scale = useTimedZoom(activeLocation?.created_at);
+  const { scale, zoomIndex, secondsUntilNext } = useTimedZoom(activeLocation?.created_at);
 
   const meta = useMemo(() => {
     const roundId = activeLocation?.id;
@@ -179,14 +188,7 @@ export function StreetViewDisplay() {
     [createNewLocation]
   );
 
-  const hasAutoCreated = useRef(false);
-  useEffect(() => {
-    if (hasAutoCreated.current || creatingRef.current) return;
-    if (!activeLocation && !isCreatingUi) {
-      hasAutoCreated.current = true;
-      void createRound();
-    }
-  }, [activeLocation, isCreatingUi, createRound]);
+  // No auto-create — rounds are only started manually from the Play page
 
   return (
     <div className="h-full min-h-0 grid grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
@@ -225,7 +227,16 @@ export function StreetViewDisplay() {
               </div>
 
               <div className="text-[clamp(12px,0.9vw,16px)] text-muted-foreground flex justify-between items-center gap-3">
-                <span className="truncate">ID: {activeLocation.id.slice(0, 8)}...</span>
+                <span className="truncate">
+                  {secondsUntilNext != null ? (
+                    <>
+                      🔍 Zoom {zoomIndex + 1}/{ZOOM_LEVELS.length} · Next clue in{" "}
+                      {Math.floor(secondsUntilNext / 60)}:{String(secondsUntilNext % 60).padStart(2, "0")}
+                    </>
+                  ) : (
+                    <>🔍 Max zoom reached</>
+                  )}
+                </span>
 
                 {meta?.sourceUrl ? (
                   <a
@@ -244,7 +255,7 @@ export function StreetViewDisplay() {
           ) : (
             <div className="text-center p-8">
               <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">Creating a round...</p>
+              <p className="text-muted-foreground mb-4">No active round — start one from the Play page!</p>
             </div>
           )}
         </CardContent>
