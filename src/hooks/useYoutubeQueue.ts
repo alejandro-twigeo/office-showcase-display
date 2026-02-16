@@ -134,4 +134,46 @@ export function useYoutubeQueue() {
         })
         .eq("id", data.id);
 
-      if (error) thr
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-video"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
+    },
+  });
+
+  const deleteVideo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("youtube_queue").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-video"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
+    },
+  });
+
+  const toggleFavorite = useMutation({
+    mutationFn: async (data: { id: string; is_favorite: boolean }) => {
+      const { error } = await supabase
+        .from("youtube_queue")
+        .update({ is_favorite: data.is_favorite })
+        .eq("id", data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-video"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
+    },
+  });
+
+  return {
+    currentVideo,
+    recentVideos,
+    isLoading: loadingCurrent || loadingRecent,
+    playVideo,
+    updateVideo,
+    deleteVideo,
+    toggleFavorite,
+  };
+}
