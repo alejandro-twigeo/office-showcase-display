@@ -76,11 +76,13 @@ export function usePolls() {
   });
 
   const closePoll = useMutation({
-    mutationFn: async (pollId: string) => {
-      const { error } = await supabase
-        .from('polls')
-        .update({ is_active: false })
-        .eq('id', pollId);
+    mutationFn: async ({ pollId, closedBy }: { pollId: string; closedBy: string }) => {
+      const { error } = await supabase.rpc('close_poll', {
+        p_poll_id: pollId,
+        p_reason: 'user_deleted',
+        p_source: 'play_page',
+        p_closed_by: closedBy,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
