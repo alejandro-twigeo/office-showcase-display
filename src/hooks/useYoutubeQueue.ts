@@ -5,12 +5,8 @@ import { useEffect } from "react";
 export interface YouTubeVideo {
   id: string;
   video_id: string;
-  title: string
-  //| null
-  ;
-  thumbnail_url: string
-  //| null
-  ;
+  title: string | null;
+  thumbnail_url: string | null;
   queued_by: string;
   is_playing: boolean;
   is_favorite: boolean | null;
