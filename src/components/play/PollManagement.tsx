@@ -91,7 +91,7 @@ export function PollManagement({ playerName }: PollManagementProps) {
       return;
     }
 
-    closePoll.mutate(pollId);
+    closePoll.mutate({ pollId, closedBy: playerName });
   };
 
   return (
