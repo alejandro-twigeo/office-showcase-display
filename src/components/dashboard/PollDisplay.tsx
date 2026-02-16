@@ -87,64 +87,64 @@ export function PollDisplay() {
   const totalVotes = voteCounts.reduce((a, b) => a + b, 0);
 
   return (
-    <Card className="h-full">
+    <Card className="h-full min-h-0 flex flex-col overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,28px)]">
+            <BarChart3 className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,26px)] text-primary" />
             Live Poll
           </CardTitle>
           {currentPoll && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground">
+              <Clock className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
               <span className="font-mono">{timeLeft}s</span>
             </div>
           )}
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
-          <div className="text-center py-8">
-            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">Loading polls…</p>
+          <div className="text-center flex flex-col items-center justify-center h-full">
+            <BarChart3 className="h-[clamp(32px,3vw,64px)] w-[clamp(32px,3vw,64px)] text-muted-foreground mb-3" />
+            <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">Loading polls…</p>
           </div>
         ) : !currentPoll ? (
-          <div className="text-center py-8">
-            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No active polls</p>
-            <p className="text-muted-foreground text-xs mt-1">
+          <div className="text-center flex flex-col items-center justify-center h-full">
+            <BarChart3 className="h-[clamp(32px,3vw,64px)] w-[clamp(32px,3vw,64px)] text-muted-foreground mb-3" />
+            <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No active polls</p>
+            <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] mt-1">
               Create one from the Play page!
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="mb-4">
-              <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-1" />
+          <div className="space-y-[clamp(8px,0.8vw,16px)]">
+            <div>
+              <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
             </div>
 
-            <h3 className="font-semibold text-lg">{currentPoll.question}</h3>
+            <h3 className="font-semibold text-[clamp(18px,1.4vw,28px)]">{currentPoll.question}</h3>
 
-            <div className="space-y-3">
+            <div className="space-y-[clamp(6px,0.6vw,12px)]">
               {(currentPoll.options as string[]).map((option, index) => {
                 const count = voteCounts[index] || 0;
                 const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
 
                 return (
                   <div key={index} className="space-y-1">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-[clamp(14px,1vw,20px)]">
                       <span>{option}</span>
                       <span className="text-muted-foreground">
                         {count} ({Math.round(percentage)}%)
                       </span>
                     </div>
 
-                    <div className="h-8 bg-secondary rounded-md overflow-hidden relative">
+                    <div className="h-[clamp(28px,2vw,40px)] bg-secondary rounded-md overflow-hidden relative">
                       <div
                         className="h-full bg-primary/80 transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       />
-                      <span className="absolute inset-0 flex items-center px-3 text-sm font-medium">
+                      <span className="absolute inset-0 flex items-center px-3 text-[clamp(14px,1vw,20px)] font-medium">
                         {option}
                       </span>
                     </div>
@@ -153,8 +153,8 @@ export function PollDisplay() {
               })}
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2">
-              <Users className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
+              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
               <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
             </div>
           </div>
