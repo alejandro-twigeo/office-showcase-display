@@ -2,47 +2,38 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
-interface YouTubeVideo {
+export interface YouTubeVideo {
   id: string;
   video_id: string;
-  title: string;
+  title: string | null;
+  thumbnail_url: string | null;
   queued_by: string;
   is_playing: boolean;
+  is_favorite: boolean | null;
   played_at: string | null;
   created_at: string | null;
-
-  thumbnail_url?: string | null;
-  channel_title?: string | null;
-  is_favorite?: boolean | null;
 }
 
-async function fetchYouTubeMeta(videoId: string): Promise<{
-  title: string;
-  thumbnail_url: string;
-  channel_title: string;
-}> {
-  // Fallback thumbnail always exists even if oEmbed fails
-  const fallbackThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+async function fetchYouTubeMeta(videoId: string): Promise<{ title: string; thumbnail_url: string }> {
+  // No API key required
+  const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+    `https://www.youtube.com/watch?v=${videoId}`
+  )}&format=json`;
 
-  try {
-    const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(
-      `https://www.youtube.com/watch?v=${videoId}`
-    )}&format=json`;
-
-    const res = await fetch(url);
-    if (!res.ok) {
-      return { title: `Video ${videoId}`, thumbnail_url: fallbackThumb, channel_title: "YouTube" };
-    }
-
-    const json = (await res.json()) as { title?: string; thumbnail_url?: string; author_name?: string };
+  const res = await fetch(url);
+  if (!res.ok) {
+    // fallback (still gives you a thumbnail)
     return {
-      title: json.title ?? `Video ${videoId}`,
-      thumbnail_url: json.thumbnail_url ?? fallbackThumb,
-      channel_title: json.author_name ?? "YouTube",
+      title: `Video ${videoId}`,
+      thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
     };
-  } catch {
-    return { title: `Video ${videoId}`, thumbnail_url: fallbackThumb, channel_title: "YouTube" };
   }
+
+  const json = (await res.json()) as { title?: string; thumbnail_url?: string };
+  return {
+    title: json.title ?? `Video ${videoId}`,
+    thumbnail_url: json.thumbnail_url ?? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+  };
 }
 
 export function useYoutubeQueue() {
@@ -94,22 +85,21 @@ export function useYoutubeQueue() {
 
   const playVideo = useMutation({
     mutationFn: async (data: { video_id: string; queued_by: string }) => {
-      // Stop current
+      // stop current
       await supabase
         .from("youtube_queue")
         .update({ is_playing: false, played_at: new Date().toISOString() })
         .eq("is_playing", true);
 
-      // Fetch meta then insert
       const meta = await fetchYouTubeMeta(data.video_id);
 
       const { error } = await supabase.from("youtube_queue").insert({
         video_id: data.video_id,
         title: meta.title,
         thumbnail_url: meta.thumbnail_url,
-        channel_title: meta.channel_title,
         queued_by: data.queued_by,
         is_playing: true,
+        is_favorite: false,
       });
 
       if (error) throw error;
@@ -126,12 +116,7 @@ export function useYoutubeQueue() {
 
       const { error } = await supabase
         .from("youtube_queue")
-        .update({
-          video_id: data.video_id,
-          title: meta.title,
-          thumbnail_url: meta.thumbnail_url,
-          channel_title: meta.channel_title,
-        })
+        .update({ video_id: data.video_id, title: meta.title, thumbnail_url: meta.thumbnail_url })
         .eq("id", data.id);
 
       if (error) throw error;
@@ -162,7 +147,6 @@ export function useYoutubeQueue() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["current-video"] });
       queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
     },
   });
