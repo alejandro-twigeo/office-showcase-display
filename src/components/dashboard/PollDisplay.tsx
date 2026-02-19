@@ -96,7 +96,7 @@ export function PollDisplay() {
           </CardTitle>
           {currentPoll && (
             <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground">
-              <Clock className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
+              <Clock className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,28px)]" />
               <span className="font-mono">{timeLeft}s</span>
             </div>
           )}
@@ -132,7 +132,7 @@ export function PollDisplay() {
 
                 return (
                   <div key={index} className="space-y-1">
-                    <div className="flex justify-between text-[clamp(14px,1vw,20px)]">
+                    <div className="flex justify-between text-[clamp(14px,1vw,28px)]">
                       <span>{option}</span>
                       <span className="text-muted-foreground">
                         {count} ({Math.round(percentage)}%)
@@ -154,7 +154,7 @@ export function PollDisplay() {
             </div>
 
             <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
-              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
+              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
               <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
             </div>
           </div>
