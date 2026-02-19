@@ -38,14 +38,14 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
   return (
     <Card className="h-full min-h-0 flex flex-col">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,28px)]">
-          <Trophy className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,26px)] text-primary" />
+        <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,60px)]">
+          <Trophy className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,50px)] text-primary" />
           Leaderboard
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 overflow-y-auto min-h-0 flex-1">
         {sorted.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,18px)]">
+          <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,34px)]">
             No guesses yet. Be the first!
           </p>
         ) : (
