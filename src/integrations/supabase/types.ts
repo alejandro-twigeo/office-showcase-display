@@ -99,6 +99,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           options: Json
+          poll_type: string
           question: string
           started_at: string | null
         }
@@ -112,6 +113,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           options?: Json
+          poll_type?: string
           question: string
           started_at?: string | null
         }
@@ -125,6 +127,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           options?: Json
+          poll_type?: string
           question?: string
           started_at?: string | null
         }
@@ -260,6 +263,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      append_poll_option: {
+        Args: { p_option_text: string; p_poll_id: string }
+        Returns: number
+      }
       close_poll: {
         Args: {
           p_closed_by?: string
