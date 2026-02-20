@@ -8,6 +8,7 @@ export interface Playlist {
   created_by: string;
   created_at: string;
   updated_at: string;
+  item_count?: number;
 }
 
 export interface PlaylistItem {
@@ -35,10 +36,13 @@ export function usePlaylists() {
     queryKey: ["playlists"],
     queryFn: async () => {
       const { data, error } = await plists()
-        .select("*")
+        .select("*, playlist_items(count)")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Playlist[];
+      return ((data ?? []) as (Playlist & { playlist_items: { count: number }[] })[]).map((pl) => ({
+        ...pl,
+        item_count: pl.playlist_items?.[0]?.count ?? 0,
+      }));
     },
   });
 

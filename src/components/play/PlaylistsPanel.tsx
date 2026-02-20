@@ -280,7 +280,10 @@ export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps
                     <ListMusic className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm font-medium line-clamp-1">{pl.name}</span>
                     <span className="text-xs text-muted-foreground">by {pl.created_by}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
+                    <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                      {pl.item_count ?? 0} {(pl.item_count ?? 0) === 1 ? "song" : "songs"}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   </button>
                   <button
                     onClick={() => { setEditingId(pl.id); setEditName(pl.name); }}
