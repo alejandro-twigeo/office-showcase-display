@@ -60,7 +60,7 @@ export default function Dashboard() {
 
             {/* Positive message — inline, centred */}
             <div className="flex-1 min-w-0 text-center">
-              <p className="text-[clamp(14px,1.3vw,28px)] font-medium leading-snug truncate">
+              <p className="text-[clamp(14px,1.3vw,28px)] font-medium leading-snug line-clamp-2">
                 {displayMsg}
                 {displayBy && (
                   <span className="text-muted-foreground font-normal ml-2">— {displayBy}</span>
