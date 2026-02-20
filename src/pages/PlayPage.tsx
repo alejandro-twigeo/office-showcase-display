@@ -4,12 +4,13 @@ import { NameEntry } from '../components/play/NameEntry';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
+import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { Button } from '../components/ui/button';
 
-import { User, MapPin, BarChart3, Youtube, Monitor, Gamepad2 } from 'lucide-react';
+import { User, MapPin, BarChart3, Youtube, Monitor, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type TabValue = 'guess' | 'polls' | 'youtube';
+type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes';
 
 export default function PlayPage() {
   const [playerName, setPlayerName] = usePlayerName();
@@ -54,22 +55,23 @@ export default function PlayPage() {
       {/* Content */}
       <main className="max-w-lg mx-auto p-4">
         {/* Tab buttons */}
-        <div className="grid grid-cols-3 gap-1 bg-muted p-1 rounded-lg mb-4">
+        <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-lg mb-4">
           {([
             { value: 'guess' as const, icon: MapPin, label: 'Guess' },
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
-            { value: 'youtube' as const, icon: Youtube, label: 'YouTube' },
+            { value: 'youtube' as const, icon: Youtube, label: 'Music' },
+            { value: 'vibes' as const, icon: Heart, label: 'Vibes' },
           ]).map(({ value, icon: Icon, label }) => (
             <button
               key={value}
               onClick={() => setActiveTab(value)}
-              className={`flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              className={`flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium transition-all ${
                 activeTab === value
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary text-primary' : ''}`} />
               <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
@@ -79,6 +81,7 @@ export default function PlayPage() {
         {activeTab === 'guess' && <GuessMap playerName={playerName} />}
         {activeTab === 'polls' && <PollSection playerName={playerName} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={playerName} />}
+        {activeTab === 'vibes' && <PositiveMessagesSection playerName={playerName} />}
       </main>
     </div>
   );

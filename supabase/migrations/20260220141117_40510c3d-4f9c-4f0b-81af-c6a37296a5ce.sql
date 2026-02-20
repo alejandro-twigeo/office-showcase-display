@@ -1,0 +1,1 @@
+ALTER TABLE public.polls_active_audit ENABLE ROW LEVEL SECURITY;
