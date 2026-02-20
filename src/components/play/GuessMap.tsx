@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock, Settings } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock, Settings, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTY_LOCATIONS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useScoring, calculateScore, formatScoreDisplay } from "@/hooks/useScoring";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -110,6 +111,7 @@ function getZoomIndex(createdAt: string | null | undefined): number {
 export function GuessMap({ playerName }: GuessMapProps) {
   const deviceId = useDeviceId();
   const { activeLocation, createNewLocation } = useActiveLocation();
+  const { settings, updateSettings } = useScoring();
 
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
@@ -117,6 +119,20 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(1);
+
+  // Scoring popup state
+  const [scoringOpen, setScoringOpen] = useState(false);
+  const [scoringPassword, setScoringPassword] = useState('');
+  const [scoringUnlocked, setScoringUnlocked] = useState(false);
+  const [scoringError, setScoringError] = useState('');
+  const [editDistParam, setEditDistParam] = useState(String(settings.distance_parameter));
+  const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
+
+  // Keep edit fields in sync when settings load from DB
+  useEffect(() => {
+    setEditDistParam(String(settings.distance_parameter));
+    setEditMultipliers(settings.attempt_multipliers.map(String));
+  }, [settings]);
 
   // Compute current zoom index & max guesses allowed so far
   const zoomIndex = getZoomIndex(activeLocation?.created_at);
@@ -171,6 +187,22 @@ export function GuessMap({ playerName }: GuessMapProps) {
     setPasswordAction(null);
     setActionPassword('');
     setActionError('');
+  };
+
+  const handleScoringPasswordConfirm = () => {
+    if (scoringPassword !== '5678') {
+      setScoringError('Wrong password');
+      return;
+    }
+    setScoringUnlocked(true);
+    setScoringError('');
+  };
+
+  const handleSaveScoringSettings = () => {
+    const distParam = parseFloat(editDistParam);
+    const multipliers = editMultipliers.map(Number);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN)) return;
+    updateSettings.mutate({ distance_parameter: distParam, attempt_multipliers: multipliers });
   };
 
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
@@ -240,9 +272,104 @@ export function GuessMap({ playerName }: GuessMapProps) {
             {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
             <span className="ml-1">(zoom {zoomIndex + 1}/{ZOOM_LEVELS.length})</span>
           </span>
+
+          {/* ── Scoring settings icon ─────────────────────────────── */}
+          <Popover open={scoringOpen} onOpenChange={(open) => {
+            setScoringOpen(open);
+            if (!open) { setScoringPassword(''); setScoringError(''); setScoringUnlocked(false); }
+          }}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" title="Scoring settings">
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-3" align="end">
+              {!scoringUnlocked ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
+                  <p className="text-xs text-muted-foreground">Enter the manager password to edit scoring.</p>
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={scoringPassword}
+                      onChange={(e) => { setScoringPassword(e.target.value); setScoringError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleScoringPasswordConfirm()}
+                      className="flex-1 h-8 text-sm"
+                    />
+                    <Button size="sm" onClick={handleScoringPasswordConfirm} className="h-8">Unlock</Button>
+                  </div>
+                  {scoringError && <p className="text-xs text-destructive">{scoringError}</p>}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
+
+                  {/* Distance parameter */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">Distance parameter</p>
+                    <p className="text-xs text-muted-foreground">Higher = more forgiving (default 500)</p>
+                    <Input
+                      type="number"
+                      value={editDistParam}
+                      min={1}
+                      onChange={(e) => setEditDistParam(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+
+                  {/* Attempt multipliers */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">Attempt multipliers</p>
+                    <p className="text-xs text-muted-foreground">% of points per attempt (1 = 100%)</p>
+                    <div className="space-y-1">
+                      {editMultipliers.map((val, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-20">
+                            {i + 1 < editMultipliers.length ? `Attempt ${i + 1}` : `Attempt ${i + 1}+`}
+                          </span>
+                          <Input
+                            type="number"
+                            value={val}
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            onChange={(e) => {
+                              const next = [...editMultipliers];
+                              next[i] = e.target.value;
+                              setEditMultipliers(next);
+                            }}
+                            className="h-7 text-sm flex-1"
+                          />
+                          <span className="text-xs text-muted-foreground w-10 text-right">
+                            {Math.round(Number(val) * 100)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="w-full h-8"
+                    onClick={handleSaveScoringSettings}
+                    disabled={updateSettings.isPending}
+                  >
+                    {updateSettings.isPending ? 'Saving…' : 'Save changes'}
+                  </Button>
+                  {updateSettings.isSuccess && (
+                    <p className="text-xs text-center text-primary">Saved! Changes apply immediately.</p>
+                  )}
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* ── Round settings icon ───────────────────────────────── */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" title="Round settings">
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Round settings">
                 <Settings className="h-4 w-4 text-muted-foreground" />
               </Button>
             </PopoverTrigger>
@@ -327,12 +454,14 @@ export function GuessMap({ playerName }: GuessMapProps) {
             <Check className="h-12 w-12 text-success mx-auto mb-3" />
             <p className="font-medium">You've used all guesses for this zoom level!</p>
             <p className="text-sm text-muted-foreground">Wait for the next zoom out to get 3 more guesses.</p>
-            <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-2">
               <p className="text-sm text-muted-foreground">Your guesses:</p>
               {userGuesses.map((guess, i) => (
                 <div key={guess.id} className="text-sm bg-secondary px-3 py-2 rounded-md flex justify-between">
                   <span>Guess #{i + 1}</span>
-                  <span className="font-mono text-accent">{formatDistance(guess.distance_km)}</span>
+                  <span className="font-mono text-accent">
+                    {formatScoreDisplay(guess.distance_km, calculateScore(guess.distance_km, guess.guess_number, settings))}
+                  </span>
                 </div>
               ))}
             </div>
@@ -371,7 +500,9 @@ export function GuessMap({ playerName }: GuessMapProps) {
               {userGuesses.map((guess, i) => (
                 <div key={guess.id} className="text-sm bg-secondary/50 px-3 py-1 rounded flex justify-between">
                   <span>#{i + 1}</span>
-                  <span className="font-mono">{formatDistance(guess.distance_km)}</span>
+                  <span className="font-mono">
+                    {formatScoreDisplay(guess.distance_km, calculateScore(guess.distance_km, guess.guess_number, settings))}
+                  </span>
                 </div>
               ))}
             </div>

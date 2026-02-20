@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, User } from 'lucide-react';
+import { useScoring, calculateScore } from '@/hooks/useScoring';
 
 interface Guess {
   id: string;
   player_name: string;
   distance_km: number;
+  guess_number?: number;
 }
 
 interface LeaderboardProps {
@@ -12,6 +14,8 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ guesses }: LeaderboardProps) {
+  const { settings } = useScoring();
+
   const bestGuesses = guesses.reduce((acc, guess) => {
     const existing = acc.find((g) => g.player_name === guess.player_name);
     if (!existing || guess.distance_km < existing.distance_km) {
@@ -29,10 +33,13 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
     return <span className="w-5 text-center text-sm text-muted-foreground">{rank}</span>;
   };
 
-  const formatDistance = (km: number) => {
-    if (km < 1) return `${Math.round(km * 1000)} m`;
-    if (km < 10) return `${km.toFixed(1)} km`;
-    return `${Math.round(km)} km`;
+  const formatScoreLabel = (guess: Guess) => {
+    const guessNumber = guess.guess_number ?? 1;
+    const score = calculateScore(guess.distance_km, guessNumber, settings);
+    const km = guess.distance_km < 1
+      ? `${Math.round(guess.distance_km * 1000)} m`
+      : `${Math.round(guess.distance_km)} km`;
+    return `${score} pts (${km})`;
   };
 
   return (
@@ -62,7 +69,7 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
                 <span className="font-medium truncate text-[clamp(14px,1vw,18px)]">{guess.player_name}</span>
               </div>
               <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold">
-                {formatDistance(guess.distance_km)}
+                {formatScoreLabel(guess)}
               </span>
             </div>
           ))
