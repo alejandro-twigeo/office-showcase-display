@@ -196,6 +196,24 @@ export function useYoutubeQueue() {
     },
   });
 
+  // Reorder queue by updating queued_at timestamps
+  const reorderQueue = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      // Assign evenly spaced timestamps to preserve order
+      const base = Date.now();
+      await Promise.all(
+        orderedIds.map((id, idx) =>
+          ytQueue()
+            .update({ queued_at: new Date(base + idx * 1000).toISOString() })
+            .eq("id", id)
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+    },
+  });
+
   // Remove from queue (soft delete)
   const removeFromQueue = useMutation({
     mutationFn: async (id: string) => {
@@ -230,6 +248,7 @@ export function useYoutubeQueue() {
     addToQueue,
     advanceQueue,
     removeFromQueue,
+    reorderQueue,
     toggleFavorite,
   };
 }

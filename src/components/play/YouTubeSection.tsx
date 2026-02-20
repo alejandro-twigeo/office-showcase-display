@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, Play, ListMusic, Search, Trash2, Clock, User } from "lucide-react";
+import { Youtube, Play, ListMusic, Search, Trash2, Clock, User, GripVertical } from "lucide-react";
 
 interface YouTubeSectionProps {
   playerName: string;
@@ -22,10 +22,17 @@ function extractVideoId(url: string): string | null {
 }
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
-  const { currentVideo, queue, recentVideos, playNow, addToQueue, removeFromQueue, toggleFavorite } =
+  const { currentVideo, queue, recentVideos, playNow, addToQueue, removeFromQueue, reorderQueue } =
     useYoutubeQueue();
 
   const [videoUrl, setVideoUrl] = useState("");
+  const [localQueue, setLocalQueue] = useState<typeof queue | null>(null);
+  const dragIndex = useRef<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const displayQueue = localQueue ?? queue;
+
   const isPending = playNow.isPending || addToQueue.isPending;
   const videoId = extractVideoId(videoUrl.trim());
 
@@ -41,6 +48,33 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
   const handleReplay = (vid: { video_id: string }) => {
     playNow.mutate({ video_id: vid.video_id, queued_by: playerName });
+  };
+
+  const handleDragStart = (idx: number) => {
+    dragIndex.current = idx;
+    setDraggingIdx(idx);
+  };
+
+  const handleDragEnter = (idx: number) => {
+    setOverIdx(idx);
+    if (dragIndex.current === null || dragIndex.current === idx) return;
+    const reordered = [...displayQueue];
+    const [moved] = reordered.splice(dragIndex.current, 1);
+    reordered.splice(idx, 0, moved);
+    dragIndex.current = idx;
+    setLocalQueue(reordered);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingIdx(null);
+    setOverIdx(null);
+    if (localQueue) {
+      reorderQueue.mutate(localQueue.map((v) => v.id), {
+        onSuccess: () => setLocalQueue(null),
+        onError: () => setLocalQueue(null),
+      });
+    }
+    dragIndex.current = null;
   };
 
   return (
@@ -100,24 +134,37 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
         </div>
 
         {/* Queue */}
-        {queue.length > 0 && (
+        {displayQueue.length > 0 && (
           <div className="border-t pt-3">
             <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
               <ListMusic className="h-3 w-3" />
-              Up Next ({queue.length})
+              Up Next ({displayQueue.length})
             </p>
             <div className="space-y-1">
-              {queue.map((video, idx) => (
+              {displayQueue.map((video, idx) => (
                 <div
                   key={video.id}
-                  className="flex items-center gap-2 p-2 rounded-md bg-secondary/20 border border-border/50"
+                  draggable
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragEnter={() => handleDragEnter(idx)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className={`flex items-center gap-2 p-2 rounded-md border transition-all select-none ${
+                    draggingIdx === idx
+                      ? "opacity-40 bg-secondary/20 border-border/50"
+                      : overIdx === idx && draggingIdx !== null && draggingIdx !== idx
+                      ? "bg-primary/10 border-primary/40"
+                      : "bg-secondary/20 border-border/50"
+                  }`}
                 >
+                  <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab shrink-0" />
                   <span className="text-xs text-muted-foreground w-4 shrink-0">{idx + 1}</span>
                   <img
                     src={video.thumbnail_url ?? `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg`}
                     alt={video.title}
                     className="h-8 w-12 rounded object-cover bg-secondary shrink-0"
                     loading="lazy"
+                    draggable={false}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium line-clamp-1">{video.title}</p>
