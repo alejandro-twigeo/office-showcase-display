@@ -22,44 +22,40 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
     byPlayer.set(g.player_name, [...(byPlayer.get(g.player_name) ?? []), g]);
   }
 
-  // For each player pick ONE best guess id to show as a full row
-  const fullRowId = new Map<string, string>(); // player_name → guess id
+  // For each player pick up to 3 full-row IDs:
+  //   • their guess_number=1 (first attempt)
+  //   • their 2 best by distance (deduped)
+  const fullRowIds = new Set<string>();
 
-  for (const [player, playerGuesses] of byPlayer) {
+  for (const [, playerGuesses] of byPlayer) {
     const firstTry = playerGuesses.find((g) => (g.guess_number ?? 1) === 1);
     const sortedByDist = [...playerGuesses].sort((a, b) => a.distance_km - b.distance_km);
 
-    const candidates = new Map<string, Guess>();
-    if (firstTry) candidates.set(firstTry.id, firstTry);
+    const picked = new Set<string>();
+    if (firstTry) picked.add(firstTry.id);
+
     for (const g of sortedByDist) {
-      if (candidates.size >= 3) break;
-      if (!candidates.has(g.id)) candidates.set(g.id, g);
+      if (picked.size >= 3) break;
+      picked.add(g.id); // Set ignores duplicates, so firstTry won't double-count
     }
 
-    const best = [...candidates.values()].sort((a, b) => a.distance_km - b.distance_km)[0];
-    if (best) fullRowId.set(player, best.id);
+    for (const id of picked) fullRowIds.add(id);
   }
 
   // Sort ALL guesses by distance ascending
   const allSorted = [...guesses].sort((a, b) => a.distance_km - b.distance_km);
 
-  // Build render list: full rows + initial-circle groups for extras
+  // Build render list
   type RowItem = { type: 'row'; guess: Guess; rank: number };
   type DotItem = { type: 'dots'; initials: string[] };
   type RenderItem = RowItem | DotItem;
 
   const renderItems: RenderItem[] = [];
-  const renderedPlayers = new Set<string>();
   let rank = 0;
 
   for (const guess of allSorted) {
-    const isFullRow =
-      fullRowId.get(guess.player_name) === guess.id &&
-      !renderedPlayers.has(guess.player_name);
-
-    if (isFullRow) {
+    if (fullRowIds.has(guess.id)) {
       rank++;
-      renderedPlayers.add(guess.player_name);
       renderItems.push({ type: 'row', guess, rank });
     } else {
       const initial = guess.player_name.trim().charAt(0).toUpperCase();
@@ -105,6 +101,7 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
         ) : (
           renderItems.map((item, i) => {
             if (item.type === 'row') {
+              const attemptNum = item.guess.guess_number ?? 1;
               return (
                 <div
                   key={item.guess.id}
@@ -118,9 +115,9 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
                     <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">
                       {item.guess.player_name}
                     </span>
-                    {(item.guess.guess_number ?? 1) > 1 && (
+                    {attemptNum > 1 && (
                       <span className="text-[clamp(10px,0.7vw,13px)] text-muted-foreground shrink-0">
-                        #{item.guess.guess_number}
+                        #{attemptNum}
                       </span>
                     )}
                   </div>
@@ -131,7 +128,6 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
               );
             }
 
-            // Initial-circle row — replaces the hidden guesses
             return (
               <div
                 key={`dots-${i}`}
