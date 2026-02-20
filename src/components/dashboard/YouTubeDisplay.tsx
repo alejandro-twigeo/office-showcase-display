@@ -15,6 +15,7 @@ declare global {
 
 type YTPlayer = {
   loadVideoById: (videoId: string) => void;
+  setSize: (width: number, height: number) => void;
   destroy: () => void;
 };
 
@@ -95,17 +96,18 @@ export function YouTubeDisplay() {
 
       // Create a fresh div for YT to replace with iframe
       const div = document.createElement("div");
-      div.style.width = "100%";
-      div.style.height = "100%";
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(div);
 
       pendingVideoIdRef.current = undefined;
       playerReadyRef.current = false;
 
+      const w = containerRef.current.offsetWidth || 1280;
+      const h = containerRef.current.offsetHeight || 720;
+
       playerRef.current = new window.YT.Player(div, {
-        width: "100%",
-        height: "100%",
+        width: w,
+        height: h,
         videoId,
         playerVars: {
           autoplay: 1,
@@ -141,6 +143,18 @@ export function YouTubeDisplay() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideo?.video_id]);
+
+  // ResizeObserver — keep player sized to its container
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (!containerRef.current || !playerRef.current) return;
+      const { offsetWidth: w, offsetHeight: h } = containerRef.current;
+      if (w && h) playerRef.current.setSize(w, h);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -181,11 +195,13 @@ export function YouTubeDisplay() {
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-[clamp(8px,0.6vw,16px)]">
-            {/* YT.Player mounts here */}
-            <div
-              ref={containerRef}
-              className="flex-1 min-h-0 bg-secondary rounded-lg overflow-hidden [&>*]:w-full [&>*]:h-full [&>div>iframe]:w-full [&>div>iframe]:h-full"
-            />
+            {/* YT.Player mounts here — absolute positioning gives the iframe a concrete bounding box */}
+            <div className="flex-1 min-h-0 relative">
+              <div
+                ref={containerRef}
+                className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
+              />
+            </div>
 
             <div className="space-y-1">
               <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
