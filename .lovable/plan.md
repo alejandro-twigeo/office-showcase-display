@@ -1,89 +1,40 @@
 
+## Root Cause
 
-# Office TV Dashboard
+The YouTube IFrame API works by replacing the placeholder `<div>` appended inside `containerRef` with a `<iframe>` element. The CSS fix applied was `[&>iframe]:w-full [&>iframe]:h-full`, but this Tailwind child selector targets a **direct `<iframe>` child** of the container. Since the API first wraps the iframe inside another `<div>` (the one we created), the selector doesn't match, so the iframe gets no width/height and renders as a blank white box.
 
-A fun, interactive dashboard for your office TV with a GeoGuessr-like game, rotating polls, and a shared YouTube player. Colleagues can interact from their own devices via a Play page.
+Audio works because it's processed separately, explaining why sound plays but nothing is visible.
 
----
+The reason this only breaks on large TVs is that on smaller screens other layout constraints happen to give the container a fixed pixel size that bleeds into the iframe, but on large TVs the flex container expands freely, leaving the unsized iframe completely invisible.
 
-## Core Features
+## Fix
 
-### 1. TV Dashboard Page (Main Display)
-A modern, minimal layout divided into three visible sections:
+Two changes to `src/components/dashboard/YouTubeDisplay.tsx`:
 
-- **GeoGuessr Section** (main area)
-  - Displays a Google Street View panorama
-  - Shows a live leaderboard ranking guessers by distance (closest to farthest)
-  - Each player's name and their distance from the correct location
-  - Updates in real-time as users submit guesses
+1. **Set explicit `width` and `height` on the `YT.Player` constructor** so the API creates the iframe at 100%/100% from the start:
+   ```typescript
+   playerRef.current = new window.YT.Player(div, {
+     width: "100%",
+     height: "100%",
+     videoId,
+     ...
+   });
+   ```
 
-- **Polls Section**
-  - Displays one poll at a time with live voting results
-  - Progress bar showing time remaining (30 seconds per poll)
-  - Auto-rotates to the next poll when time expires
-  - Shows vote counts and percentages
+2. **Style the inner placeholder div** before passing it to the API, so it fills its parent:
+   ```typescript
+   const div = document.createElement("div");
+   div.style.width = "100%";
+   div.style.height = "100%";
+   ```
 
-- **YouTube Player Section**
-  - Embedded YouTube video player
-  - Displays current video title
-  - Shows who queued the current video
+3. **Update the container CSS** to also catch the inner wrapper div the API inserts:
+   - Change `[&>iframe]:w-full [&>iframe]:h-full` to `[&>*]:w-full [&>*]:h-full` to catch both the wrapper div and the iframe inside it.
+   - Also ensure the container itself gets an explicit height via `h-full` (it currently uses `flex-1 min-h-0` which is correct but needs the children to inherit height properly).
 
----
+## Files to Change
 
-### 2. Play Page (User Interaction)
-Where colleagues interact from their phones/laptops:
-
-- **User Identification**: Simple name entry (remembered on device for convenience)
-
-- **GeoGuessr Guessing**
-  - Interactive map where users click/tap to place their guess marker
-  - 3 guesses allowed per image
-  - Shows remaining guesses
-  - Confirmation before submitting
-
-- **Polls Management**
-  - View all active polls and vote
-  - Create new polls (question + multiple choice options)
-  - See if you've already voted
-
-- **YouTube Control**
-  - Search or paste YouTube URL
-  - Queue a new video to play
-  - View recently played videos
-
----
-
-### 3. Content Management (No Admin Required)
-- **New GeoGuessr Image**: Anyone can trigger loading a new Street View location and clear the leaderboard for fresh guessing
-- **Polls**: Anyone can create polls; polls can be marked as "complete" by creator
-- **YouTube**: Anyone can change the video
-
----
-
-## Technical Approach
-
-- **Backend**: Lovable Cloud with Supabase for database and real-time sync
-- **Real-time Updates**: When a user submits a guess or vote, the TV dashboard updates instantly
-- **Google Street View API**: For fetching random panoramic images with coordinates
-- **Interactive Map**: For the guessing interface (Leaflet or similar)
-
----
-
-## Database Structure (High Level)
-- **Locations**: Current and past GeoGuessr images with coordinates
-- **Guesses**: User guesses linked to locations with calculated distances
-- **Polls**: Poll questions, options, and votes
-- **YouTube Queue**: Current and queued videos
-
----
-
-## User Experience Flow
-
-1. **TV displays dashboard** with current GeoGuessr panorama, active poll, and playing video
-2. **Colleague opens Play page** on their phone
-3. **Enters their name** (saved for future sessions)
-4. **Clicks on map** to guess the location (up to 3 tries)
-5. **Leaderboard updates instantly** on the TV showing their rank
-6. **Votes on the current poll** - results update live
-7. **Queues a new song/video** when they want to change the music
-
+- `src/components/dashboard/YouTubeDisplay.tsx` — Only this file needs to change:
+  - Pass `width: "100%"` and `height: "100%"` to the `YT.Player` constructor
+  - Set `style.width = "100%"` and `style.height = "100%"` on the placeholder div before appending
+  - Update the container's child selector from `[&>iframe]` to `[&>*]` and add `[&>div>iframe]:w-full [&>div>iframe]:h-full` to cover the nested iframe
