@@ -15,6 +15,7 @@ declare global {
 
 type YTPlayer = {
   loadVideoById: (videoId: string) => void;
+  playVideo: () => void;
   setSize: (width: number, height: number) => void;
   destroy: () => void;
 };
@@ -85,6 +86,8 @@ export function YouTubeDisplay() {
       // Reuse existing player only if it's fully ready
       if (playerRef.current && playerReadyRef.current) {
         playerRef.current.loadVideoById(videoId);
+        // Explicitly call playVideo in case autoplay is blocked
+        setTimeout(() => playerRef.current?.playVideo(), 300);
         return;
       }
 
@@ -119,9 +122,12 @@ export function YouTubeDisplay() {
         events: {
           onReady: () => {
             playerReadyRef.current = true;
+            // Explicitly start playback — autoplay param is often blocked by browser policy
+            playerRef.current?.playVideo();
             // If a new video was requested while player was initializing, load it now
             if (pendingVideoIdRef.current && pendingVideoIdRef.current !== videoId) {
               playerRef.current?.loadVideoById(pendingVideoIdRef.current);
+              setTimeout(() => playerRef.current?.playVideo(), 300);
               pendingVideoIdRef.current = undefined;
             }
           },
