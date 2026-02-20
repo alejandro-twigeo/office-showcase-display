@@ -16,41 +16,59 @@ interface LeaderboardProps {
 export function Leaderboard({ guesses }: LeaderboardProps) {
   const { settings } = useScoring();
 
-  // For each user: keep their first try (guess_number=1) + up to 2 best by distance
-  const entriesPerUser = new Map<string, Guess[]>();
+  // Step 1: Determine which guess IDs get a full row (max 3 per user)
+  const fullRowIds = new Set<string>();
 
-  for (const guess of guesses) {
-    const existing = entriesPerUser.get(guess.player_name) ?? [];
-    entriesPerUser.set(guess.player_name, [...existing, guess]);
+  const byPlayer = new Map<string, Guess[]>();
+  for (const g of guesses) {
+    byPlayer.set(g.player_name, [...(byPlayer.get(g.player_name) ?? []), g]);
   }
 
-  const selectedEntries: Guess[] = [];
+  for (const [, playerGuesses] of byPlayer) {
+    const firstTry = playerGuesses.find((g) => (g.guess_number ?? 1) === 1);
+    const sortedByDist = [...playerGuesses].sort((a, b) => a.distance_km - b.distance_km);
 
-  for (const [, userGuesses] of entriesPerUser) {
-    const firstTry = userGuesses.find((g) => (g.guess_number ?? 1) === 1);
-    const sortedByDist = [...userGuesses].sort((a, b) => a.distance_km - b.distance_km);
-
-    const picked = new Set<string>();
-    if (firstTry) picked.add(firstTry.id);
+    const pickedForPlayer = new Set<string>();
+    if (firstTry) pickedForPlayer.add(firstTry.id);
 
     for (const g of sortedByDist) {
-      if (picked.size >= 3) break;
-      picked.add(g.id);
+      if (pickedForPlayer.size >= 3) break;
+      pickedForPlayer.add(g.id);
     }
 
-    selectedEntries.push(...userGuesses.filter((g) => picked.has(g.id)));
+    for (const id of pickedForPlayer) fullRowIds.add(id);
   }
 
-  const sorted = selectedEntries.sort((a, b) => a.distance_km - b.distance_km);
+  // Step 2: Sort ALL guesses by distance
+  const allSorted = [...guesses].sort((a, b) => a.distance_km - b.distance_km);
 
-  // Track first occurrence of each player name for display
-  const seenPlayers = new Set<string>();
+  // Step 3: Build render list — full rows interspersed with dot groups
+  type RowItem = { type: 'row'; guess: Guess; rank: number };
+  type DotItem = { type: 'dots'; count: number };
+  type RenderItem = RowItem | DotItem;
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-5 w-5 text-warning" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-muted-foreground" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-warning/60" />;
-    return <span className="w-5 text-center text-sm text-muted-foreground">{rank}</span>;
+  const renderItems: RenderItem[] = [];
+  let rank = 0;
+
+  for (const guess of allSorted) {
+    if (fullRowIds.has(guess.id)) {
+      rank++;
+      renderItems.push({ type: 'row', guess, rank });
+    } else {
+      const last = renderItems[renderItems.length - 1];
+      if (last?.type === 'dots') {
+        last.count++;
+      } else {
+        renderItems.push({ type: 'dots', count: 1 });
+      }
+    }
+  }
+
+  const getRankIcon = (r: number) => {
+    if (r === 1) return <Trophy className="h-5 w-5 text-warning" />;
+    if (r === 2) return <Medal className="h-5 w-5 text-muted-foreground" />;
+    if (r === 3) return <Medal className="h-5 w-5 text-warning/60" />;
+    return <span className="w-5 text-center text-sm text-muted-foreground">{r}</span>;
   };
 
   const formatScoreLabel = (guess: Guess) => {
@@ -62,36 +80,6 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
         : `${Math.round(guess.distance_km)} km`;
     return `${score} pts (${km})`;
   };
-
-  // Build render items: full rows for first occurrence, dot for repeats
-  const items = sorted.map((guess) => {
-    const isFirst = !seenPlayers.has(guess.player_name);
-    seenPlayers.add(guess.player_name);
-    return { guess, isFirst };
-  });
-
-  // Collapse consecutive dots of the same user into a group
-  type RenderItem =
-    | { type: 'row'; guess: Guess; rank: number }
-    | { type: 'dots'; count: number; names: string[] };
-
-  const renderItems: RenderItem[] = [];
-  let rank = 0;
-
-  for (const { guess, isFirst } of items) {
-    if (isFirst) {
-      rank++;
-      renderItems.push({ type: 'row', guess, rank });
-    } else {
-      const last = renderItems[renderItems.length - 1];
-      if (last?.type === 'dots') {
-        last.count++;
-        if (!last.names.includes(guess.player_name)) last.names.push(guess.player_name);
-      } else {
-        renderItems.push({ type: 'dots', count: 1, names: [guess.player_name] });
-      }
-    }
-  }
 
   return (
     <Card className="h-full min-h-0 flex flex-col">
@@ -130,7 +118,6 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
               );
             }
 
-            // Dot row — small circles, one per hidden entry
             return (
               <div
                 key={`dots-${i}`}
