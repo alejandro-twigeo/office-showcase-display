@@ -151,3 +151,26 @@
   font-family: inherit;
   z-index: 1;
 }
+
+/* ── Large-TV scaling ────────────────────────────────────────────────────────
+   Bump root font-size so every clamp() / vw-based size grows proportionally
+   on screens typical of office display TVs (≥75").
+   Laptop / phone / tablet breakpoints are unaffected (<1920px).
+   ────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1920px) {
+  :root {
+    font-size: 120%;   /* 1080p FHD TV */
+  }
+}
+
+@media (min-width: 2560px) {
+  :root {
+    font-size: 150%;   /* 1440p QHD TV */
+  }
+}
+
+@media (min-width: 3840px) {
+  :root {
+    font-size: 190%;   /* 4K UHD TV */
+  }
+}
