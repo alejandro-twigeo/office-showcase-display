@@ -175,6 +175,27 @@ export type Database = {
         }
         Relationships: []
       }
+      scoring_settings: {
+        Row: {
+          attempt_multipliers: Json
+          distance_parameter: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          attempt_multipliers?: Json
+          distance_parameter?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          attempt_multipliers?: Json
+          distance_parameter?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           created_at: string | null
