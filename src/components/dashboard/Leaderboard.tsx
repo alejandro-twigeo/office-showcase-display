@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal } from 'lucide-react';
+import { Trophy, Medal, User } from 'lucide-react';
 import { useScoring, calculateScore } from '@/hooks/useScoring';
 
 interface Guess {
@@ -11,15 +11,6 @@ interface Guess {
 
 interface LeaderboardProps {
   guesses: Guess[];
-}
-
-function InitialAvatar({ name }: { name: string }) {
-  const initial = name.trim().charAt(0).toUpperCase();
-  return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-bold shrink-0">
-      {initial}
-    </span>
-  );
 }
 
 export function Leaderboard({ guesses }: LeaderboardProps) {
@@ -42,7 +33,6 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
     const picked = new Set<string>();
     if (firstTry) picked.add(firstTry.id);
 
-    // Add up to 2 best
     for (const g of sortedByDist) {
       if (picked.size >= 3) break;
       picked.add(g.id);
@@ -73,6 +63,36 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
     return `${score} pts (${km})`;
   };
 
+  // Build render items: full rows for first occurrence, dot for repeats
+  const items = sorted.map((guess) => {
+    const isFirst = !seenPlayers.has(guess.player_name);
+    seenPlayers.add(guess.player_name);
+    return { guess, isFirst };
+  });
+
+  // Collapse consecutive dots of the same user into a group
+  type RenderItem =
+    | { type: 'row'; guess: Guess; rank: number }
+    | { type: 'dots'; count: number; names: string[] };
+
+  const renderItems: RenderItem[] = [];
+  let rank = 0;
+
+  for (const { guess, isFirst } of items) {
+    if (isFirst) {
+      rank++;
+      renderItems.push({ type: 'row', guess, rank });
+    } else {
+      const last = renderItems[renderItems.length - 1];
+      if (last?.type === 'dots') {
+        last.count++;
+        if (!last.names.includes(guess.player_name)) last.names.push(guess.player_name);
+      } else {
+        renderItems.push({ type: 'dots', count: 1, names: [guess.player_name] });
+      }
+    }
+  }
+
   return (
     <Card className="h-full min-h-0 flex flex-col">
       <CardHeader className="pb-3">
@@ -81,40 +101,47 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
           Leaderboard
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 overflow-y-auto min-h-0 flex-1">
-        {sorted.length === 0 ? (
+      <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">
+        {renderItems.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,34px)]">
             No guesses yet. Be the first!
           </p>
         ) : (
-          sorted.map((guess, index) => {
-            const isFirstOccurrence = !seenPlayers.has(guess.player_name);
-            seenPlayers.add(guess.player_name);
+          renderItems.map((item, i) => {
+            if (item.type === 'row') {
+              return (
+                <div
+                  key={item.guess.id}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50"
+                >
+                  <div className="flex items-center justify-center w-6 shrink-0">
+                    {getRankIcon(item.rank)}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 min-w-0">
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">
+                      {item.guess.player_name}
+                    </span>
+                  </div>
+                  <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold ml-auto shrink-0 whitespace-nowrap">
+                    {formatScoreLabel(item.guess)}
+                  </span>
+                </div>
+              );
+            }
 
+            // Dot row — small circles, one per hidden entry
             return (
               <div
-                key={guess.id}
-                className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50"
+                key={`dots-${i}`}
+                className="flex items-center justify-center gap-1.5 py-0.5 px-2"
               >
-                <div className="flex items-center justify-center w-6 shrink-0">
-                  {getRankIcon(index + 1)}
-                </div>
-
-                <InitialAvatar name={guess.player_name} />
-
-                {isFirstOccurrence ? (
-                  <span className="font-medium text-[clamp(14px,1vw,18px)] break-all min-w-0">
-                    {guess.player_name}
-                  </span>
-                ) : (
-                  <span className="text-[clamp(12px,0.8vw,15px)] text-muted-foreground italic min-w-0 truncate">
-                    try #{guess.guess_number ?? 1}
-                  </span>
-                )}
-
-                <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold ml-auto shrink-0 whitespace-nowrap">
-                  {formatScoreLabel(guess)}
-                </span>
+                {Array.from({ length: item.count }).map((_, di) => (
+                  <span
+                    key={di}
+                    className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30"
+                  />
+                ))}
               </div>
             );
           })
