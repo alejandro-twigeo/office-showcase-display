@@ -216,7 +216,9 @@ export type Database = {
           is_favorite: boolean
           is_playing: boolean | null
           played_at: string | null
+          queued_at: string | null
           queued_by: string
+          status: string
           thumbnail_url: string | null
           title: string
           video_id: string
@@ -229,7 +231,9 @@ export type Database = {
           is_favorite?: boolean
           is_playing?: boolean | null
           played_at?: string | null
+          queued_at?: string | null
           queued_by: string
+          status?: string
           thumbnail_url?: string | null
           title: string
           video_id: string
@@ -242,7 +246,9 @@ export type Database = {
           is_favorite?: boolean
           is_playing?: boolean | null
           played_at?: string | null
+          queued_at?: string | null
           queued_by?: string
+          status?: string
           thumbnail_url?: string | null
           title?: string
           video_id?: string
