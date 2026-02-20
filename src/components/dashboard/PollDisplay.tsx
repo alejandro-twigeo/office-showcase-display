@@ -86,6 +86,15 @@ export function PollDisplay() {
 
   const totalVotes = voteCounts.reduce((a, b) => a + b, 0);
 
+  // For freetext polls, sort options by vote count descending
+  const sortedFreetextOptions = useMemo(() => {
+    if (!currentPoll || (currentPoll as any).poll_type !== 'freetext') return [];
+    return (currentPoll.options as string[])
+      .map((text, idx) => ({ text, idx, count: voteCounts[idx] ?? 0 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8); // show top 8 on TV
+  }, [currentPoll, voteCounts]);
+
   return (
     <Card className="h-full min-h-0 flex flex-col overflow-hidden">
       <CardHeader className="pb-2">
@@ -117,7 +126,48 @@ export function PollDisplay() {
               Create one from the Play page!
             </p>
           </div>
+        ) : (currentPoll as any).poll_type === 'freetext' ? (
+          /* ── Freetext poll display ── */
+          <div className="space-y-[clamp(8px,0.8vw,16px)]">
+            <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
+            <h3 className="font-semibold text-[clamp(18px,1.4vw,28px)]">{currentPoll.question}</h3>
+            {sortedFreetextOptions.length === 0 ? (
+              <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">
+                No answers yet — submit one from the Play page!
+              </p>
+            ) : (
+              <div className="space-y-[clamp(4px,0.4vw,8px)]">
+                {sortedFreetextOptions.map(({ text, idx, count }) => {
+                  const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+                  return (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between text-[clamp(13px,0.9vw,22px)]">
+                        <span className="truncate pr-4">{text}</span>
+                        <span className="text-muted-foreground shrink-0">
+                          {count} ({Math.round(percentage)}%)
+                        </span>
+                      </div>
+                      <div className="h-[clamp(24px,1.8vw,36px)] bg-secondary rounded-md overflow-hidden relative">
+                        <div
+                          className="h-full bg-primary/80 transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
+                        <span className="absolute inset-0 flex items-center px-3 text-[clamp(12px,0.85vw,18px)] font-medium truncate">
+                          {text}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
+              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
+              <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} · {(currentPoll.options as string[]).length} answers</span>
+            </div>
+          </div>
         ) : (
+          /* ── Choice poll display ── */
           <div className="space-y-[clamp(8px,0.8vw,16px)]">
             <div>
               <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />

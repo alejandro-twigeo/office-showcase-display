@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
-interface Poll {
+export type PollType = 'choice' | 'freetext';
+
+export interface Poll {
   id: string;
   question: string;
   options: string[];
+  poll_type: PollType;
   is_active: boolean;
   created_by: string;
   started_at: string | null;
@@ -37,6 +40,7 @@ export function usePolls() {
       return (data || []).map(poll => ({
         ...poll,
         options: Array.isArray(poll.options) ? poll.options : [],
+        poll_type: (poll.poll_type as PollType) ?? 'choice',
       })) as Poll[];
     },
   });
@@ -60,11 +64,12 @@ export function usePolls() {
   }, [queryClient]);
 
   const createPoll = useMutation({
-    mutationFn: async (data: { question: string; options: string[]; created_by: string }) => {
+    mutationFn: async (data: { question: string; options: string[]; created_by: string; poll_type: PollType }) => {
       const { error } = await supabase.from('polls').insert({
         question: data.question,
         options: data.options,
         created_by: data.created_by,
+        poll_type: data.poll_type,
         is_active: true,
         started_at: new Date().toISOString(),
       });
@@ -103,7 +108,23 @@ export function usePolls() {
     },
   });
 
-  return { activePolls, isLoading, createPoll, closePoll, updatePoll };
+  /** Append a free-text answer to a freetext poll atomically via RPC.
+   *  Returns the option index the answer was placed at. */
+  const appendOption = useMutation({
+    mutationFn: async ({ pollId, text }: { pollId: string; text: string }): Promise<number> => {
+      const { data, error } = await supabase.rpc('append_poll_option', {
+        p_poll_id: pollId,
+        p_option_text: text.trim(),
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-polls'] });
+    },
+  });
+
+  return { activePolls, isLoading, createPoll, closePoll, updatePoll, appendOption };
 }
 
 export function useVotes(pollId: string | undefined) {
