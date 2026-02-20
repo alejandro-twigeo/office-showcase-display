@@ -22,15 +22,13 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
     byPlayer.set(g.player_name, [...(byPlayer.get(g.player_name) ?? []), g]);
   }
 
-  // For each player, determine which single guess ID gets the full row:
-  // their best (smallest distance_km) among: guess #1 + 2 best (deduped, max 3 considered)
+  // For each player pick ONE best guess id to show as a full row
   const fullRowId = new Map<string, string>(); // player_name → guess id
 
   for (const [player, playerGuesses] of byPlayer) {
     const firstTry = playerGuesses.find((g) => (g.guess_number ?? 1) === 1);
     const sortedByDist = [...playerGuesses].sort((a, b) => a.distance_km - b.distance_km);
 
-    // Collect up to 3 candidates: firstTry + 2 best
     const candidates = new Map<string, Guess>();
     if (firstTry) candidates.set(firstTry.id, firstTry);
     for (const g of sortedByDist) {
@@ -38,7 +36,6 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
       if (!candidates.has(g.id)) candidates.set(g.id, g);
     }
 
-    // Best among candidates = the one shown as a full row
     const best = [...candidates.values()].sort((a, b) => a.distance_km - b.distance_km)[0];
     if (best) fullRowId.set(player, best.id);
   }
@@ -46,13 +43,12 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
   // Sort ALL guesses by distance ascending
   const allSorted = [...guesses].sort((a, b) => a.distance_km - b.distance_km);
 
-  // Build render list
+  // Build render list: full rows + initial-circle groups for extras
   type RowItem = { type: 'row'; guess: Guess; rank: number };
-  type DotItem = { type: 'dots'; count: number };
+  type DotItem = { type: 'dots'; initials: string[] };
   type RenderItem = RowItem | DotItem;
 
   const renderItems: RenderItem[] = [];
-  // Track which players have already had their full row rendered
   const renderedPlayers = new Set<string>();
   let rank = 0;
 
@@ -66,11 +62,12 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
       renderedPlayers.add(guess.player_name);
       renderItems.push({ type: 'row', guess, rank });
     } else {
+      const initial = guess.player_name.trim().charAt(0).toUpperCase();
       const last = renderItems[renderItems.length - 1];
       if (last?.type === 'dots') {
-        last.count++;
+        last.initials.push(initial);
       } else {
-        renderItems.push({ type: 'dots', count: 1 });
+        renderItems.push({ type: 'dots', initials: [initial] });
       }
     }
   }
@@ -129,16 +126,20 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
               );
             }
 
+            // Initial-circle row — replaces the hidden guesses
             return (
               <div
                 key={`dots-${i}`}
-                className="flex items-center justify-center gap-1.5 py-0.5 px-2"
+                className="flex items-center justify-center gap-1 py-0.5 px-2"
               >
-                {Array.from({ length: item.count }).map((_, di) => (
+                {item.initials.map((initial, di) => (
                   <span
                     key={di}
-                    className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30"
-                  />
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground border border-border"
+                    style={{ fontSize: '9px', fontWeight: 600 }}
+                  >
+                    {initial}
+                  </span>
                 ))}
               </div>
             );
