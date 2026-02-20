@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, Play, ListMusic, Search, Trash2, Clock, User, GripVertical } from "lucide-react";
+import {
+  Youtube, Play, ListMusic, Search, Trash2, Clock, User,
+  GripVertical, Heart, ChevronLeft, ChevronRight, ListPlus,
+  CheckSquare, Square,
+} from "lucide-react";
+
+const PAGE_SIZE = 10;
 
 interface YouTubeSectionProps {
   playerName: string;
@@ -22,8 +28,10 @@ function extractVideoId(url: string): string | null {
 }
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
-  const { currentVideo, queue, recentVideos, playNow, addToQueue, removeFromQueue, reorderQueue } =
-    useYoutubeQueue();
+  const {
+    currentVideo, queue, recentVideos,
+    playNow, addToQueue, removeFromQueue, reorderQueue, toggleFavorite,
+  } = useYoutubeQueue();
 
   const [videoUrl, setVideoUrl] = useState("");
   const [localQueue, setLocalQueue] = useState<typeof queue | null>(null);
@@ -31,30 +39,29 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
 
-  const displayQueue = localQueue ?? queue;
+  // History pagination & multi-select
+  const [historyPage, setHistoryPage] = useState(0);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const displayQueue = localQueue ?? queue;
   const isPending = playNow.isPending || addToQueue.isPending;
   const videoId = extractVideoId(videoUrl.trim());
 
+  const totalPages = Math.ceil(recentVideos.length / PAGE_SIZE);
+  const pageVideos = recentVideos.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE);
+
+  /* ── URL submit ─────────────────────────────────── */
   const handlePlayNow = () => {
     if (!videoId) return;
     playNow.mutate({ video_id: videoId, queued_by: playerName }, { onSuccess: () => setVideoUrl("") });
   };
-
   const handleAddToQueue = () => {
     if (!videoId) return;
     addToQueue.mutate({ video_id: videoId, queued_by: playerName }, { onSuccess: () => setVideoUrl("") });
   };
 
-  const handleReplay = (vid: { video_id: string }) => {
-    playNow.mutate({ video_id: vid.video_id, queued_by: playerName });
-  };
-
-  const handleDragStart = (idx: number) => {
-    dragIndex.current = idx;
-    setDraggingIdx(idx);
-  };
-
+  /* ── Drag-to-reorder ────────────────────────────── */
+  const handleDragStart = (idx: number) => { dragIndex.current = idx; setDraggingIdx(idx); };
   const handleDragEnter = (idx: number) => {
     setOverIdx(idx);
     if (dragIndex.current === null || dragIndex.current === idx) return;
@@ -64,10 +71,8 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
     dragIndex.current = idx;
     setLocalQueue(reordered);
   };
-
   const handleDragEnd = () => {
-    setDraggingIdx(null);
-    setOverIdx(null);
+    setDraggingIdx(null); setOverIdx(null);
     if (localQueue) {
       reorderQueue.mutate(localQueue.map((v) => v.id), {
         onSuccess: () => setLocalQueue(null),
@@ -76,6 +81,27 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
     }
     dragIndex.current = null;
   };
+
+  /* ── Multi-select helpers ───────────────────────── */
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => setSelected(new Set(pageVideos.map((v) => v.id)));
+  const clearSelection = () => setSelected(new Set());
+
+  const handleAddSelected = () => {
+    const vids = recentVideos.filter((v) => selected.has(v.id));
+    vids.forEach((v) => addToQueue.mutate({ video_id: v.video_id, queued_by: playerName }));
+    setSelected(new Set());
+  };
+
+  /* ── Favourite toggle ───────────────────────────── */
+  const handleFavourite = (id: string, current: boolean) =>
+    toggleFavorite.mutate({ id, is_favorite: !current });
 
   return (
     <Card>
@@ -93,6 +119,17 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Play className="h-3 w-3 fill-current text-primary" />
               <span className="text-primary font-medium">Now Playing</span>
+              <button
+                onClick={() => handleFavourite(currentVideo.id, currentVideo.is_favorite)}
+                className="ml-auto"
+                aria-label="Toggle favourite"
+              >
+                <Heart
+                  className={`h-4 w-4 transition-colors ${
+                    currentVideo.is_favorite ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"
+                  }`}
+                />
+              </button>
             </div>
             <p className="font-medium line-clamp-1 text-sm">{currentVideo.title}</p>
             <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
@@ -110,23 +147,12 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
               className="pl-9"
             />
           </div>
-
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={handlePlayNow}
-              disabled={!videoId || isPending}
-              variant="default"
-              className="w-full"
-            >
+            <Button onClick={handlePlayNow} disabled={!videoId || isPending} variant="default" className="w-full">
               <Play className="h-4 w-4 mr-1" />
               {playNow.isPending ? "Loading..." : "Play Now"}
             </Button>
-            <Button
-              onClick={handleAddToQueue}
-              disabled={!videoId || isPending}
-              variant="outline"
-              className="w-full"
-            >
+            <Button onClick={handleAddToQueue} disabled={!videoId || isPending} variant="outline" className="w-full">
               <ListMusic className="h-4 w-4 mr-1" />
               {addToQueue.isPending ? "Adding..." : "Add to Queue"}
             </Button>
@@ -170,6 +196,17 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                     <p className="text-xs font-medium line-clamp-1">{video.title}</p>
                     <p className="text-xs text-muted-foreground">by {video.queued_by}</p>
                   </div>
+                  <button
+                    onClick={() => handleFavourite(video.id, video.is_favorite)}
+                    className="shrink-0 p-1"
+                    aria-label="Toggle favourite"
+                  >
+                    <Heart
+                      className={`h-3.5 w-3.5 transition-colors ${
+                        video.is_favorite ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"
+                      }`}
+                    />
+                  </button>
                   {video.queued_by === playerName && (
                     <Button
                       variant="ghost"
@@ -187,41 +224,135 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
           </div>
         )}
 
-        {/* Recently Played */}
+        {/* History */}
         {recentVideos.length > 0 && (
-          <div className="border-t pt-3">
-            <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Recently Played
-            </p>
-            <div className="space-y-1">
-              {recentVideos.slice(0, 5).map((video) => (
-                <div
-                  key={video.id}
-                  className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary/40 transition-colors"
-                >
-                  <button
-                    onClick={() => handleReplay(video)}
-                    disabled={playNow.isPending}
-                    className="flex items-center gap-2 flex-1 text-left min-w-0"
-                  >
-                    <img
-                      src={video.thumbnail_url ?? `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg`}
-                      alt={video.title}
-                      className="h-8 w-12 rounded object-cover bg-secondary shrink-0"
-                      loading="lazy"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium line-clamp-1">{video.title}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <User className="h-2.5 w-2.5" />
-                        {video.queued_by}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              ))}
+          <div className="border-t pt-3 space-y-2">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                History ({recentVideos.length})
+              </p>
+              <div className="flex items-center gap-1">
+                {selected.size > 0 ? (
+                  <>
+                    <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={handleAddSelected}
+                      disabled={addToQueue.isPending}
+                    >
+                      <ListPlus className="h-3.5 w-3.5 mr-1" />
+                      Add to Queue
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={clearSelection}>
+                      Clear
+                    </Button>
+                  </>
+                ) : (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={selectAll}>
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" />
+                    Select all
+                  </Button>
+                )}
+              </div>
             </div>
+
+            {/* Video rows */}
+            <div className="space-y-1">
+              {pageVideos.map((video) => {
+                const isSelected = selected.has(video.id);
+                return (
+                  <div
+                    key={video.id}
+                    className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                      isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-secondary/40 border border-transparent"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <button onClick={() => toggleSelect(video.id)} className="shrink-0" aria-label="Select">
+                      {isSelected
+                        ? <CheckSquare className="h-4 w-4 text-primary" />
+                        : <Square className="h-4 w-4 text-muted-foreground/50" />
+                      }
+                    </button>
+
+                    {/* Thumbnail + info (click to play) */}
+                    <button
+                      onClick={() => playNow.mutate({ video_id: video.video_id, queued_by: playerName })}
+                      disabled={playNow.isPending}
+                      className="flex items-center gap-2 flex-1 text-left min-w-0"
+                    >
+                      <img
+                        src={video.thumbnail_url ?? `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg`}
+                        alt={video.title}
+                        className="h-8 w-12 rounded object-cover bg-secondary shrink-0"
+                        loading="lazy"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium line-clamp-1">{video.title}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <User className="h-2.5 w-2.5" />
+                          {video.queued_by}
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Add single to queue */}
+                    <button
+                      onClick={() => addToQueue.mutate({ video_id: video.video_id, queued_by: playerName })}
+                      disabled={addToQueue.isPending}
+                      className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Add to queue"
+                    >
+                      <ListPlus className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* Favourite */}
+                    <button
+                      onClick={() => handleFavourite(video.id, video.is_favorite)}
+                      className="shrink-0 p-1"
+                      aria-label="Toggle favourite"
+                    >
+                      <Heart
+                        className={`h-3.5 w-3.5 transition-colors ${
+                          video.is_favorite ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2"
+                  disabled={historyPage === 0}
+                  onClick={() => { setHistoryPage((p) => p - 1); setSelected(new Set()); }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Page {historyPage + 1} / {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2"
+                  disabled={historyPage >= totalPages - 1}
+                  onClick={() => { setHistoryPage((p) => p + 1); setSelected(new Set()); }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
