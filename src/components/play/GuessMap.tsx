@@ -227,12 +227,11 @@ export function GuessMap({ playerName }: GuessMapProps) {
       activeLocation.lat, activeLocation.lng
     );
     const guessNumber = userGuesses.length + 1;
-    const playerNameWithSuffix = `${playerName}_${guessNumber}`;
     submitGuess.mutate(
       {
         location_id: activeLocation.id,
         device_id: deviceId,
-        player_name: playerNameWithSuffix,
+        player_name: playerName,
         lat: selectedPosition.lat,
         lng: selectedPosition.lng,
         distance_km: distance,
