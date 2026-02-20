@@ -6,7 +6,7 @@ import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import {
   Youtube, Play, ListMusic, Search, Trash2, Clock, User,
   GripVertical, Heart, ChevronLeft, ChevronRight, ListPlus,
-  CheckSquare, Square,
+  CheckSquare, Square, X,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -321,6 +321,15 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                           video.is_favorite ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"
                         }`}
                       />
+                    </button>
+
+                    {/* Remove from history */}
+                    <button
+                      onClick={() => removeFromQueue.mutate(video.id)}
+                      className="shrink-0 p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      aria-label="Remove from history"
+                    >
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );
