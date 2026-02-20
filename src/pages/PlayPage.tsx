@@ -5,9 +5,9 @@ import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
-import { Button } from '../components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { User, MapPin, BarChart3, Youtube, Monitor, Heart } from 'lucide-react';
+import { User, MapPin, BarChart3, Youtube, Monitor, Heart, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes';
@@ -28,26 +28,32 @@ export default function PlayPage() {
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
           >
             <Monitor className="h-4 w-4" />
             <span>TV mode</span>
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <User className="h-4 w-4" />
-              <span>{playerName}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                localStorage.removeItem('office-tv-player-name');
-                window.location.reload();
-              }}
-            >
-              Change
-            </Button>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 p-1 rounded-full hover:bg-secondary/60 transition-colors">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm">{playerName}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive gap-2"
+                  onClick={() => {
+                    localStorage.removeItem('office-tv-player-name');
+                    window.location.reload();
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
