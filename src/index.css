@@ -102,6 +102,32 @@
 }
 
 @layer base {
+  /* Global scale for TV readability */
+  html {
+    font-size: 16px;
+  }
+
+  /* 2xl+ screens (often TVs) */
+  @media (min-width: 1536px) {
+    html {
+      font-size: 20px;
+    }
+  }
+
+  /* Full HD TVs */
+  @media (min-width: 1920px) {
+    html {
+      font-size: 22px;
+    }
+  }
+
+  /* 4K TVs */
+  @media (min-width: 2560px) {
+    html {
+      font-size: 24px;
+    }
+  }
+
   * {
     @apply border-border;
   }
@@ -110,7 +136,16 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+/*@layer base {
+  * {
+    @apply border-border;
+  }
 
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+*/
 /* Leaflet overrides */
 .leaflet-container {
   font-family: inherit;
