@@ -80,7 +80,7 @@ export function useYoutubeQueue() {
     },
   });
 
-  // Recently played
+  // All played videos (paginated in UI)
   const { data: recentVideos = [], isLoading: loadingRecent } = useQuery<YouTubeVideo[]>({
     queryKey: ["recent-videos"],
     queryFn: async (): Promise<YouTubeVideo[]> => {
@@ -88,8 +88,7 @@ export function useYoutubeQueue() {
         .select("*")
         .eq("status", "played")
         .eq("is_deleted", false)
-        .order("played_at", { ascending: false })
-        .limit(10);
+        .order("played_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as YouTubeVideo[];
     },
@@ -226,7 +225,7 @@ export function useYoutubeQueue() {
     },
   });
 
-  // Toggle favorite on recent videos
+  // Toggle favorite
   const toggleFavorite = useMutation({
     mutationFn: async (data: { id: string; is_favorite: boolean }) => {
       const { error } = await ytQueue()
@@ -236,6 +235,8 @@ export function useYoutubeQueue() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["current-video"] });
     },
   });
 
