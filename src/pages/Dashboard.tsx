@@ -24,7 +24,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-[clamp(10px,1vw,16px)]">
             <button
               onClick={() => navigate("/play")}
-              className="flex items-center gap-[clamp(8px,0.7vw,14px)] px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,14px)] rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-[clamp(15px,1.2vw,22px)] font-medium"
+              className="flex items-center gap-[clamp(8px,0.7vw,14px)] px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,14px)] rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-[clamp(15px,1.2vw,22px)] font-medium"
               aria-label="Go to Play page"
             >
               <Gamepad2 className="h-[clamp(18px,1.3vw,26px)] w-[clamp(18px,1.3vw,26px)]" />
