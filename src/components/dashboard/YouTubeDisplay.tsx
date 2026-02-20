@@ -1,76 +1,130 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import { Youtube, User, Music, ListMusic } from "lucide-react";
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
+
+/* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+type YTPlayer = {
+  loadVideoById: (videoId: string) => void;
+  destroy: () => void;
+};
+
+const ytAPIReadyCallbacks: Array<() => void> = [];
+let ytAPILoaded = false;
+
+function loadYouTubeAPI(onReady: () => void) {
+  ytAPIReadyCallbacks.push(onReady);
+
+  if (ytAPILoaded) return;
+  ytAPILoaded = true;
+
+  if (window.YT?.Player) {
+    // Already available
+    ytAPIReadyCallbacks.forEach((cb) => cb());
+    ytAPIReadyCallbacks.length = 0;
+    return;
+  }
+
+  window.onYouTubeIframeAPIReady = () => {
+    ytAPIReadyCallbacks.forEach((cb) => cb());
+    ytAPIReadyCallbacks.length = 0;
+  };
+
+  const script = document.createElement("script");
+  script.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(script);
+}
+
+/* ── Component ──────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay() {
   const { currentVideo, queue, advanceQueue } = useYoutubeQueue();
-  const playerRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
   const hasAdvancedRef = useRef(false);
+  const currentVideoIdRef = useRef<string | undefined>(undefined);
 
-  // Use a stable key so the iframe fully reloads when the video changes
-  const iframeKey = currentVideo?.id ?? "no-video";
-
-  const embedSrc = useMemo(() => {
-    if (!currentVideo?.video_id) return "";
-    const params = new URLSearchParams({
-      autoplay: "1",
-      mute: "0",
-      controls: "1",
-      rel: "0",
-      modestbranding: "1",
-      playsinline: "1",
-      enablejsapi: "1",
-      // origin is required for postMessage events to work
-      origin: window.location.origin,
-    });
-    return `https://www.youtube.com/embed/${currentVideo.video_id}?${params.toString()}`;
-  }, [currentVideo?.video_id]);
-
-  // Reset advance guard when video changes
-  useEffect(() => {
-    hasAdvancedRef.current = false;
-  }, [currentVideo?.id]);
-
-  // Handle YouTube postMessage events to detect video end
   const handleVideoEnd = useCallback(() => {
     if (hasAdvancedRef.current) return;
     hasAdvancedRef.current = true;
-    advanceQueue.mutate(currentVideo?.id);
-  }, [advanceQueue, currentVideo?.id]);
+    advanceQueue.mutate(currentVideoIdRef.current);
+  }, [advanceQueue]);
 
-  // Send the "listening" registration to the iframe so YouTube
-  // starts emitting postMessage state-change events
-  const sendListening = useCallback(() => {
-    const iframe = playerRef.current;
-    if (!iframe?.contentWindow) return;
-    iframe.contentWindow.postMessage(
-      JSON.stringify({ event: "listening" }),
-      "https://www.youtube.com"
-    );
-  }, []);
-
+  // Keep currentVideoIdRef in sync so the stale-closure-safe callback always has the latest id
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      if (event.origin !== "https://www.youtube.com") return;
-      try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        // Once the player is ready, register as a listener so it keeps sending events
-        if (data?.event === "onReady") {
-          sendListening();
-        }
-        // onStateChange info=0 means video ended
-        if (data?.event === "onStateChange" && data?.info === 0) {
-          handleVideoEnd();
-        }
-      } catch {
-        // ignore parse errors
+    currentVideoIdRef.current = currentVideo?.id;
+    hasAdvancedRef.current = false;
+  }, [currentVideo?.id]);
+
+  // Bootstrap / manage the YT.Player instance
+  useEffect(() => {
+    if (!currentVideo?.video_id) {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+      return;
+    }
+
+    const videoId = currentVideo.video_id;
+
+    const initPlayer = () => {
+      if (!containerRef.current) return;
+
+      // Reuse existing player – just load new video
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(videoId);
+        return;
       }
+
+      // Create a fresh div for YT to replace with iframe
+      const div = document.createElement("div");
+      containerRef.current.innerHTML = "";
+      containerRef.current.appendChild(div);
+
+      playerRef.current = new window.YT.Player(div, {
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+        },
+        events: {
+          onStateChange: (event: { data: number }) => {
+            // YT.PlayerState.ENDED === 0
+            if (event.data === 0) {
+              handleVideoEnd();
+            }
+          },
+        },
+      });
     };
 
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [handleVideoEnd, sendListening]);
+    loadYouTubeAPI(initPlayer);
+
+    // If YT is already ready, init immediately
+    if (window.YT?.Player) {
+      initPlayer();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVideo?.video_id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, []);
 
   const nextInQueue = queue[0];
 
@@ -102,20 +156,11 @@ export function YouTubeDisplay() {
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-[clamp(8px,0.6vw,16px)]">
-            <div className="flex-1 min-h-0 bg-secondary rounded-lg overflow-hidden">
-              <iframe
-                ref={playerRef}
-                key={iframeKey}
-                width="100%"
-                height="100%"
-                src={embedSrc}
-                title={currentVideo.title || "YouTube video"}
-                frameBorder="0"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-                onLoad={sendListening}
-              />
-            </div>
+            {/* YT.Player mounts here */}
+            <div
+              ref={containerRef}
+              className="flex-1 min-h-0 bg-secondary rounded-lg overflow-hidden [&>iframe]:w-full [&>iframe]:h-full"
+            />
 
             <div className="space-y-1">
               <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
