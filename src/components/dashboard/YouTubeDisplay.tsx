@@ -39,12 +39,27 @@ export function YouTubeDisplay() {
     advanceQueue.mutate(currentVideo?.id);
   }, [advanceQueue, currentVideo?.id]);
 
+  // Send the "listening" registration to the iframe so YouTube
+  // starts emitting postMessage state-change events
+  const sendListening = useCallback(() => {
+    const iframe = playerRef.current;
+    if (!iframe?.contentWindow) return;
+    iframe.contentWindow.postMessage(
+      JSON.stringify({ event: "listening" }),
+      "https://www.youtube.com"
+    );
+  }, []);
+
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.origin !== "https://www.youtube.com") return;
       try {
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        // YouTube IFrame API: onStateChange info=0 means video ended
+        // Once the player is ready, register as a listener so it keeps sending events
+        if (data?.event === "onReady") {
+          sendListening();
+        }
+        // onStateChange info=0 means video ended
         if (data?.event === "onStateChange" && data?.info === 0) {
           handleVideoEnd();
         }
@@ -55,7 +70,7 @@ export function YouTubeDisplay() {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [handleVideoEnd]);
+  }, [handleVideoEnd, sendListening]);
 
   const nextInQueue = queue[0];
 
@@ -98,6 +113,7 @@ export function YouTubeDisplay() {
                 frameBorder="0"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
+                onLoad={sendListening}
               />
             </div>
 
