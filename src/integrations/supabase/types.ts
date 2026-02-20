@@ -88,6 +88,74 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_items: {
+        Row: {
+          added_by: string
+          channel_title: string | null
+          created_at: string
+          id: string
+          playlist_id: string
+          position: number
+          thumbnail_url: string | null
+          title: string
+          video_id: string
+        }
+        Insert: {
+          added_by: string
+          channel_title?: string | null
+          created_at?: string
+          id?: string
+          playlist_id: string
+          position?: number
+          thumbnail_url?: string | null
+          title: string
+          video_id: string
+        }
+        Update: {
+          added_by?: string
+          channel_title?: string | null
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number
+          thumbnail_url?: string | null
+          title?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_items_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       polls: {
         Row: {
           closed_at: string | null
