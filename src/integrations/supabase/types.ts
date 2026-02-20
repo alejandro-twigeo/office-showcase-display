@@ -175,6 +175,33 @@ export type Database = {
         }
         Relationships: []
       }
+      positive_messages: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          message: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          message: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scoring_settings: {
         Row: {
           attempt_multipliers: Json
