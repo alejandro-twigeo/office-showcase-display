@@ -80,7 +80,7 @@ export function useYoutubeQueue() {
     },
   });
 
-  // All played videos (paginated in UI)
+  // All played videos, deduplicated by video_id (most recent play wins)
   const { data: recentVideos = [], isLoading: loadingRecent } = useQuery<YouTubeVideo[]>({
     queryKey: ["recent-videos"],
     queryFn: async (): Promise<YouTubeVideo[]> => {
@@ -90,7 +90,13 @@ export function useYoutubeQueue() {
         .eq("is_deleted", false)
         .order("played_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as YouTubeVideo[];
+      // Deduplicate: keep first (most recent) occurrence of each video_id
+      const seen = new Set<string>();
+      return (data ?? []).filter((v: YouTubeVideo) => {
+        if (seen.has(v.video_id)) return false;
+        seen.add(v.video_id);
+        return true;
+      }) as YouTubeVideo[];
     },
   });
 
