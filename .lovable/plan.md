@@ -1,92 +1,34 @@
 
-## Root Cause (Confirmed)
+## Fix: Long Positive Messages Should Wrap, Not Truncate
 
-The chain from the grid down to the iframe:
+### Problem
+The message `<p>` tag on line 63 of `Dashboard.tsx` has the `truncate` class applied. This means if the message + signature text is wider than the available space (logo on left, Play button on right), it silently cuts off with `…`. Users on smaller screens or with long messages could miss part of the content.
 
-```text
-grid row (55fr) 
-  └─ div.min-h-0.overflow-hidden          ← no h-full → collapses on large TVs
-       └─ Card.h-full.flex-col
-            └─ CardContent.flex-1.min-h-0.flex-col   ← p-6 pt-0 (adds padding)
-                 └─ div.flex-1.min-h-0               ← the video wrapper
-                      └─ div[containerRef].flex-1.min-h-0   ← the YT container
-                           └─ iframe height="100%"   ← 100% of 0 = invisible
-```
+### Solution
+Remove `truncate` and instead allow the text to wrap naturally to a second line. To keep it readable and prevent it from growing uncontrollably tall (which could push the main grid down), cap it at 2 lines using `line-clamp-2`.
 
-The `min-h-0` at each level allows the flex children to shrink to zero. On a laptop the viewport is smaller so concrete pixel heights bleed through naturally. On a large TV (1080p/4K) the flex tree expands freely and `height: "100%"` on the iframe resolves to 0. Audio still plays because the iframe document loads fully — only the visible canvas collapses.
+- `truncate` → single line, cuts with `…`
+- `line-clamp-2` → up to 2 lines, then cuts with `…` (much better for a TV banner)
 
-## Fix
+This is a Tailwind utility (`line-clamp-2`) that combines `overflow-hidden`, `display: -webkit-box`, `-webkit-line-clamp: 2`, and `-webkit-box-orient: vertical` — fully supported in modern browsers used on TVs.
 
-Two targeted changes, both in `src/components/dashboard/YouTubeDisplay.tsx`:
+### Files to Change
 
-**1. Make the container relatively positioned and use absolute positioning for the player**
+**`src/pages/Dashboard.tsx` — line 63 only**
 
-Replace the `flex-1 min-h-0` sizing strategy for the container with a `relative` wrapper that has a known size, and position the player absolutely inside it:
-
+Change:
 ```tsx
-{/* outer div stays flex-1 to take available space */}
-<div className="flex-1 min-h-0 relative">
-  <div
-    ref={containerRef}
-    className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
-  />
-</div>
+<p className="text-[clamp(14px,1.3vw,28px)] font-medium leading-snug truncate">
 ```
 
-This guarantees the iframe container always has a concrete bounding box (`inset-0` means top/left/right/bottom = 0 relative to the positioned parent). The `flex-1 min-h-0` parent still participates in the flex layout to claim space, but the actual container that the YT player lives in is anchored absolutely.
-
-**2. Pass pixel dimensions to YT.Player (not percentage strings)**
-
-Read the container's actual pixel size right before creating the player, and pass those numbers. Also extend the type to include `setSize`:
-
-```typescript
-type YTPlayer = {
-  loadVideoById: (videoId: string) => void;
-  setSize: (width: number, height: number) => void;
-  destroy: () => void;
-};
-
-// inside initPlayer:
-const w = containerRef.current.offsetWidth || 1280;
-const h = containerRef.current.offsetHeight || 720;
-
-playerRef.current = new window.YT.Player(div, {
-  width: w,
-  height: h,
-  ...
-});
-```
-
-**3. Add a ResizeObserver to keep the player sized correctly**
-
-When the window or layout changes (e.g. sidebar opens, font-size scaling kicks in), call `setSize()` on the existing player:
-
-```typescript
-useEffect(() => {
-  if (!containerRef.current) return;
-  const observer = new ResizeObserver(() => {
-    if (!containerRef.current || !playerRef.current) return;
-    const { offsetWidth: w, offsetHeight: h } = containerRef.current;
-    playerRef.current.setSize(w, h);
-  });
-  observer.observe(containerRef.current);
-  return () => observer.disconnect();
-}, []);
-```
-
-**4. Fix the wrapper in Dashboard.tsx**
-
-The immediate wrapper of `<YouTubeDisplay />` is missing `h-full`, so the Card's `h-full` has nothing to fill:
-
+To:
 ```tsx
-{/* Before */}
-<div className="min-h-0 overflow-hidden rounded-xl">
-
-{/* After */}
-<div className="min-h-0 h-full overflow-hidden rounded-xl">
+<p className="text-[clamp(14px,1.3vw,28px)] font-medium leading-snug line-clamp-2">
 ```
 
-## Files to Change
+That single class swap is the entire change needed. Everything else (flex layout, `min-w-0`, centering) stays the same.
 
-- `src/components/dashboard/YouTubeDisplay.tsx` — container layout + pixel dimensions + ResizeObserver
-- `src/pages/Dashboard.tsx` — add `h-full` to the YouTube wrapper div
+### Technical Notes
+- `min-w-0` on the parent `div` (line 62) already prevents the text area from overflowing the flex container — that stays.
+- `line-clamp-2` is supported in Tailwind CSS v3+ without any plugin, which this project uses.
+- The header height will only grow if there are actually 2 lines of text, and will stay single-line height for short messages (the common case).
