@@ -174,8 +174,8 @@ export function YouTubeDisplay() {
           <Youtube className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,26px)] text-destructive" />
           Now Playing
           {queue.length > 0 && (
-            <span className="ml-auto flex items-center gap-1 text-[clamp(12px,0.85vw,18px)] text-muted-foreground font-normal">
-              <ListMusic className="h-[clamp(12px,0.85vw,18px)] w-[clamp(12px,0.85vw,18px)]" />
+            <span className="ml-auto flex items-center gap-1 text-[clamp(14px,1.1vw,24px)] text-muted-foreground font-normal">
+              <ListMusic className="h-[clamp(14px,1.1vw,24px)] w-[clamp(14px,1.1vw,24px)]" />
               {queue.length} in queue
             </span>
           )}
@@ -213,9 +213,9 @@ export function YouTubeDisplay() {
                   <span>Queued by {currentVideo.queued_by}</span>
                 </div>
                 {nextInQueue && (
-                  <div className="flex items-center gap-1 text-[clamp(11px,0.75vw,15px)] text-muted-foreground">
+                  <div className="flex items-center gap-1 text-[clamp(13px,1vw,20px)] text-muted-foreground">
                     <span>Up next:</span>
-                    <span className="line-clamp-1 max-w-[clamp(80px,8vw,160px)]">{nextInQueue.title}</span>
+                    <span className="line-clamp-1 max-w-[clamp(100px,12vw,240px)]">{nextInQueue.title}</span>
                   </div>
                 )}
               </div>

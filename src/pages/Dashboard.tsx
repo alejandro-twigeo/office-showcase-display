@@ -2,7 +2,7 @@ import { StreetViewDisplay } from "@/components/dashboard/StreetViewDisplay";
 import { PollDisplay } from "@/components/dashboard/PollDisplay";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { useNavigate } from "react-router-dom";
-import { Monitor, Gamepad2 } from "lucide-react";
+import { Gamepad2 } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
 
 export default function Dashboard() {
@@ -22,27 +22,14 @@ export default function Dashboard() {
 </h1>
 
             <div className="flex items-center gap-[clamp(10px,1vw,16px)]">
-              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(15px,1.2vw,22px)]">
-                <Monitor className="h-[clamp(18px,1.3vw,24px)] w-[clamp(18px,1.3vw,24px)]" />
-                <span>TV</span>
-              </div>
-
-              <button
-                onClick={() => navigate("/play")}
-                className="relative inline-flex items-center rounded-full bg-muted transition-colors
-                           h-[clamp(30px,2vw,42px)] w-[clamp(56px,3.8vw,76px)]"
-                aria-label="Switch to play mode"
-              >
-                <span
-                  className="inline-block rounded-full bg-foreground transition-transform
-                             h-[clamp(22px,1.5vw,32px)] w-[clamp(22px,1.5vw,32px)] translate-x-1"
-                />
-              </button>
-
-              <div className="flex items-center gap-2 text-muted-foreground text-[clamp(15px,1.2vw,22px)]">
-                <span>Play</span>
-                <Gamepad2 className="h-[clamp(18px,1.3vw,24px)] w-[clamp(18px,1.3vw,24px)]" />
-              </div>
+            <button
+              onClick={() => navigate("/play")}
+              className="flex items-center gap-[clamp(8px,0.7vw,14px)] px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,14px)] rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-[clamp(15px,1.2vw,22px)] font-medium"
+              aria-label="Go to Play page"
+            >
+              <Gamepad2 className="h-[clamp(18px,1.3vw,26px)] w-[clamp(18px,1.3vw,26px)]" />
+              Play
+            </button>
             </div>
           </header>
 
