@@ -16,43 +16,54 @@ interface LeaderboardProps {
 export function Leaderboard({ guesses }: LeaderboardProps) {
   const { settings } = useScoring();
 
-  // Step 1: Determine which guess IDs get a full row (max 3 per user)
-  const fullRowIds = new Set<string>();
-
+  // Group guesses by player
   const byPlayer = new Map<string, Guess[]>();
   for (const g of guesses) {
     byPlayer.set(g.player_name, [...(byPlayer.get(g.player_name) ?? []), g]);
   }
 
-  for (const [, playerGuesses] of byPlayer) {
+  // For each player, determine which single guess ID gets the full row:
+  // their best (smallest distance_km) among: guess #1 + 2 best (deduped, max 3 considered)
+  const fullRowId = new Map<string, string>(); // player_name → guess id
+
+  for (const [player, playerGuesses] of byPlayer) {
     const firstTry = playerGuesses.find((g) => (g.guess_number ?? 1) === 1);
     const sortedByDist = [...playerGuesses].sort((a, b) => a.distance_km - b.distance_km);
 
-    const pickedForPlayer = new Set<string>();
-    if (firstTry) pickedForPlayer.add(firstTry.id);
-
+    // Collect up to 3 candidates: firstTry + 2 best
+    const candidates = new Map<string, Guess>();
+    if (firstTry) candidates.set(firstTry.id, firstTry);
     for (const g of sortedByDist) {
-      if (pickedForPlayer.size >= 3) break;
-      pickedForPlayer.add(g.id);
+      if (candidates.size >= 3) break;
+      if (!candidates.has(g.id)) candidates.set(g.id, g);
     }
 
-    for (const id of pickedForPlayer) fullRowIds.add(id);
+    // Best among candidates = the one shown as a full row
+    const best = [...candidates.values()].sort((a, b) => a.distance_km - b.distance_km)[0];
+    if (best) fullRowId.set(player, best.id);
   }
 
-  // Step 2: Sort ALL guesses by distance
+  // Sort ALL guesses by distance ascending
   const allSorted = [...guesses].sort((a, b) => a.distance_km - b.distance_km);
 
-  // Step 3: Build render list — full rows interspersed with dot groups
+  // Build render list
   type RowItem = { type: 'row'; guess: Guess; rank: number };
   type DotItem = { type: 'dots'; count: number };
   type RenderItem = RowItem | DotItem;
 
   const renderItems: RenderItem[] = [];
+  // Track which players have already had their full row rendered
+  const renderedPlayers = new Set<string>();
   let rank = 0;
 
   for (const guess of allSorted) {
-    if (fullRowIds.has(guess.id)) {
+    const isFullRow =
+      fullRowId.get(guess.player_name) === guess.id &&
+      !renderedPlayers.has(guess.player_name);
+
+    if (isFullRow) {
       rank++;
+      renderedPlayers.add(guess.player_name);
       renderItems.push({ type: 'row', guess, rank });
     } else {
       const last = renderItems[renderItems.length - 1];
