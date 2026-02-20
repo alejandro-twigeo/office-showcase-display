@@ -3,6 +3,7 @@ import { PollDisplay } from "@/components/dashboard/PollDisplay";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { useNavigate } from "react-router-dom";
 import { Monitor, Gamepad2 } from "lucide-react";
+import twigeoLogo from "@/assets/twigeo-logo.png";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function Dashboard() {
           <header className="flex items-center justify-between">
 <h1 className="flex items-center">
   <img
-    src="https://usercontent.one/wp/www.twigeo.com/wp-content/uploads/2023/09/favicon2-150x150.png?media=1770653196"
+    src={twigeoLogo}
     alt="Twigeo logo"
     className="h-[clamp(40px,4vw,90px)] w-auto object-contain"
   />
