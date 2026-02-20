@@ -100,6 +100,22 @@ export function useYoutubeQueue() {
     },
   });
 
+  // Auto-start: if nothing is playing but queue has videos, promote the first one
+  useEffect(() => {
+    if (loadingCurrent || loadingQueue) return;
+    if (currentVideo) return;
+    if (queue.length === 0) return;
+
+    const first = queue[0];
+    ytQueue()
+      .update({ status: "playing", is_playing: true })
+      .eq("id", first.id)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["current-video"] });
+        queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+      });
+  }, [loadingCurrent, loadingQueue, currentVideo, queue, queryClient]);
+
   // Real-time subscription
   useEffect(() => {
     const channel = supabase
