@@ -118,6 +118,11 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
                     <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">
                       {item.guess.player_name}
                     </span>
+                    {(item.guess.guess_number ?? 1) > 1 && (
+                      <span className="text-[clamp(10px,0.7vw,13px)] text-muted-foreground shrink-0">
+                        #{item.guess.guess_number}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold ml-auto shrink-0 whitespace-nowrap">
                     {formatScoreLabel(item.guess)}
