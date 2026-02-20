@@ -86,10 +86,14 @@ export function YouTubeDisplay() {
 
       // Create a fresh div for YT to replace with iframe
       const div = document.createElement("div");
+      div.style.width = "100%";
+      div.style.height = "100%";
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(div);
 
       playerRef.current = new window.YT.Player(div, {
+        width: "100%",
+        height: "100%",
         videoId,
         playerVars: {
           autoplay: 1,
@@ -159,7 +163,7 @@ export function YouTubeDisplay() {
             {/* YT.Player mounts here */}
             <div
               ref={containerRef}
-              className="flex-1 min-h-0 bg-secondary rounded-lg overflow-hidden [&>iframe]:w-full [&>iframe]:h-full"
+              className="flex-1 min-h-0 bg-secondary rounded-lg overflow-hidden [&>*]:w-full [&>*]:h-full [&>div>iframe]:w-full [&>div>iframe]:h-full"
             />
 
             <div className="space-y-1">
