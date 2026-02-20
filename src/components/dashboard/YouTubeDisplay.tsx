@@ -50,8 +50,10 @@ export function YouTubeDisplay() {
   const { currentVideo, queue, advanceQueue } = useYoutubeQueue();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
+  const playerReadyRef = useRef(false);
   const hasAdvancedRef = useRef(false);
   const currentVideoIdRef = useRef<string | undefined>(undefined);
+  const pendingVideoIdRef = useRef<string | undefined>(undefined);
 
   const handleVideoEnd = useCallback(() => {
     if (hasAdvancedRef.current) return;
@@ -70,6 +72,7 @@ export function YouTubeDisplay() {
     if (!currentVideo?.video_id) {
       playerRef.current?.destroy();
       playerRef.current = null;
+      playerReadyRef.current = false;
       return;
     }
 
@@ -78,9 +81,15 @@ export function YouTubeDisplay() {
     const initPlayer = () => {
       if (!containerRef.current) return;
 
-      // Reuse existing player – just load new video
-      if (playerRef.current) {
+      // Reuse existing player only if it's fully ready
+      if (playerRef.current && playerReadyRef.current) {
         playerRef.current.loadVideoById(videoId);
+        return;
+      }
+
+      // If player exists but not ready yet, just store pending video id
+      if (playerRef.current && !playerReadyRef.current) {
+        pendingVideoIdRef.current = videoId;
         return;
       }
 
@@ -90,6 +99,9 @@ export function YouTubeDisplay() {
       div.style.height = "100%";
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(div);
+
+      pendingVideoIdRef.current = undefined;
+      playerReadyRef.current = false;
 
       playerRef.current = new window.YT.Player(div, {
         width: "100%",
@@ -103,6 +115,14 @@ export function YouTubeDisplay() {
           playsinline: 1,
         },
         events: {
+          onReady: () => {
+            playerReadyRef.current = true;
+            // If a new video was requested while player was initializing, load it now
+            if (pendingVideoIdRef.current && pendingVideoIdRef.current !== videoId) {
+              playerRef.current?.loadVideoById(pendingVideoIdRef.current);
+              pendingVideoIdRef.current = undefined;
+            }
+          },
           onStateChange: (event: { data: number }) => {
             // YT.PlayerState.ENDED === 0
             if (event.data === 0) {
@@ -127,6 +147,7 @@ export function YouTubeDisplay() {
     return () => {
       playerRef.current?.destroy();
       playerRef.current = null;
+      playerReadyRef.current = false;
     };
   }, []);
 
