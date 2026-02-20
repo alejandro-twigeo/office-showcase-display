@@ -209,29 +209,41 @@ export type Database = {
       }
       youtube_queue: {
         Row: {
+          channel_title: string | null
           created_at: string | null
           id: string
+          is_deleted: boolean
+          is_favorite: boolean
           is_playing: boolean | null
           played_at: string | null
           queued_by: string
+          thumbnail_url: string | null
           title: string
           video_id: string
         }
         Insert: {
+          channel_title?: string | null
           created_at?: string | null
           id?: string
+          is_deleted?: boolean
+          is_favorite?: boolean
           is_playing?: boolean | null
           played_at?: string | null
           queued_by: string
+          thumbnail_url?: string | null
           title: string
           video_id: string
         }
         Update: {
+          channel_title?: string | null
           created_at?: string | null
           id?: string
+          is_deleted?: boolean
+          is_favorite?: boolean
           is_playing?: boolean | null
           played_at?: string | null
           queued_by?: string
+          thumbnail_url?: string | null
           title?: string
           video_id?: string
         }
