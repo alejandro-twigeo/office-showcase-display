@@ -59,16 +59,16 @@ export function Leaderboard({ guesses }: LeaderboardProps) {
           sorted.map((guess, index) => (
             <div
               key={guess.id}
-              className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50"
+              className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50"
             >
-              <div className="flex items-center justify-center w-6">
+              <div className="flex items-center justify-center w-6 shrink-0">
                 {getRankIcon(index + 1)}
               </div>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium truncate text-[clamp(14px,1vw,18px)]">{guess.player_name}</span>
+              <div className="flex items-center gap-1 shrink-0 min-w-0">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">{guess.player_name}</span>
               </div>
-              <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold">
+              <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold ml-auto shrink-0 whitespace-nowrap">
                 {formatScoreLabel(guess)}
               </span>
             </div>
