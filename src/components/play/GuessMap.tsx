@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTY_LOCATIONS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -234,41 +235,70 @@ export function GuessMap({ playerName }: GuessMapProps) {
           <Target className="h-5 w-5 text-primary" />
           Make Your Guess
         </CardTitle>
-        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+        <div className="flex items-center gap-2 mt-2">
           <span className="text-xs text-muted-foreground">
             {remainingGuesses} guess{remainingGuesses !== 1 ? "es" : ""} left
             <span className="ml-1">(zoom {zoomIndex + 1}/{ZOOM_LEVELS.length})</span>
           </span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPasswordAction(passwordAction === 'zoom' ? null : 'zoom')}
-            title="Manual zoom out"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          {([1, 2, 3] as Difficulty[]).map((d) => (
-            <Button
-              key={d}
-              variant={selectedDifficulty === d ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedDifficulty(d)}
-              className="h-7 px-2 text-xs"
-            >
-              {DIFFICULTY_LABELS[d]}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7"
-            onClick={() => setPasswordAction(passwordAction === 'new' ? null : 'new')}
-            disabled={createNewLocation.isPending || isCreatingRound}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${isCreatingRound ? "animate-spin" : ""}`} />
-            New
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" title="Round settings">
+                <Settings className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="end">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Round Settings</p>
+
+                {/* Difficulty */}
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">Difficulty for new image</p>
+                  <div className="flex gap-1">
+                    {([1, 2, 3] as Difficulty[]).map((d) => (
+                      <Button
+                        key={d}
+                        variant={selectedDifficulty === d ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedDifficulty(d)}
+                        className="flex-1 h-7 px-2 text-xs"
+                      >
+                        {DIFFICULTY_LABELS[d]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* New image */}
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">Start a new {DIFFICULTY_LABELS[selectedDifficulty]} image</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8"
+                    onClick={() => setPasswordAction(passwordAction === 'new' ? null : 'new')}
+                    disabled={createNewLocation.isPending || isCreatingRound}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? "animate-spin" : ""}`} />
+                    New Image
+                  </Button>
+                </div>
+
+                {/* Zoom out */}
+                <div className="space-y-1.5 border-t pt-3">
+                  <p className="text-xs text-muted-foreground">Force next zoom level</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8"
+                    onClick={() => setPasswordAction(passwordAction === 'zoom' ? null : 'zoom')}
+                  >
+                    <ZoomOut className="h-3.5 w-3.5 mr-1.5" />
+                    Manual Zoom Out
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </CardHeader>
 
