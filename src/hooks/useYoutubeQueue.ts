@@ -106,14 +106,20 @@ export function useYoutubeQueue() {
     if (currentVideo) return;
     if (queue.length === 0) return;
 
+    let cancelled = false;
     const first = queue[0];
-    ytQueue()
-      .update({ status: "playing", is_playing: true })
-      .eq("id", first.id)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ["current-video"] });
-        queryClient.invalidateQueries({ queryKey: ["video-queue"] });
-      });
+
+    (async () => {
+      await ytQueue()
+        .update({ status: "playing", is_playing: true })
+        .eq("id", first.id);
+
+      if (cancelled) return;
+      queryClient.invalidateQueries({ queryKey: ["current-video"] });
+      queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+    })();
+
+    return () => { cancelled = true; };
   }, [loadingCurrent, loadingQueue, currentVideo, queue, queryClient]);
 
   // Real-time subscription
