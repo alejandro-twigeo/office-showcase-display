@@ -496,13 +496,13 @@ export function GuessMap({ playerName }: GuessMapProps) {
         <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
           <button onClick={() => setActiveTab('easy')}
             className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'easy' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+              activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
             }`}>
             <Binoculars className="h-4 w-4 text-green-500" /> Easy
           </button>
           <button onClick={() => setActiveTab('hard')}
             className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'hard' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+              activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
             }`}>
             <Brain className="h-4 w-4 text-red-500" /> Hard
           </button>
