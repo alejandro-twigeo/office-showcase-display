@@ -185,15 +185,27 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
       {userGuesses.length > 0 && (
         <div className="border-t pt-2 space-y-1">
-          <p className="text-xs text-muted-foreground">Your guesses:</p>
-          {userGuesses.map((guess, i) => (
-            <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1 rounded flex justify-between">
-              <span>#{i + 1}</span>
-              <span className="font-mono">
-                {formatScoreDisplay(guess.distance_km, calculateScore(guess.distance_km, guess.guess_number, settings))}
-              </span>
-            </div>
-          ))}
+          <p className="text-xs text-muted-foreground font-medium">Your guesses:</p>
+          {userGuesses.map((guess, i) => {
+            const score = calculateScore(guess.distance_km, guess.guess_number, settings);
+            const attemptIdx = (guess.guess_number ?? 1) - 1;
+            const multiplier = settings.attempt_multipliers[Math.min(attemptIdx, settings.attempt_multipliers.length - 1)];
+            const baseScore = Math.round(1000 * Math.exp(-guess.distance_km / settings.distance_parameter));
+            return (
+              <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1.5 rounded space-y-0.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">#{i + 1}</span>
+                  <span className="font-mono font-semibold text-accent">{score} pts</span>
+                </div>
+                <div className="text-muted-foreground">
+                  {guess.distance_km < 1
+                    ? `${Math.round(guess.distance_km * 1000)}m`
+                    : `${guess.distance_km.toFixed(1)}km`
+                  } away · base {baseScore} × {Math.round(multiplier * 100)}% (attempt {guess.guess_number ?? 1}) = {score}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, User } from 'lucide-react';
+import { Trophy, Medal } from 'lucide-react';
 import { useScoring, calculateScore } from '@/hooks/useScoring';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Guess {
   id: string;
@@ -18,7 +20,15 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
 
-  // Best score per player per difficulty
+  const { data: players } = useQuery({
+    queryKey: ['players-avatars'],
+    queryFn: async () => {
+      const { data } = await supabase.from('players').select('name, avatar, office');
+      return data ?? [];
+    },
+  });
+  const avatarMap = new Map(players?.map(p => [p.name, p.avatar]) ?? []);
+
   const bestScore = (guesses: Guess[] | undefined) => {
     const byPlayer = new Map<string, number>();
     if (!guesses) return byPlayer;
@@ -33,10 +43,8 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
   const easyScores = bestScore(easyGuesses);
   const hardScores = bestScore(hardGuesses);
 
-  // All players who played either
   const allPlayers = new Set([...easyScores.keys(), ...hardScores.keys()]);
 
-  // Combined scores
   const combined: { name: string; easy: number; hard: number; total: number }[] = [];
   for (const name of allPlayers) {
     const easy = easyScores.get(name) ?? 0;
@@ -73,7 +81,7 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
                 {getRankIcon(i + 1)}
               </div>
               <div className="flex items-center gap-1 shrink-0 min-w-0">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-lg shrink-0">{avatarMap.get(entry.name) ?? '👤'}</span>
                 <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">
                   {entry.name}
                 </span>
