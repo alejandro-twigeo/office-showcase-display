@@ -19,8 +19,9 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
   const { difficulty_weights } = settings;
 
   // Best score per player per difficulty
-  const bestScore = (guesses: Guess[]) => {
+  const bestScore = (guesses: Guess[] | undefined) => {
     const byPlayer = new Map<string, number>();
+    if (!guesses) return byPlayer;
     for (const g of guesses) {
       const score = calculateScore(g.distance_km, g.guess_number ?? 1, settings);
       const current = byPlayer.get(g.player_name) ?? 0;
