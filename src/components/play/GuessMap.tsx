@@ -87,6 +87,7 @@ function LeafletMap({
 function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
 
@@ -98,22 +99,30 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (scale <= 1) return;
+    e.preventDefault();
     dragging.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    containerRef.current?.setPointerCapture(e.pointerId);
   };
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging.current) return;
-    setTranslate(t => ({ x: t.x + e.clientX - lastPos.current.x, y: t.y + e.clientY - lastPos.current.y }));
+    e.preventDefault();
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    setTranslate(t => ({ x: t.x + dx, y: t.y + dy }));
     lastPos.current = { x: e.clientX, y: e.clientY };
   };
-  const handlePointerUp = () => { dragging.current = false; };
+  const handlePointerUp = (e: React.PointerEvent) => {
+    dragging.current = false;
+    containerRef.current?.releasePointerCapture(e.pointerId);
+  };
 
   return (
     <div className="relative w-full">
       <div
+        ref={containerRef}
         className="w-full h-40 overflow-hidden rounded-lg border bg-black touch-none select-none"
-        style={{ cursor: scale > 1 ? 'grab' : 'default' }}
+        style={{ cursor: scale > 1 ? (dragging.current ? 'grabbing' : 'grab') : 'default' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -122,8 +131,12 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover transition-transform duration-150"
-          style={{ transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)` }}
+          className="w-full h-full object-cover"
+          style={{
+            transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+          }}
           draggable={false}
         />
       </div>
