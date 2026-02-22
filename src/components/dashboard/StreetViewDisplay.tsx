@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe } from "lucide-react";
+import { Globe, Binoculars, Brain } from "lucide-react";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { Leaderboard } from "./Leaderboard";
 import { useGuesses } from "@/hooks/useGuesses";
@@ -26,7 +26,13 @@ function getStoredMeta(roundId: string): StoredRoundMeta | null {
 }
 
 /** Single mystery image card */
+const DIFFICULTY_ICON: Record<string, { icon: typeof Binoculars; colorClass: string }> = {
+  Easy: { icon: Binoculars, colorClass: "text-green-500" },
+  Hard: { icon: Brain, colorClass: "text-red-500" },
+};
+
 function MysteryCard({ difficulty, label, color }: { difficulty: number; label: string; color: string }) {
+  const iconInfo = DIFFICULTY_ICON[label];
   const { activeLocation } = useActiveLocation(difficulty);
 
   const meta = useMemo(() => {
@@ -39,7 +45,8 @@ function MysteryCard({ difficulty, label, color }: { difficulty: number; label: 
       {activeLocation?.pano_id ? (
         <div className="relative w-full flex-1 min-h-0">
           <img src={activeLocation.pano_id} alt="mystery" className="absolute inset-0 w-full h-full object-cover" />
-          <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-white/70 backdrop-blur-sm text-[clamp(11px,0.8vw,14px)] font-medium text-foreground">
+          <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-white/70 backdrop-blur-sm text-[clamp(11px,0.8vw,14px)] font-medium text-foreground flex items-center gap-1">
+            {iconInfo && <iconInfo.icon className={`h-[clamp(12px,0.9vw,16px)] w-[clamp(12px,0.9vw,16px)] ${iconInfo.colorClass}`} />}
             {label}
           </span>
           {meta?.mapillaryId && (
