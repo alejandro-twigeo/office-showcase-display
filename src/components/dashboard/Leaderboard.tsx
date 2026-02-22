@@ -30,12 +30,14 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
   const avatarMap = new Map(players?.map(p => [p.name, p.avatar]) ?? []);
 
   const bestScore = (guesses: Guess[] | undefined) => {
-    const byPlayer = new Map<string, number>();
+    const byPlayer = new Map<string, { score: number; attempt: number }>();
     if (!guesses) return byPlayer;
     for (const g of guesses) {
       const score = calculateScore(g.distance_km, g.guess_number ?? 1, settings);
-      const current = byPlayer.get(g.player_name) ?? 0;
-      if (score > current) byPlayer.set(g.player_name, score);
+      const current = byPlayer.get(g.player_name);
+      if (!current || score > current.score) {
+        byPlayer.set(g.player_name, { score, attempt: g.guess_number ?? 1 });
+      }
     }
     return byPlayer;
   };
@@ -45,12 +47,14 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
 
   const allPlayers = new Set([...easyScores.keys(), ...hardScores.keys()]);
 
-  const combined: { name: string; easy: number; hard: number; total: number }[] = [];
+  const combined: { name: string; easy: number; easyAttempt: number; hard: number; hardAttempt: number; total: number }[] = [];
   for (const name of allPlayers) {
-    const easy = easyScores.get(name) ?? 0;
-    const hard = hardScores.get(name) ?? 0;
+    const easyData = easyScores.get(name);
+    const hardData = hardScores.get(name);
+    const easy = easyData?.score ?? 0;
+    const hard = hardData?.score ?? 0;
     const total = Math.round(easy * difficulty_weights.easy + hard * difficulty_weights.hard);
-    combined.push({ name, easy, hard, total });
+    combined.push({ name, easy, easyAttempt: easyData?.attempt ?? 0, hard, hardAttempt: hardData?.attempt ?? 0, total });
   }
   combined.sort((a, b) => b.total - a.total);
 
@@ -91,9 +95,15 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
                   {entry.total} pts
                 </span>
                 <div className="flex items-center gap-1.5 text-[clamp(10px,0.7vw,12px)] text-muted-foreground">
-                  <span className="inline-flex items-center gap-0.5"><Binoculars className="h-3 w-3 text-green-500" />{entry.easy}</span>
+                  <span className="inline-flex items-center gap-0.5">
+                    <Binoculars className="h-3 w-3 text-green-500" />{entry.easy}
+                    {entry.easyAttempt > 0 && <span className="opacity-70">(#{entry.easyAttempt})</span>}
+                  </span>
                   <span>·</span>
-                  <span className="inline-flex items-center gap-0.5"><Brain className="h-3 w-3 text-red-500" />{entry.hard}</span>
+                  <span className="inline-flex items-center gap-0.5">
+                    <Brain className="h-3 w-3 text-red-500" />{entry.hard}
+                    {entry.hardAttempt > 0 && <span className="opacity-70">(#{entry.hardAttempt})</span>}
+                  </span>
                 </div>
               </div>
             </div>
