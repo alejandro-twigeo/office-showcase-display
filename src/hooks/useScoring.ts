@@ -2,14 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
+export interface DifficultyWeights {
+  easy: number;
+  hard: number;
+}
+
 export interface ScoringSettings {
   distance_parameter: number;
   attempt_multipliers: number[];
+  difficulty_weights: DifficultyWeights;
+  max_guesses_per_challenge: number | null;
 }
 
 const DEFAULT_SETTINGS: ScoringSettings = {
   distance_parameter: 500,
   attempt_multipliers: [1.0, 0.9, 0.82, 0.75, 0.7],
+  difficulty_weights: { easy: 1.0, hard: 1.2 },
+  max_guesses_per_challenge: null,
 };
 
 export function useScoring() {
@@ -20,27 +29,31 @@ export function useScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scoring_settings' as never)
-        .select('distance_parameter, attempt_multipliers')
+        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge')
         .eq('id', 1)
         .single();
       if (error) return DEFAULT_SETTINGS;
-      const raw = data as { distance_parameter: number; attempt_multipliers: unknown };
+      const raw = data as any;
       return {
         distance_parameter: Number(raw.distance_parameter),
         attempt_multipliers: (raw.attempt_multipliers as number[]),
+        difficulty_weights: (raw.difficulty_weights as DifficultyWeights) ?? DEFAULT_SETTINGS.difficulty_weights,
+        max_guesses_per_challenge: raw.max_guesses_per_challenge ?? null,
       } as ScoringSettings;
     },
   });
 
   const updateSettings = useMutation({
-    mutationFn: async (next: ScoringSettings) => {
+    mutationFn: async (next: Partial<ScoringSettings>) => {
+      const updatePayload: any = { updated_at: new Date().toISOString() };
+      if (next.distance_parameter != null) updatePayload.distance_parameter = next.distance_parameter;
+      if (next.attempt_multipliers) updatePayload.attempt_multipliers = next.attempt_multipliers;
+      if (next.difficulty_weights) updatePayload.difficulty_weights = next.difficulty_weights;
+      if (next.max_guesses_per_challenge !== undefined) updatePayload.max_guesses_per_challenge = next.max_guesses_per_challenge;
+
       const { error } = await supabase
         .from('scoring_settings' as never)
-        .update({
-          distance_parameter: next.distance_parameter,
-          attempt_multipliers: next.attempt_multipliers,
-          updated_at: new Date().toISOString(),
-        } as never)
+        .update(updatePayload as never)
         .eq('id', 1);
       if (error) throw error;
     },
@@ -49,7 +62,7 @@ export function useScoring() {
     },
   });
 
-  // Real-time: refresh when settings change in DB
+  // Real-time
   useEffect(() => {
     const channel = supabase
       .channel('scoring_settings_rt')

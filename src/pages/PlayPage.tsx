@@ -1,24 +1,33 @@
 import { useState } from 'react';
-import { usePlayerName } from '../hooks/usePlayerName';
-import { NameEntry } from '../components/play/NameEntry';
+import { usePlayer } from '../hooks/usePlayer';
+import { PlayerAuth } from '../components/play/PlayerAuth';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { User, MapPin, BarChart3, Youtube, Monitor, Heart, LogOut } from 'lucide-react';
+import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { OFFICE_FLAGS } from '@/hooks/usePlayer';
+import { ProfileEditor } from '@/components/play/ProfileEditor';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes';
 
 export default function PlayPage() {
-  const [playerName, setPlayerName] = usePlayerName();
+  const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
+  const [showProfile, setShowProfile] = useState(false);
 
-  if (!playerName) {
-    return <NameEntry onSubmit={setPlayerName} />;
+  if (isLoading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-muted-foreground">Loading…</p>
+    </div>;
+  }
+
+  if (!player) {
+    return <PlayerAuth onLogin={login} onSignup={signup} />;
   }
 
   return (
@@ -37,17 +46,22 @@ export default function PlayPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1.5 p-1 rounded-full hover:bg-secondary/60 transition-colors">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm">{playerName}</span>
+                  <span className="text-lg">{player.avatar}</span>
+                  <span className="text-sm">{player.name}</span>
+                  <span className="text-xs">{OFFICE_FLAGS[player.office]}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => setShowProfile(true)}
+                >
+                  <UserCog className="h-4 w-4" />
+                  Edit Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   className="text-destructive focus:text-destructive gap-2"
-                  onClick={() => {
-                    localStorage.removeItem('office-tv-player-name');
-                    window.location.reload();
-                  }}
+                  onClick={logout}
                 >
                   <LogOut className="h-4 w-4" />
                   Log out
@@ -84,11 +98,20 @@ export default function PlayPage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'guess' && <GuessMap playerName={playerName} />}
-        {activeTab === 'polls' && <PollSection playerName={playerName} />}
-        {activeTab === 'youtube' && <YouTubeSection playerName={playerName} />}
-        {activeTab === 'vibes' && <PositiveMessagesSection playerName={playerName} />}
+        {activeTab === 'guess' && <GuessMap playerName={player.name} />}
+        {activeTab === 'polls' && <PollSection playerName={player.name} />}
+        {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
+        {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
       </main>
+
+      {/* Profile editor dialog */}
+      {showProfile && (
+        <ProfileEditor
+          player={player}
+          onUpdate={updateProfile}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </div>
   );
 }
