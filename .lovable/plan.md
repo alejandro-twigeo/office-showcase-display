@@ -1,40 +1,29 @@
 
+## Update Score Feedback to Friendly Language
 
-## Split YouTube Display: Video + Queue Side-by-Side
+### What changes
+In the guess history section of `src/components/play/GuessMap.tsx` (lines 270-274), replace the technical formula display with simple, human-friendly text.
 
-### What Changes
-
-The YouTube section on the TV dashboard will be split into two columns:
-- **Left (larger)**: The video player, now-playing info, and "up next" label
-- **Right (narrower)**: A scrollable list of queued songs with thumbnails, titles, and who queued them
-
-This way the TV always shows what's coming up without needing to check a phone.
-
-### Layout
-
-```text
-+-------------------------------+----------------+
-|                               |  Queue (scroll) |
-|       YouTube Player          |  1. Song A      |
-|                               |  2. Song B      |
-|                               |  3. Song C      |
-+-------------------------------+  4. Song D      |
-|  Now Playing: Title           |  ...            |
-|  Queued by: Name   Up next:.. |                 |
-+-------------------------------+----------------+
+### Current display
+```
+277.3km away · base 574 × 100% (attempt 1) = 574
+519.1km away · base 354 × 90% (attempt 2) = 319
 ```
 
-The split will use a CSS grid: roughly `3fr` for the video, `1fr` for the queue sidebar.
+### New display
+```
+277 km away · Full score · Attempt 1
+519 km away · 10% reduction · Attempt 2
+```
 
-### File: `src/components/dashboard/YouTubeDisplay.tsx`
+### Technical details
 
-1. Wrap the existing content in a horizontal grid (`grid-cols-[3fr_1fr]`) inside the CardContent.
-2. Left column: keeps the video player container and the now-playing info exactly as-is.
-3. Right column: a new scrollable panel showing:
-   - A small "Queue" heading with the count
-   - Each queued song as a compact row: thumbnail, title (truncated), and queued-by name
-   - If queue is empty, a subtle "Queue empty" message
-4. Remove the "X in queue" badge from the header since the queue is now always visible.
-5. Remove the "Up next" line from the bottom info bar (redundant with the visible queue).
+**File:** `src/components/play/GuessMap.tsx`, lines 260-275
 
-No other files need to change. No database changes.
+- Remove the `baseScore` calculation (line 263) as it's no longer displayed
+- Keep the `multiplier` calculation to determine the reduction percentage
+- Replace the formula text (line 274) with:
+  - Distance: round to nearest km (or show meters if under 1 km) -- same as current
+  - Score message: if multiplier is 1.0, show "Full score"; otherwise show `{reduction}% reduction` where reduction = `Math.round((1 - multiplier) * 100)`
+  - Attempt number: "Attempt {n}" in plain text
+- Keep the score points display (`{score} pts`) unchanged on the line above
