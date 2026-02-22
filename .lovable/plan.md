@@ -1,39 +1,40 @@
 
-## Name Conflict Handling: "Is That You?" Flow
 
-### The Full Behaviour
+## Split YouTube Display: Video + Queue Side-by-Side
 
-When someone types a name and taps "Join the Game", the app checks the database for that name. Three possible outcomes:
+### What Changes
 
-1. **Name is free** (no prior guesses, or all guesses are from this same device) → proceed normally.
+The YouTube section on the TV dashboard will be split into two columns:
+- **Left (larger)**: The video player, now-playing info, and "up next" label
+- **Right (narrower)**: A scrollable list of queued songs with thumbnails, titles, and who queued them
 
-2. **Name exists on a different device** → Show a confirmation dialog:
-   > "We found activity for **Alejandro** on another device. Is that you?"
-   > - **Yes, that's me** → copy the old device ID to this device's localStorage, then proceed. The user is now linked.
-   > - **No, change name** → dismiss the dialog, stay on the name entry form so they can pick a different name.
+This way the TV always shows what's coming up without needing to check a phone.
 
-3. **Checking** → while the database query runs, the button shows a brief loading state.
+### Layout
 
-### Files to Change
+```text
++-------------------------------+----------------+
+|                               |  Queue (scroll) |
+|       YouTube Player          |  1. Song A      |
+|                               |  2. Song B      |
+|                               |  3. Song C      |
++-------------------------------+  4. Song D      |
+|  Now Playing: Title           |  ...            |
+|  Queued by: Name   Up next:.. |                 |
++-------------------------------+----------------+
+```
 
-**`src/hooks/useDeviceId.ts`**
-- Export a synchronous `getDeviceId()` utility (reads/creates the ID directly from localStorage, no React state involved). This lets `NameEntry` safely call it inside an async submit handler without waiting for a React render cycle.
-- Export a `setDeviceId(id: string)` utility that writes a new value to localStorage. This is what gets called when the user confirms "Yes, that's me".
+The split will use a CSS grid: roughly `3fr` for the video, `1fr` for the queue sidebar.
 
-**`src/components/play/NameEntry.tsx`**
-- Add `checking` state (boolean) — disables the button and shows "Checking..." while the query runs.
-- Add `conflictDeviceId` state (string | null) — holds the device ID found in the database for the conflicting name. When non-null, the confirmation dialog is shown.
-- On submit:
-  1. Query the `guesses` table: find any row where `player_name = <typed name>` and `device_id != <current device id>`, limit 1.
-  2. If a match exists → store the found `device_id` in `conflictDeviceId` state → show dialog.
-  3. If no match → call `onSubmit` as before.
-- **"Yes, that's me" button**: call `setDeviceId(conflictDeviceId)`, then call `onSubmit(name)`.
-- **"No, change name" button**: clear `conflictDeviceId` state, keep the form open so the user can retype.
+### File: `src/components/dashboard/YouTubeDisplay.tsx`
 
-The dialog is built inline using the existing `Dialog` component from `@radix-ui/react-dialog` (already installed and wrapped in `src/components/ui/dialog.tsx`).
+1. Wrap the existing content in a horizontal grid (`grid-cols-[3fr_1fr]`) inside the CardContent.
+2. Left column: keeps the video player container and the now-playing info exactly as-is.
+3. Right column: a new scrollable panel showing:
+   - A small "Queue" heading with the count
+   - Each queued song as a compact row: thumbnail, title (truncated), and queued-by name
+   - If queue is empty, a subtle "Queue empty" message
+4. Remove the "X in queue" badge from the header since the queue is now always visible.
+5. Remove the "Up next" line from the bottom info bar (redundant with the visible queue).
 
-### Technical Notes
-- No database schema changes needed.
-- The check is a single lightweight query (`SELECT device_id ... LIMIT 1`), only triggered on form submit.
-- `getDeviceId()` is synchronous (reads from `localStorage` directly), so no async race condition.
-- After the user confirms "Yes", their new device will share the same `device_id` as their original device — the leaderboard will correctly group all their guesses together.
+No other files need to change. No database changes.
