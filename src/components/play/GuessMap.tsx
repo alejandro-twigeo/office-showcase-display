@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { fetchMapillaryRound } from "@/lib/mapillary";
@@ -83,6 +83,65 @@ function LeafletMap({
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
+/** Zoomable image with pan support */
+function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+
+  const zoomIn = () => setScale(s => Math.min(s + 0.5, 5));
+  const zoomOut = () => setScale(s => Math.max(s - 0.5, 1));
+  const reset = () => { setScale(1); setTranslate({ x: 0, y: 0 }); };
+
+  useEffect(() => { if (scale === 1) setTranslate({ x: 0, y: 0 }); }, [scale]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (scale <= 1) return;
+    dragging.current = true;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    setTranslate(t => ({ x: t.x + e.clientX - lastPos.current.x, y: t.y + e.clientY - lastPos.current.y }));
+    lastPos.current = { x: e.clientX, y: e.clientY };
+  };
+  const handlePointerUp = () => { dragging.current = false; };
+
+  return (
+    <div className="relative w-full">
+      <div
+        className="w-full h-40 overflow-hidden rounded-lg border bg-black touch-none select-none"
+        style={{ cursor: scale > 1 ? 'grab' : 'default' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover transition-transform duration-150"
+          style={{ transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)` }}
+          draggable={false}
+        />
+      </div>
+      <div className="absolute top-1.5 right-1.5 flex gap-1">
+        <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm" onClick={zoomOut} disabled={scale <= 1}>
+          <ZoomOut className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm" onClick={reset} disabled={scale === 1}>
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm" onClick={zoomIn} disabled={scale >= 5}>
+          <ZoomIn className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** Single-difficulty guess panel */
 function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound, isCreating }: {
   difficulty: Difficulty;
@@ -143,11 +202,9 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
   return (
     <div className="space-y-3">
-      {/* Image preview */}
+      {/* Zoomable image preview */}
       {activeLocation.pano_id && (
-        <div className="w-full h-32 overflow-hidden rounded-lg border bg-black">
-          <img src={activeLocation.pano_id} alt="mystery" className="w-full h-full object-cover" />
-        </div>
+        <ZoomableImage src={activeLocation.pano_id} alt="mystery" />
       )}
 
       {canGuess ? (
