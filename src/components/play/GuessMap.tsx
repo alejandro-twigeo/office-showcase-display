@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { fetchMapillaryRound } from "@/lib/mapillary";
@@ -492,16 +492,16 @@ export function GuessMap({ playerName }: GuessMapProps) {
         {/* Easy / Hard tabs */}
         <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
           <button onClick={() => setActiveTab('easy')}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
               activeTab === 'easy' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
             }`}>
-            🟢 Easy
+            <Binoculars className="h-4 w-4 text-green-500" /> Easy
           </button>
           <button onClick={() => setActiveTab('hard')}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
               activeTab === 'hard' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
             }`}>
-            🔴 Hard
+            <Brain className="h-4 w-4 text-red-500" /> Hard
           </button>
         </div>
 

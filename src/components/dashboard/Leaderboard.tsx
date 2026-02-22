@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal } from 'lucide-react';
+import { Trophy, Medal, Binoculars, Brain } from 'lucide-react';
 import { useScoring, calculateScore } from '@/hooks/useScoring';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -90,8 +90,10 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
                 <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold">
                   {entry.total} pts
                 </span>
-                <div className="text-[clamp(10px,0.7vw,12px)] text-muted-foreground">
-                  🟢{entry.easy} · 🔴{entry.hard}
+                <div className="flex items-center gap-1.5 text-[clamp(10px,0.7vw,12px)] text-muted-foreground">
+                  <span className="inline-flex items-center gap-0.5"><Binoculars className="h-3 w-3 text-green-500" />{entry.easy}</span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-0.5"><Brain className="h-3 w-3 text-red-500" />{entry.hard}</span>
                 </div>
               </div>
             </div>
