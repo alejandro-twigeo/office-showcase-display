@@ -1,1 +1,4 @@
 project_id = "jrpwlvdwhuxpbqykomzw"
+
+[functions.mapillary-search]
+verify_jwt = false
