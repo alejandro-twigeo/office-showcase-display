@@ -88,6 +88,36 @@ export type Database = {
         }
         Relationships: []
       }
+      players: {
+        Row: {
+          avatar: string
+          created_at: string
+          id: string
+          name: string
+          office: string
+          password_text: string
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string
+          created_at?: string
+          id?: string
+          name: string
+          office?: string
+          password_text: string
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string
+          created_at?: string
+          id?: string
+          name?: string
+          office?: string
+          password_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       playlist_items: {
         Row: {
           added_by: string
@@ -273,20 +303,26 @@ export type Database = {
       scoring_settings: {
         Row: {
           attempt_multipliers: Json
+          difficulty_weights: Json
           distance_parameter: number
           id: number
+          max_guesses_per_challenge: number | null
           updated_at: string
         }
         Insert: {
           attempt_multipliers?: Json
+          difficulty_weights?: Json
           distance_parameter?: number
           id?: number
+          max_guesses_per_challenge?: number | null
           updated_at?: string
         }
         Update: {
           attempt_multipliers?: Json
+          difficulty_weights?: Json
           distance_parameter?: number
           id?: number
+          max_guesses_per_challenge?: number | null
           updated_at?: string
         }
         Relationships: []

@@ -12,19 +12,26 @@ interface Location {
   difficulty: number;
 }
 
-export function useActiveLocation() {
+/**
+ * Fetch the active location for a given difficulty (1=Easy, 3=Hard).
+ * Multiple locations can be active simultaneously (one per difficulty).
+ */
+export function useActiveLocation(difficulty?: number) {
   const queryClient = useQueryClient();
 
   const { data: activeLocation, isLoading, error } = useQuery({
-    queryKey: ['active-location'],
+    queryKey: ['active-location', difficulty],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('locations')
         .select('*')
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+        .eq('is_active', true);
       
+      if (difficulty != null) {
+        query = query.eq('difficulty', difficulty);
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
       if (error) throw error;
       return data as Location | null;
     },
@@ -33,7 +40,7 @@ export function useActiveLocation() {
   // Real-time subscription
   useEffect(() => {
     const channel = supabase
-      .channel('locations-changes')
+      .channel(`locations-changes-${difficulty ?? 'all'}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'locations' },
@@ -46,15 +53,18 @@ export function useActiveLocation() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, difficulty]);
 
   const createNewLocation = useMutation({
     mutationFn: async (coords: { lat: number; lng: number; pano_id?: string; difficulty?: number }) => {
-      // Deactivate current location
+      const diff = coords.difficulty ?? 1;
+
+      // Deactivate current location for THIS difficulty only
       await supabase
         .from('locations')
         .update({ is_active: false })
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('difficulty', diff);
 
       // Create new active location
       const { data, error } = await supabase
@@ -64,7 +74,7 @@ export function useActiveLocation() {
           lng: coords.lng,
           pano_id: coords.pano_id || null,
           is_active: true,
-          difficulty: coords.difficulty ?? 1,
+          difficulty: diff,
         })
         .select()
         .single();
