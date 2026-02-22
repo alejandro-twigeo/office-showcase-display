@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import { Youtube, User, ListMusic } from "lucide-react";
-import partitureGif from "@/assets/partiture.gif";
+import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -188,7 +188,7 @@ export function YouTubeDisplay() {
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
               <div className="text-center flex-1 flex flex-col items-center justify-center">
-                <img src={partitureGif} alt="No music playing" className="h-[clamp(64px,6vw,128px)] w-auto mb-3" />
+                <video src={partitureVideo} autoPlay loop muted playsInline className="h-[clamp(64px,6vw,128px)] w-auto mb-3" />
                 <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">
                   No video playing
                 </p>
