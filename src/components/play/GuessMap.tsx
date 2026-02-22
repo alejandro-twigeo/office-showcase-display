@@ -7,7 +7,8 @@ import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { RefreshCw, MapPin, Target, Check, AlertCircle, ZoomOut, Lock, Settings, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DIFFICULTY_LOCATIONS, DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
+import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
+import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay } from "@/hooks/useScoring";
@@ -143,26 +144,16 @@ export function GuessMap({ playerName }: GuessMapProps) {
     creatingRef.current = true;
     setIsCreatingRound(true);
     try {
-      const titles = DIFFICULTY_LOCATIONS[difficulty];
-      const title = titles[Math.floor(Math.random() * titles.length)];
-      const res = await fetch(
-        "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=coordinates|pageimages|info&inprop=url&piprop=thumbnail&pithumbsize=1280&titles=" +
-          encodeURIComponent(title)
-      );
-      const data = await res.json();
-      const pages = data?.query?.pages;
-      const page = pages ? pages[Object.keys(pages)[0]] : null;
-      const coord = page?.coordinates?.[0];
-      const thumb = page?.thumbnail?.source;
-      if (!coord || !thumb) throw new Error("No data");
+      const image = await fetchMapillaryRound(difficulty);
       createNewLocation.mutate(
-        { lat: coord.lat, lng: coord.lon, pano_id: thumb, difficulty },
+        { lat: image.lat, lng: image.lng, pano_id: image.thumb_url, difficulty },
         {
           onSuccess: () => { creatingRef.current = false; setIsCreatingRound(false); },
           onError: () => { creatingRef.current = false; setIsCreatingRound(false); },
         }
       );
-    } catch {
+    } catch (err) {
+      console.error("Mapillary round creation failed", err);
       creatingRef.current = false;
       setIsCreatingRound(false);
     }

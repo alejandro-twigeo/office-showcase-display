@@ -5,87 +5,26 @@ import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { Leaderboard } from "./Leaderboard";
 import { useGuesses } from "@/hooks/useGuesses";
 import { Badge } from "@/components/ui/badge";
-import { DIFFICULTY_LABELS, DIFFICULTY_LOCATIONS, type Difficulty } from "@/lib/difficulty";
+import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
+import { fetchMapillaryRound } from "@/lib/mapillary";
 
 const LOCAL_META_KEY = "wikiguess_meta";
 
 interface StoredRoundMeta {
   roundId: string;
-  sourceUrl: string;
-  answerTitle: string;
-}
-
-function pickRandom<T>(arr: T[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  mapillaryId: string;
 }
 
 function getStoredMeta(roundId: string): StoredRoundMeta | null {
   try {
     const raw = localStorage.getItem(LOCAL_META_KEY);
     if (!raw) return null;
-
     const parsed = JSON.parse(raw) as StoredRoundMeta | null;
     if (!parsed || parsed.roundId !== roundId) return null;
-
     return parsed;
   } catch {
     return null;
   }
-}
-
-async function fetchWikiRound(title: string) {
-  const url =
-    "https://en.wikipedia.org/w/api.php" +
-    "?action=query" +
-    "&format=json" +
-    "&origin=*" +
-    "&prop=coordinates|pageimages|info" +
-    "&inprop=url" +
-    "&piprop=thumbnail" +
-    "&pithumbsize=1280" +
-    "&titles=" +
-    encodeURIComponent(title);
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Wikipedia fetch failed: ${res.status}`);
-
-  const data = await res.json();
-  const pages = data?.query?.pages;
-  const page = pages ? pages[Object.keys(pages)[0]] : null;
-
-  const coord = page?.coordinates?.[0];
-  const thumb = page?.thumbnail?.source;
-  const pageUrl = page?.fullurl;
-
-  if (!coord || !thumb || !pageUrl) {
-    throw new Error(`Missing coord/thumb for "${title}"`);
-  }
-
-  return {
-    lat: coord.lat as number,
-    lng: coord.lon as number,
-    imageUrl: thumb as string,
-    sourceUrl: pageUrl as string,
-    answerTitle: page.title as string,
-  };
-}
-
-async function fetchRandomWikiRoundWithRetry(difficulty: Difficulty = 1, maxTries = 12) {
-  let lastErr: unknown = null;
-  const titles = DIFFICULTY_LOCATIONS[difficulty];
-
-  for (let i = 0; i < maxTries; i++) {
-    try {
-      const title = pickRandom(titles);
-      return await fetchWikiRound(title);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-
-  return await fetchWikiRound("Eiffel Tower").catch(() => {
-    throw lastErr ?? new Error("Failed to fetch a wiki round");
-  });
 }
 
 const ZOOM_LEVELS = [6, 4.5, 3, 2, 1.5, 1];
@@ -146,17 +85,13 @@ export function StreetViewDisplay() {
       setIsCreatingUi(true);
 
       try {
-        const round = await fetchRandomWikiRoundWithRetry(difficulty);
-
-        if (!round.imageUrl || typeof round.lat !== "number" || typeof round.lng !== "number") {
-          throw new Error("Invalid round data");
-        }
+        const image = await fetchMapillaryRound(difficulty);
 
         createNewLocation.mutate(
           {
-            lat: round.lat,
-            lng: round.lng,
-            pano_id: round.imageUrl,
+            lat: image.lat,
+            lng: image.lng,
+            pano_id: image.thumb_url,
             difficulty,
           },
           {
@@ -166,8 +101,7 @@ export function StreetViewDisplay() {
                 LOCAL_META_KEY,
                 JSON.stringify({
                   roundId: data.id,
-                  sourceUrl: round.sourceUrl,
-                  answerTitle: round.answerTitle,
+                  mapillaryId: image.id,
                 })
               );
               creatingRef.current = false;
@@ -187,8 +121,6 @@ export function StreetViewDisplay() {
     },
     [createNewLocation]
   );
-
-  // No auto-create — rounds are only started manually from the Play page
 
   return (
     <div className="h-full min-h-0 grid grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
@@ -238,17 +170,15 @@ export function StreetViewDisplay() {
                   )}
                 </span>
 
-                {meta?.sourceUrl ? (
+                {meta?.mapillaryId && (
                   <a
-                    href={meta.sourceUrl}
+                    href={`https://www.mapillary.com/app/?pKey=${meta.mapillaryId}`}
                     target="_blank"
                     rel="noreferrer"
                     className="underline truncate"
                   >
-                    Wiki source
+                    Mapillary source
                   </a>
-                ) : (
-                  <span className="truncate">Wiki source</span>
                 )}
               </div>
             </>
