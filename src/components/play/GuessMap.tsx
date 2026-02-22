@@ -237,6 +237,10 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
             )}
           </div>
 
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Look at the image and place your guess on the map. The closer you are, the more points you get. You can keep trying to improve your score. Only your best score counts. The hard challenge gives extra points.
+          </p>
+
           <Button
             onClick={handleSubmitGuess}
             disabled={!selectedPosition || submitGuess.isPending}
