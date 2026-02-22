@@ -26,24 +26,28 @@ export function PollSection({ playerName }: PollSectionProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-1 mb-4 bg-muted p-1 rounded-lg">
-          <Button
-            variant={tab === 'vote' ? 'secondary' : 'ghost'}
-            size="sm"
+          <button
             onClick={() => setTab('vote')}
-            className="flex items-center gap-1"
+            className={`flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              tab === 'vote'
+                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             <Vote className="h-4 w-4" />
             Vote
-          </Button>
-          <Button
-            variant={tab === 'manage' ? 'secondary' : 'ghost'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setTab('manage')}
-            className="flex items-center gap-1"
+            className={`flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              tab === 'manage'
+                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             <Settings className="h-4 w-4" />
             Manage
-          </Button>
+          </button>
         </div>
 
         {tab === 'vote' ? (

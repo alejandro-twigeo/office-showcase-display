@@ -87,7 +87,7 @@ export default function PlayPage() {
               onClick={() => setActiveTab(value)}
               className={`flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium transition-all ${
                 activeTab === value
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
