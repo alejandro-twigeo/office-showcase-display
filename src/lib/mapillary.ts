@@ -14,14 +14,17 @@ export interface MapillaryImage {
   thumb_url: string;
 }
 
-/* ── Token cache ─────────────────────────────────────────── */
+/* ── Token cache (expires after 5 min to pick up secret rotations) ── */
 let _cachedToken: string | null = null;
+let _tokenFetchedAt = 0;
+const TOKEN_TTL_MS = 5 * 60 * 1000;
 
 async function getToken(): Promise<string> {
-  if (_cachedToken) return _cachedToken;
+  if (_cachedToken && Date.now() - _tokenFetchedAt < TOKEN_TTL_MS) return _cachedToken;
   const { data, error } = await supabase.functions.invoke("mapillary-search");
   if (error || !data?.token) throw new Error("Could not retrieve Mapillary token");
   _cachedToken = data.token;
+  _tokenFetchedAt = Date.now();
   return _cachedToken!;
 }
 
