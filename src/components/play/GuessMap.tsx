@@ -455,7 +455,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
                 <Settings className="h-4 w-4 text-muted-foreground" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="end">
+            <PopoverContent className="w-72 p-3" align="end">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">New Round</p>
                 <div className="flex gap-2">
