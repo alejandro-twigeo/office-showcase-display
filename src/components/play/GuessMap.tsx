@@ -260,7 +260,11 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
             const score = calculateScore(guess.distance_km, guess.guess_number, settings);
             const attemptIdx = (guess.guess_number ?? 1) - 1;
             const multiplier = settings.attempt_multipliers[Math.min(attemptIdx, settings.attempt_multipliers.length - 1)];
-            const baseScore = Math.round(1000 * Math.exp(-guess.distance_km / settings.distance_parameter));
+            const reduction = Math.round((1 - multiplier) * 100);
+            const distanceText = guess.distance_km < 1
+              ? `${Math.round(guess.distance_km * 1000)} m away`
+              : `${Math.round(guess.distance_km)} km away`;
+            const scoreMessage = multiplier >= 1 ? 'Full score' : `${reduction}% reduction`;
             return (
               <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1.5 rounded space-y-0.5">
                 <div className="flex justify-between items-center">
@@ -268,10 +272,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
                   <span className="font-mono font-semibold text-accent">{score} pts</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {guess.distance_km < 1
-                    ? `${Math.round(guess.distance_km * 1000)}m`
-                    : `${guess.distance_km.toFixed(1)}km`
-                  } away · base {baseScore} × {Math.round(multiplier * 100)}% (attempt {guess.guess_number ?? 1}) = {score}
+                  {distanceText} · {scoreMessage} · Attempt {guess.guess_number ?? 1}
                 </div>
               </div>
             );
