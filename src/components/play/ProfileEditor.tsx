@@ -88,6 +88,20 @@ export function ProfileEditor({ player, onUpdate, onClose }: ProfileEditorProps)
                 </button>
               ))}
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs text-muted-foreground">Or type your own:</span>
+              <Input
+                type="text"
+                value={AVATAR_OPTIONS.includes(avatar) ? '' : avatar}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) setAvatar(val);
+                }}
+                placeholder="🎸"
+                maxLength={2}
+                className="w-16 text-center text-xl p-1 h-9"
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
