@@ -5,12 +5,15 @@ import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
+import { Leaderboard } from '../components/dashboard/Leaderboard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
+import { useActiveLocation } from '@/hooks/useActiveLocation';
+import { useGuesses } from '@/hooks/useGuesses';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes';
 
@@ -19,6 +22,11 @@ export default function PlayPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
+
+  const { activeLocation: easyLocation } = useActiveLocation(1);
+  const { activeLocation: hardLocation } = useActiveLocation(3);
+  const { guesses: easyGuesses } = useGuesses(easyLocation?.id);
+  const { guesses: hardGuesses } = useGuesses(hardLocation?.id);
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -98,7 +106,14 @@ export default function PlayPage() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'guess' && <GuessMap playerName={player.name} />}
+        {activeTab === 'guess' && (
+          <>
+            <GuessMap playerName={player.name} />
+            <div className="mt-4">
+              <Leaderboard easyGuesses={easyGuesses} hardGuesses={hardGuesses} />
+            </div>
+          </>
+        )}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
