@@ -164,6 +164,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   const { activeLocation } = useActiveLocation(difficulty);
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
     activeLocation?.id,
+    playerName,
     deviceId,
     settings.max_guesses_per_challenge ?? undefined
   );
