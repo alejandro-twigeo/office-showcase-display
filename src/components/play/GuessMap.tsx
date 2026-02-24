@@ -95,10 +95,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const zoomOut = () => setScale(s => Math.max(s - 0.5, 1));
   const reset = () => { setScale(1); setTranslate({ x: 0, y: 0 }); };
 
-  useEffect(() => { if (scale === 1) setTranslate({ x: 0, y: 0 }); }, [scale]);
-
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (scale <= 1) return;
     e.preventDefault();
     dragging.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
@@ -122,7 +119,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       <div
         ref={containerRef}
         className="w-full h-40 overflow-hidden rounded-lg border bg-black touch-none select-none"
-        style={{ cursor: scale > 1 ? (dragging.current ? 'grabbing' : 'grab') : 'default' }}
+        style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -131,7 +128,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           style={{
             transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
             transformOrigin: 'center center',
