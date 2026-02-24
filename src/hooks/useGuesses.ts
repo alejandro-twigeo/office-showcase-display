@@ -62,25 +62,25 @@ export function useGuesses(locationId: string | undefined) {
   return { guesses, isLoading };
 }
 
-export function useUserGuesses(locationId: string | undefined, deviceId: string, maxGuesses?: number) {
+export function useUserGuesses(locationId: string | undefined, playerName: string, deviceId: string, maxGuesses?: number) {
   const queryClient = useQueryClient();
 
   const { data: userGuesses = [], isLoading } = useQuery({
-    queryKey: ['user-guesses', locationId, deviceId],
+    queryKey: ['user-guesses', locationId, playerName],
     queryFn: async () => {
-      if (!locationId || !deviceId) return [];
+      if (!locationId || !playerName) return [];
       
       const { data, error } = await supabase
         .from('guesses')
         .select('*')
         .eq('location_id', locationId)
-        .eq('device_id', deviceId)
+        .eq('player_name', playerName)
         .order('guess_number', { ascending: true });
       
       if (error) throw error;
       return data as Guess[];
     },
-    enabled: !!locationId && !!deviceId,
+    enabled: !!locationId && !!playerName,
   });
 
   const submitGuess = useMutation({
@@ -97,7 +97,7 @@ export function useUserGuesses(locationId: string | undefined, deviceId: string,
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-guesses', locationId, deviceId] });
+      queryClient.invalidateQueries({ queryKey: ['user-guesses', locationId, playerName] });
       queryClient.invalidateQueries({ queryKey: ['guesses', locationId] });
     },
   });
