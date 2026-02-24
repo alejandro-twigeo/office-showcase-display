@@ -1,29 +1,23 @@
 
-## Update Score Feedback to Friendly Language
+# Fix Mystery Image Cropping + Enable Panning at All Zoom Levels
 
-### What changes
-In the guess history section of `src/components/play/GuessMap.tsx` (lines 270-274), replace the technical formula display with simple, human-friendly text.
+## Problem
+The `ZoomableImage` component uses `object-cover` on the image, which crops/cuts parts of the image to fill the container. Users can only pan when zoomed in (`scale > 1`), so at default zoom they can't see the hidden parts.
 
-### Current display
-```
-277.3km away · base 574 × 100% (attempt 1) = 574
-519.1km away · base 354 × 90% (attempt 2) = 319
-```
+## Solution
+Two changes to the `ZoomableImage` component in `src/components/play/GuessMap.tsx`:
 
-### New display
-```
-277 km away · Full score · Attempt 1
-519 km away · 10% reduction · Attempt 2
-```
+1. **Change `object-cover` to `object-contain`** -- This ensures the full image is always visible without cropping. The image will fit entirely within the container (with letterboxing if needed).
 
-### Technical details
+2. **Allow panning at all zoom levels** -- Remove the `if (scale <= 1) return;` guard in `handlePointerDown`, so users can drag/pan the image even at 1x zoom. This lets them explore the image freely. Also remove the auto-reset of translate when scale is 1.
 
-**File:** `src/components/play/GuessMap.tsx`, lines 260-275
+3. **Update cursor** -- Show grab cursor at all times (not just when zoomed in) to signal the image is draggable.
 
-- Remove the `baseScore` calculation (line 263) as it's no longer displayed
-- Keep the `multiplier` calculation to determine the reduction percentage
-- Replace the formula text (line 274) with:
-  - Distance: round to nearest km (or show meters if under 1 km) -- same as current
-  - Score message: if multiplier is 1.0, show "Full score"; otherwise show `{reduction}% reduction` where reduction = `Math.round((1 - multiplier) * 100)`
-  - Attempt number: "Attempt {n}" in plain text
-- Keep the score points display (`{score} pts`) unchanged on the line above
+## Technical Details
+
+**File: `src/components/play/GuessMap.tsx`**
+
+- Line 98: Remove the `useEffect` that resets translate when `scale === 1`
+- Line 100-101: Remove the `if (scale <= 1) return;` guard in `handlePointerDown`
+- Line 125: Change cursor logic from `scale > 1 ? ... : 'default'` to always show grab/grabbing
+- Line 132: Change `object-cover` to `object-contain`
