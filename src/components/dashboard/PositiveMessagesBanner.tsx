@@ -2,14 +2,64 @@ import { useEffect, useRef, useState } from "react";
 import { usePositiveMessages } from "@/hooks/usePositiveMessages";
 import { Heart } from "lucide-react";
 
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
 const DEFAULT_MSG = "Add your first positive message ✨";
 const INTERVAL = 60;
 
+type PlantRow = {
+  id: string;
+  last_watered_at: string | null;
+};
+
 export function PositiveMessagesBanner() {
   const { messages } = usePositiveMessages();
+
+  // Keep auth gate if your RLS requires signed-in users to read/update plants
+  const { user } = useAuth();
+
+  const [plantId, setPlantId] = useState<string | null>(null);
+  const [lastWatered, setLastWatered] = useState<Date | null>(null);
+  const [plantLoading, setPlantLoading] = useState(false);
+
   const [index, setIndex] = useState(0);
   const [countdown, setCountdown] = useState(INTERVAL);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch plant (single row approach)
+  useEffect(() => {
+    // If you want everyone to see the plant status even when not logged in,
+    // remove this guard. Keep it if your RLS blocks anon reads.
+    if (!user?.id) {
+      setPlantId(null);
+      setLastWatered(null);
+      return;
+    }
+
+    const run = async () => {
+      setPlantLoading(true);
+
+      const { data, error } = await supabase
+        .from("plants")
+        .select("id,last_watered_at")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle<PlantRow>();
+
+      setPlantLoading(false);
+
+      if (error) {
+        console.error("Failed to fetch plant:", error);
+        return;
+      }
+
+      setPlantId(data?.id ?? null);
+      setLastWatered(data?.last_watered_at ? new Date(data.last_watered_at) : null);
+    };
+
+    run();
+  }, [user?.id]);
 
   // Reset index when messages change
   useEffect(() => {
@@ -20,6 +70,7 @@ export function PositiveMessagesBanner() {
   // Countdown + auto-advance
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+
     timerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -31,6 +82,7 @@ export function PositiveMessagesBanner() {
         return prev - 1;
       });
     }, 1000);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -43,6 +95,37 @@ export function PositiveMessagesBanner() {
   // Progress bar width (shrinks from 100% to 0%)
   const progress = (countdown / INTERVAL) * 100;
 
+  // Plant status icon (public/ folder)
+  let plantIcon = "/good.png";
+
+  if (lastWatered) {
+    const days = (Date.now() - lastWatered.getTime()) / (1000 * 60 * 60 * 24);
+    if (days >= 7 && days < 10) plantIcon = "/medium.png";
+    if (days >= 10) plantIcon = "/bad.png";
+  }
+
+  const handleWaterPlant = async () => {
+    // If you want watering to work without login, remove this guard.
+    if (!user?.id) return;
+    if (!plantId) return;
+
+    const now = new Date();
+
+    // Optimistic UI: instantly reset icon
+    setLastWatered(now);
+
+    const { error } = await supabase
+      .from("plants")
+      .update({ last_watered_at: now.toISOString() })
+      .eq("id", plantId);
+
+    if (error) {
+      console.error("Failed to update last_watered_at:", error);
+      // Revert optimistic update if you want:
+      // setLastWatered((prev) => prev);
+    }
+  };
+
   return (
     <div className="relative rounded-xl border border-primary/30 bg-card overflow-hidden">
       {/* Orange accent left bar */}
@@ -50,10 +133,7 @@ export function PositiveMessagesBanner() {
 
       {/* Progress bar at bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-muted">
-        <div
-          className="h-full bg-primary transition-none"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="h-full bg-primary transition-none" style={{ width: `${progress}%` }} />
       </div>
 
       <div className="px-[clamp(20px,1.8vw,40px)] py-[clamp(12px,1vw,24px)] flex items-center justify-between gap-4">
@@ -69,6 +149,16 @@ export function PositiveMessagesBanner() {
               </p>
             )}
           </div>
+        </div>
+
+        {/* Plant status */}
+        <div className="shrink-0 flex items-center gap-2">
+          <img
+            src={plantIcon}
+            alt="Plant status"
+            className={`h-[clamp(28px,2vw,48px)] w-auto cursor-pointer ${plantLoading ? "opacity-60" : ""}`}
+            onClick={handleWaterPlant}
+          />
         </div>
 
         {messages.length > 1 && (
