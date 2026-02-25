@@ -1,8 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Binoculars, Brain } from 'lucide-react';
+import { Trophy, Medal, Binoculars, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useScoring, calculateScore } from '@/hooks/useScoring';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useRounds, type Round } from '@/hooks/useRounds';
+import { useGuesses } from '@/hooks/useGuesses';
+import { useActiveLocation } from '@/hooks/useActiveLocation';
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface Guess {
   id: string;
@@ -12,13 +17,48 @@ interface Guess {
 }
 
 interface LeaderboardProps {
-  easyGuesses: Guess[];
-  hardGuesses: Guess[];
+  /** If provided, uses these guesses directly (legacy/external usage) */
+  easyGuesses?: Guess[];
+  hardGuesses?: Guess[];
 }
 
-export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
+export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses }: LeaderboardProps) {
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
+  const { rounds } = useRounds();
+  const [selectedRoundIdx, setSelectedRoundIdx] = useState(0); // 0 = current/latest
+
+  // Determine which round to show
+  const sortedRounds = useMemo(() => 
+    [...rounds].sort((a, b) => b.round_number - a.round_number), 
+    [rounds]
+  );
+  const selectedRound = sortedRounds[selectedRoundIdx] ?? null;
+
+  // Fetch locations for selected round
+  const { data: roundLocations } = useQuery({
+    queryKey: ['round-locations', selectedRound?.id],
+    queryFn: async () => {
+      if (!selectedRound?.id) return [];
+      const { data } = await supabase
+        .from('locations')
+        .select('id, difficulty, round_id')
+        .eq('round_id', selectedRound.id);
+      return data ?? [];
+    },
+    enabled: !!selectedRound?.id,
+  });
+
+  const easyLocationId = roundLocations?.find(l => l.difficulty === 1)?.id;
+  const hardLocationId = roundLocations?.find(l => l.difficulty === 3)?.id;
+
+  // Fetch guesses for round locations
+  const { guesses: roundEasyGuesses } = useGuesses(easyLocationId);
+  const { guesses: roundHardGuesses } = useGuesses(hardLocationId);
+
+  // Use round-based guesses if we have rounds, otherwise fall back to external props
+  const easyGuesses = sortedRounds.length > 0 ? roundEasyGuesses : (externalEasyGuesses ?? []);
+  const hardGuesses = sortedRounds.length > 0 ? roundHardGuesses : (externalHardGuesses ?? []);
 
   const { data: players } = useQuery({
     queryKey: ['players-avatars'],
@@ -65,6 +105,9 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
     return <span className="w-5 text-center text-sm text-muted-foreground">{r}</span>;
   };
 
+  const canGoPrev = selectedRoundIdx < sortedRounds.length - 1;
+  const canGoNext = selectedRoundIdx > 0;
+
   return (
     <Card className="h-full min-h-0 flex flex-col">
       <CardHeader className="pb-3">
@@ -72,6 +115,28 @@ export function Leaderboard({ easyGuesses, hardGuesses }: LeaderboardProps) {
           <Trophy className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,50px)] text-primary" />
           Leaderboard
         </CardTitle>
+        {sortedRounds.length > 0 && (
+          <div className="flex items-center justify-between mt-1">
+            <Button
+              variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setSelectedRoundIdx(i => i + 1)}
+              disabled={!canGoPrev}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground">
+              Round {selectedRound?.round_number ?? '?'}
+              {selectedRound?.is_active && ' (current)'}
+            </span>
+            <Button
+              variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setSelectedRoundIdx(i => i - 1)}
+              disabled={!canGoNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">
         {combined.length === 0 ? (

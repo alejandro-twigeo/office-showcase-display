@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Binoculars, Brain } from "lucide-react";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { Leaderboard } from "./Leaderboard";
-import { useGuesses } from "@/hooks/useGuesses";
 import { Badge } from "@/components/ui/badge";
 
 const LOCAL_META_KEY = "wikiguess_meta";
@@ -72,17 +71,12 @@ function MysteryCard({ difficulty, label, color }: { difficulty: number; label: 
 }
 
 export function StreetViewDisplay() {
-  const { activeLocation: easyLocation } = useActiveLocation(1);
-  const { activeLocation: hardLocation } = useActiveLocation(3);
-  const { guesses: easyGuesses } = useGuesses(easyLocation?.id);
-  const { guesses: hardGuesses } = useGuesses(hardLocation?.id);
-
   return (
     <div className="h-full min-h-0 grid grid-cols-[1fr_1fr_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
       <MysteryCard difficulty={1} label="Easy" color="green" />
       <MysteryCard difficulty={3} label="Hard" color="red" />
       <div className="h-full min-h-0">
-        <Leaderboard easyGuesses={easyGuesses} hardGuesses={hardGuesses} />
+        <Leaderboard />
       </div>
     </div>
   );
