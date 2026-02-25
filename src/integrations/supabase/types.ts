@@ -88,6 +88,71 @@ export type Database = {
         }
         Relationships: []
       }
+      plant_watering_logs: {
+        Row: {
+          id: string
+          note: string | null
+          plant_id: string
+          watered_at: string
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          plant_id: string
+          watered_at?: string
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          plant_id?: string
+          watered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plant_watering_logs_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plants: {
+        Row: {
+          created_at: string
+          id: string
+          last_watered_at: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          photo_url: string | null
+          updated_at: string
+          water_interval_days: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_watered_at?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          water_interval_days?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_watered_at?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          water_interval_days?: number
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           avatar: string
