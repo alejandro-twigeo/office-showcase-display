@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylists, usePlaylistItems, type Playlist, type PlaylistItem } from "@/hooks/usePlaylists";
-import { useYoutubeQueue, type YouTubeVideo } from "@/hooks/useYoutubeQueue";
+import { useYoutubeQueue, type YouTubeVideo, fetchYouTubePlaylist, fetchYouTubeMeta } from "@/hooks/useYoutubeQueue";
+import { toast } from "@/hooks/use-toast";
 import {
   ListMusic, Plus, Trash2, Play, ChevronRight, ChevronLeft,
   X, Check, Music2, Pencil,
@@ -31,12 +32,28 @@ function PlaylistItemsView({
   const { addToQueue } = useYoutubeQueue();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [search, setSearch] = useState("");
+  const [mixUrl, setMixUrl] = useState("");
+  const [mixLoading, setMixLoading] = useState(false);
+  const [singleUrl, setSingleUrl] = useState("");
+  const [singleLoading, setSingleLoading] = useState(false);
 
   const filtered = recentVideos.filter(
     (v) =>
       v.title.toLowerCase().includes(search.toLowerCase()) ||
       v.queued_by.toLowerCase().includes(search.toLowerCase()),
   );
+
+  function extractVideoId(url: string): string | null {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /^([a-zA-Z0-9_-]{11})$/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  }
 
   // video_ids already in this playlist for quick lookup
   const inPlaylist = new Set(items.map((i) => i.video_id));
@@ -56,6 +73,103 @@ function PlaylistItemsView({
       channel_title: video.channel_title,
       added_by: playerName,
     });
+  };
+
+  const handleImportMix = async () => {
+    if (!mixUrl) return;
+    let list: string | null = null;
+    try {
+      const url = new URL(mixUrl);
+      list = url.searchParams.get("list");
+    } catch {
+      // invalid url, just ignore
+    }
+    if (!list) return;
+
+    try {
+      setMixLoading(true);
+      // supply seed video id if URL contained one so we can fall back to
+      // scraping the watch page when the playlist page is empty (mixes).
+      const video = (() => {
+        try {
+          return new URL(mixUrl).searchParams.get("v");
+        } catch {
+          return null;
+        }
+      })();
+      const ids = await fetchYouTubePlaylist(list, video ?? undefined);
+      if (ids === null) {
+        toast({
+          title: "Import failed",
+          description: "Could not reach the playlist service. Is the Supabase function running?",
+        });
+        return;
+      }
+      if (ids.length === 0) {
+        toast({
+          title: "No videos found",
+          description: "Could not import from that playlist/mix URL.",
+        });
+        return;
+      }
+      const toAdd = ids.filter((id) => !inPlaylist.has(id));
+      if (toAdd.length === 0) {
+        toast({
+          title: "Nothing new",
+          description: "All videos are already in this playlist.",
+        });
+        return;
+      }
+      for (const id of toAdd) {
+        const meta = await fetchYouTubeMeta(id);
+        addItem.mutate({
+          playlist_id: playlist.id,
+          video_id: id,
+          title: meta.title,
+          thumbnail_url: meta.thumbnail_url,
+          channel_title: null,
+          added_by: playerName,
+        });
+      }
+      toast({
+        title: "Imported videos",
+        description: `Added ${toAdd.length} new song${toAdd.length === 1 ? "" : "s"}.`,
+      });
+      setMixUrl("");
+      setShowAddDialog(false);
+    } finally {
+      setMixLoading(false);
+    }
+  };
+
+  const handleAddUrl = async () => {
+    if (!singleUrl) return;
+    const vid = extractVideoId(singleUrl.trim());
+    if (!vid) {
+      toast({ title: "Invalid URL", description: "Please enter a valid YouTube link." });
+      return;
+    }
+    if (inPlaylist.has(vid)) {
+      toast({ title: "Already added", description: "This video is already in the playlist." });
+      setSingleUrl("");
+      return;
+    }
+    try {
+      setSingleLoading(true);
+      const meta = await fetchYouTubeMeta(vid);
+      addItem.mutate({
+        playlist_id: playlist.id,
+        video_id: vid,
+        title: meta.title,
+        thumbnail_url: meta.thumbnail_url,
+        channel_title: null,
+        added_by: playerName,
+      });
+      toast({ title: "Added", description: `"${meta.title}" has been added.` });
+      setSingleUrl("");
+    } finally {
+      setSingleLoading(false);
+    }
   };
 
   return (
@@ -142,6 +256,42 @@ function PlaylistItemsView({
             onChange={(e) => setSearch(e.target.value)}
             className="mb-2"
           />
+          {/*
+            Mix/playlist import UI temporarily hidden.  The state and handler
+            (`mixUrl`, `handleImportMix`, etc.) remain in the code for future
+            re‑enablement, but the controls are not rendered.
+          */}
+          {false && (
+            <div className="flex gap-2 mb-2">
+              <Input
+                placeholder="Paste YouTube mix/playlist URL"
+                value={mixUrl}
+                onChange={(e) => setMixUrl(e.target.value)}
+              />
+              <Button
+                size="sm"
+                disabled={!mixUrl || mixLoading}
+                onClick={handleImportMix}
+              >
+                {mixLoading ? "Importing…" : "Import"}
+              </Button>
+            </div>
+          )}
+          {/* Direct add: paste a single YouTube link to add immediately */}
+          <div className="flex gap-2 mb-2">
+            <Input
+              placeholder="Paste a YouTube link to add directly"
+              value={singleUrl}
+              onChange={(e) => setSingleUrl(e.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={!singleUrl || singleLoading}
+              onClick={handleAddUrl}
+            >
+              {singleLoading ? "Adding…" : "Add"}
+            </Button>
+          </div>
           <ScrollArea className="h-72">
             {filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No songs in history</p>
@@ -191,6 +341,28 @@ export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deletePassword !== "1234") {
+      toast({ title: "Wrong password", description: "The password is incorrect." });
+      return;
+    }
+    deletePlaylist.mutate(deleteTarget, {
+      onSuccess: () => {
+        toast({ title: "Deleted", description: "Playlist removed." });
+        setDeleteConfirmOpen(false);
+        setDeleteTarget(null);
+        setDeletePassword("");
+      },
+      onError: () => {
+        toast({ title: "Delete failed", description: "Could not delete playlist." });
+      },
+    });
+  };
 
   const handleCreate = () => {
     const trimmed = newName.trim();
@@ -293,7 +465,7 @@ export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    onClick={() => deletePlaylist.mutate(pl.id)}
+                    onClick={() => { setDeleteTarget(pl.id); setDeleteConfirmOpen(true); setDeletePassword(""); }}
                     className="shrink-0 p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-label="Delete playlist"
                   >
@@ -305,6 +477,31 @@ export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps
           ))}
         </div>
       )}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm mb-2">Enter password to delete this playlist.</p>
+          <Input
+            placeholder="Password"
+            type="password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            className="mb-3"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" onClick={() => { setDeleteConfirmOpen(false); setDeleteTarget(null); setDeletePassword(""); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDelete} disabled={!deletePassword} variant="destructive">
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+  // Delete confirmation modal
+

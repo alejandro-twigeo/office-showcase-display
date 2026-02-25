@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePollRotations } from "@/contexts/pollRotation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { usePolls, useVotes } from "@/hooks/usePolls";
 import { BarChart3, Clock, Users } from "lucide-react";
 
-const ROTATE_SECONDS = 30;
+export const ROTATE_SECONDS = 30;
 
 export function PollDisplay() {
   const { activePolls, isLoading } = usePolls(); 
@@ -12,6 +13,8 @@ export function PollDisplay() {
 
   const [currentPollId, setCurrentPollId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROTATE_SECONDS);
+
+  const { rotations, setPollTimeLeft, increment } = usePollRotations();
 
   // Refs to avoid stale closures inside setInterval
   const currentPollIdRef = useRef<string | null>(null);
@@ -30,12 +33,14 @@ export function PollDisplay() {
     if (activePolls.length === 0) {
       setCurrentPollId(null);
       setTimeLeft(ROTATE_SECONDS);
+      setPollTimeLeft(ROTATE_SECONDS);
       return;
     }
 
     if (!currentPollId) {
       setCurrentPollId(activePolls[0].id);
       setTimeLeft(ROTATE_SECONDS);
+      setPollTimeLeft(ROTATE_SECONDS);
       return;
     }
 
@@ -43,27 +48,38 @@ export function PollDisplay() {
     if (!stillExists) {
       setCurrentPollId(activePolls[0].id);
       setTimeLeft(ROTATE_SECONDS);
+      setPollTimeLeft(ROTATE_SECONDS);
     }
   }, [activePolls, currentPollId]);
 
   // Single interval that always uses latest refs
   useEffect(() => {
-    if (activePolls.length === 0) return;
+    if (activePolls.length === 0) {
+      setPollTimeLeft(ROTATE_SECONDS);
+      return;
+    }
 
     const timer = window.setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           const polls = activePollsRef.current;
-          if (polls.length === 0) return ROTATE_SECONDS;
+          if (polls.length === 0) {
+            setPollTimeLeft(ROTATE_SECONDS);
+            return ROTATE_SECONDS;
+          }
 
           const curId = currentPollIdRef.current;
           const idx = polls.findIndex((p) => p.id === curId);
           const nextIdx = idx === -1 ? 0 : (idx + 1) % polls.length;
 
           setCurrentPollId(polls[nextIdx].id);
+          increment();
+          setPollTimeLeft(ROTATE_SECONDS);
           return ROTATE_SECONDS;
         }
-        return prev - 1;
+        const newVal = prev - 1;
+        setPollTimeLeft(newVal);
+        return newVal;
       });
     }, 1000);
 

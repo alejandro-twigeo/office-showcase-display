@@ -301,11 +301,59 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
   const [editWeights, setEditWeights] = useState<DifficultyWeights>(settings.difficulty_weights);
 
+  const [plantDays, setPlantDays] = useState<number | null>(null);
+  const [plantDaysLoading, setPlantDaysLoading] = useState(false);
+
   useEffect(() => {
     setEditDistParam(String(settings.distance_parameter));
     setEditMultipliers(settings.attempt_multipliers.map(String));
     setEditWeights(settings.difficulty_weights);
   }, [settings]);
+
+  useEffect(() => {
+    if (!scoringOpen) return;
+    let active = true;
+
+    const fetchPlantDays = async () => {
+      setPlantDaysLoading(true);
+      const { data, error } = await (supabase as any)
+        .from("plants")
+        .select("last_watered_at")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      setPlantDaysLoading(false);
+      if (error) {
+        console.error("Failed to fetch plant for scoring popup:", error);
+        return;
+      }
+
+      const last = data?.last_watered_at ? new Date(data.last_watered_at) : null;
+      if (!active) return;
+      setPlantDays(last ? Math.floor((Date.now() - last.getTime()) / (1000 * 60 * 60 * 24)) : null);
+    };
+
+    fetchPlantDays();
+
+    // subscribe to plant updates so the days counter refreshes when watered
+    try {
+      const ch = (supabase as any)
+        .channel('public:plants:scoring')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'plants' }, () => {
+          void fetchPlantDays();
+        })
+        .subscribe();
+
+      return () => {
+        active = false;
+        try { ch.unsubscribe(); } catch (_) { /* noop */ }
+      };
+    } catch (e) {
+      // if realtime subscription isn't available, just rely on the single fetch
+      return () => { active = false; };
+    }
+  }, [scoringOpen]);
 
   const { createNewLocation: createEasy } = useActiveLocation(1);
   const { createNewLocation: createHard } = useActiveLocation(3);
@@ -467,6 +515,11 @@ export function GuessMap({ playerName }: GuessMapProps) {
                   {updateSettings.isSuccess && (
                     <p className="text-xs text-center text-primary">Saved!</p>
                   )}
+                  <div className="border-t pt-2">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Days since last watered: {plantDaysLoading ? '…' : (plantDays == null ? 'unknown' : String(plantDays))}
+                    </p>
+                  </div>
                 </div>
               )}
             </PopoverContent>

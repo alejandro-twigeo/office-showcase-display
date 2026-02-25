@@ -48,6 +48,32 @@ async function fetchYouTubeMeta(
   }
 }
 
+/**
+ * Given a YouTube playlist/mix `list` id, fetch the public playlist page and
+ * scrape video IDs from its HTML.  Mix links use playlists behind the scenes so
+ * this works for them as well.  We dedupe before returning.
+ */
+// returns `null` if the edge-function call itself failed (network/permission),
+// otherwise returns an array which may be empty if the playlist had no items.
+export async function fetchYouTubePlaylist(
+  listId: string,
+  seedVideoId?: string,
+): Promise<string[] | null> {
+  try {
+    const payload: Record<string, string> = { list: listId };
+    if (seedVideoId) payload.v = seedVideoId;
+    const { data, error } = await supabase.functions.invoke("youtube-playlist", {
+      body: JSON.stringify(payload),
+    });
+    if (error) return null;
+    return (data?.ids ?? []) as string[];
+  } catch {
+    return null;
+  }
+}
+
+export { fetchYouTubeMeta };
+
 export function useYoutubeQueue() {
   const queryClient = useQueryClient();
 
@@ -80,23 +106,34 @@ export function useYoutubeQueue() {
     },
   });
 
-  // All played videos, deduplicated by video_id (most recent play wins)
+  // Recent videos list used for both history and playlist suggestions.
+  // Previously this only fetched "played" videos which meant newly-added
+  // items wouldn't show up until they finished playing.  Instead we query
+  // all non-deleted tiles and sort them by the most recent activity time
+  // (played_at if available, otherwise queued_at).  Deduplication then
+  // ensures only one entry per video_id survives.  The mutations also push
+  // new inserts to the front of the cache for instant feedback.
   const { data: recentVideos = [], isLoading: loadingRecent } = useQuery<YouTubeVideo[]>({
     queryKey: ["recent-videos"],
     queryFn: async (): Promise<YouTubeVideo[]> => {
       const { data, error } = await ytQueue()
         .select("*")
-        .eq("status", "played")
-        .eq("is_deleted", false)
-        .order("played_at", { ascending: false });
+        .eq("is_deleted", false);
       if (error) throw error;
-      // Deduplicate: keep first (most recent) occurrence of each video_id
+      const list = (data ?? []) as YouTubeVideo[];
+      // sort by most recent timestamp (played_at takes priority)
+      list.sort((a, b) => {
+        const atA = a.played_at ?? a.queued_at ?? "";
+        const atB = b.played_at ?? b.queued_at ?? "";
+        if (atA === atB) return 0;
+        return atA > atB ? -1 : 1;
+      });
       const seen = new Set<string>();
-      return (data ?? []).filter((v: YouTubeVideo) => {
+      return list.filter((v) => {
         if (seen.has(v.video_id)) return false;
         seen.add(v.video_id);
         return true;
-      }) as YouTubeVideo[];
+      });
     },
   });
 
@@ -145,23 +182,32 @@ export function useYoutubeQueue() {
 
       const meta = await fetchYouTubeMeta(data.video_id);
 
-      const { error } = await ytQueue().insert({
-        video_id: data.video_id,
-        title: meta.title,
-        thumbnail_url: meta.thumbnail_url,
-        queued_by: data.queued_by,
-        is_playing: true,
-        is_favorite: false,
-        is_deleted: false,
-        status: "playing",
-        queued_at: new Date().toISOString(),
-      });
+      const { data: inserted, error } = await ytQueue()
+        .insert({
+          video_id: data.video_id,
+          title: meta.title,
+          thumbnail_url: meta.thumbnail_url,
+          queued_by: data.queued_by,
+          is_playing: true,
+          is_favorite: false,
+          is_deleted: false,
+          status: "playing",
+          queued_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
       if (error) throw error;
+      return inserted as YouTubeVideo;
     },
-    onSuccess: () => {
+    onSuccess: (inserted) => {
       queryClient.invalidateQueries({ queryKey: ["current-video"] });
       queryClient.invalidateQueries({ queryKey: ["video-queue"] });
-      queryClient.invalidateQueries({ queryKey: ["recent-videos"] });
+      // push into recent-videos cache for immediate visibility
+      queryClient.setQueryData<YouTubeVideo[]>(["recent-videos"], (old = []) => {
+        // remove any existing with same video_id then prepend
+        const filtered = old.filter((v) => v.video_id !== inserted.video_id);
+        return [inserted, ...filtered];
+      });
     },
   });
 
@@ -169,21 +215,29 @@ export function useYoutubeQueue() {
   const addToQueue = useMutation({
     mutationFn: async (data: { video_id: string; queued_by: string }) => {
       const meta = await fetchYouTubeMeta(data.video_id);
-      const { error } = await ytQueue().insert({
-        video_id: data.video_id,
-        title: meta.title,
-        thumbnail_url: meta.thumbnail_url,
-        queued_by: data.queued_by,
-        is_playing: false,
-        is_favorite: false,
-        is_deleted: false,
-        status: "queued",
-        queued_at: new Date().toISOString(),
-      });
+      const { data: inserted, error } = await ytQueue()
+        .insert({
+          video_id: data.video_id,
+          title: meta.title,
+          thumbnail_url: meta.thumbnail_url,
+          queued_by: data.queued_by,
+          is_playing: false,
+          is_favorite: false,
+          is_deleted: false,
+          status: "queued",
+          queued_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
       if (error) throw error;
+      return inserted as YouTubeVideo;
     },
-    onSuccess: () => {
+    onSuccess: (inserted) => {
       queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+      queryClient.setQueryData<YouTubeVideo[]>(["recent-videos"], (old = []) => {
+        const filtered = old.filter((v) => v.video_id !== inserted.video_id);
+        return [inserted, ...filtered];
+      });
     },
   });
 
