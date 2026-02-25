@@ -12,6 +12,7 @@ import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights } from "@/hooks/useScoring";
+import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -287,8 +288,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const { settings, updateSettings } = useScoring();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
-  const [creatingDifficulty, setCreatingDifficulty] = useState<Difficulty | null>(null);
-  const [passwordAction, setPasswordAction] = useState<{ type: 'new'; difficulty: Difficulty } | null>(null);
+  const [passwordAction, setPasswordAction] = useState<{ type: 'new' } | null>(null);
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -310,33 +310,56 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const { createNewLocation: createEasy } = useActiveLocation(1);
   const { createNewLocation: createHard } = useActiveLocation(3);
 
-  const createRound = useCallback(async (difficulty: Difficulty) => {
+  const createFullRound = useCallback(async () => {
     if (creatingRef.current) return;
     creatingRef.current = true;
     setIsCreatingRound(true);
-    setCreatingDifficulty(difficulty);
     try {
-      const image = await fetchMapillaryRound(difficulty);
-      const mutator = difficulty === 1 ? createEasy : createHard;
-      mutator.mutate(
-        { lat: image.lat, lng: image.lng, pano_id: image.thumb_url, difficulty },
-        {
-          onSuccess: () => { creatingRef.current = false; setIsCreatingRound(false); setCreatingDifficulty(null); },
-          onError: () => { creatingRef.current = false; setIsCreatingRound(false); setCreatingDifficulty(null); },
-        }
-      );
+      // Deactivate previous round
+      await supabase
+        .from('rounds' as any)
+        .update({ is_active: false } as any)
+        .eq('is_active', true);
+
+      // Create new round
+      const { data: newRound, error: roundErr } = await supabase
+        .from('rounds' as any)
+        .insert({ is_active: true } as any)
+        .select()
+        .single();
+      if (roundErr || !newRound) throw roundErr ?? new Error('Failed to create round');
+      const roundId = (newRound as any).id;
+
+      // Fetch both images in parallel
+      const [easyImage, hardImage] = await Promise.all([
+        fetchMapillaryRound(1),
+        fetchMapillaryRound(3),
+      ]);
+
+      // Deactivate old locations for both difficulties
+      await Promise.all([
+        supabase.from('locations').update({ is_active: false }).eq('is_active', true).eq('difficulty', 1),
+        supabase.from('locations').update({ is_active: false }).eq('is_active', true).eq('difficulty', 3),
+      ]);
+
+      // Create both locations with round_id
+      const { error: locErr } = await supabase.from('locations').insert([
+        { lat: easyImage.lat, lng: easyImage.lng, pano_id: easyImage.thumb_url, difficulty: 1, is_active: true, round_id: roundId },
+        { lat: hardImage.lat, lng: hardImage.lng, pano_id: hardImage.thumb_url, difficulty: 3, is_active: true, round_id: roundId },
+      ]);
+      if (locErr) throw locErr;
     } catch (err) {
       console.error("Round creation failed", err);
+    } finally {
       creatingRef.current = false;
       setIsCreatingRound(false);
-      setCreatingDifficulty(null);
     }
-  }, [createEasy, createHard]);
+  }, []);
 
   const handlePasswordConfirm = async () => {
     if (actionPassword !== '1234') { setActionError('Wrong password'); return; }
     if (passwordAction?.type === 'new') {
-      void createRound(passwordAction.difficulty);
+      void createFullRound();
     }
     setPasswordAction(null);
     setActionPassword('');
@@ -459,16 +482,13 @@ export function GuessMap({ playerName }: GuessMapProps) {
             <PopoverContent className="w-72 p-3" align="end">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">New Round</p>
-                <div className="flex gap-2">
-                  {([1, 3] as Difficulty[]).map((d) => (
-                    <Button key={d} variant="outline" size="sm" className="flex-1 h-8"
-                      onClick={() => setPasswordAction({ type: 'new', difficulty: d })}
-                      disabled={isCreatingRound}>
-                      <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound && creatingDifficulty === d ? "animate-spin" : ""}`} />
-                      New {DIFFICULTY_LABELS[d]}
-                    </Button>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">Creates both an Easy and Hard challenge</p>
+                <Button variant="outline" size="sm" className="w-full h-8"
+                  onClick={() => setPasswordAction({ type: 'new' })}
+                  disabled={isCreatingRound}>
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? "animate-spin" : ""}`} />
+                  New Round
+                </Button>
                 {passwordAction && (
                   <div className="space-y-2 border-t pt-2">
                     <div className="flex items-center gap-2">
@@ -511,7 +531,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
           difficulty={activeTab === 'easy' ? 1 : 3}
           playerName={playerName}
           settings={settings}
-          onCreateRound={createRound}
+          onCreateRound={() => {}}
           isCreating={isCreatingRound}
         />
       </CardContent>

@@ -67,6 +67,7 @@ export type Database = {
           lat: number
           lng: number
           pano_id: string | null
+          round_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -76,6 +77,7 @@ export type Database = {
           lat: number
           lng: number
           pano_id?: string | null
+          round_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -85,8 +87,17 @@ export type Database = {
           lat?: number
           lng?: number
           pano_id?: string | null
+          round_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plant_watering_logs: {
         Row: {
@@ -362,6 +373,27 @@ export type Database = {
           is_active?: boolean
           message?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rounds: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          round_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_number?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_number?: number
         }
         Relationships: []
       }
