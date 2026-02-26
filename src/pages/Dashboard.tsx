@@ -11,7 +11,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   return (
-    <div className="h-[100dvh] w-screen overflow-hidden bg-background">
+    <div className="min-h-[100dvh] md:h-[100dvh] w-screen md:overflow-hidden bg-background">
       <div className="h-full w-full p-[clamp(16px,1.6vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(12px,1.2vw,20px)]">
 
@@ -46,18 +46,18 @@ export default function Dashboard() {
           </header>
 
           {/* Main grid */}
-          <div className="min-h-0">
-            <div className="h-full grid grid-rows-[55fr_45fr] gap-[clamp(12px,1.2vw,20px)] min-h-0">
-              <div className="min-h-0 grid grid-cols-[2fr_1fr] gap-[clamp(12px,1.2vw,20px)]">
-                <div className="min-h-0 h-full overflow-hidden rounded-xl">
+          <div className="min-h-0 overflow-y-auto md:overflow-hidden">
+            <div className="h-auto md:h-full flex flex-col md:grid md:grid-rows-[55fr_45fr] gap-[clamp(12px,1.2vw,20px)] md:min-h-0">
+              <div className="min-h-0 flex flex-col md:grid md:grid-cols-[2fr_1fr] gap-[clamp(12px,1.2vw,20px)]">
+                <div className="min-h-[300px] md:min-h-0 md:h-full overflow-hidden rounded-xl">
                   <YouTubeDisplay />
                 </div>
-                <div className="min-h-0 overflow-hidden rounded-xl">
+                <div className="min-h-[250px] md:min-h-0 overflow-hidden rounded-xl">
                   <PollDisplay />
                 </div>
               </div>
 
-              <div className="min-h-0 overflow-hidden rounded-xl">
+              <div className="min-h-[250px] md:min-h-0 overflow-hidden rounded-xl">
                 <StreetViewDisplay />
               </div>
             </div>

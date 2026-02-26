@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePolls, type PollType } from '@/hooks/usePolls';
-import { Plus, Trash2, Edit2, X, Check, MessageSquare, List } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Check, MessageSquare, List, Clock, RefreshCw } from 'lucide-react';
 
 interface PollManagementProps {
   playerName: string;
 }
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 export function PollManagement({ playerName }: PollManagementProps) {
   const DELETE_POLL_PASSWORD = '1234';
-  const { activePolls, createPoll, closePoll, updatePoll } = usePolls();
+  const { activePolls, createPoll, closePoll, updatePoll, extendPoll } = usePolls();
   const [showCreate, setShowCreate] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
   const [newOptions, setNewOptions] = useState(['', '']);
@@ -83,8 +85,60 @@ export function PollManagement({ playerName }: PollManagementProps) {
     ? !!newQuestion.trim()
     : !!newQuestion.trim() && newOptions.filter((o) => o.trim()).length >= 2;
 
+  // Polls older than 7 days
+  const expiredPolls = useMemo(() => {
+    return activePolls.filter(p => {
+      const started = p.started_at ?? p.created_at;
+      if (!started) return false;
+      return Date.now() - new Date(started).getTime() > SEVEN_DAYS_MS;
+    });
+  }, [activePolls]);
+
+  const handleExtendPoll = (pollId: string) => {
+    extendPoll.mutate(pollId);
+  };
+
   return (
     <div className="space-y-4">
+      {/* 7-day expiry warnings */}
+      {expiredPolls.length > 0 && (
+        <div className="space-y-2">
+          {expiredPolls.map(poll => {
+            const days = Math.floor((Date.now() - new Date(poll.started_at ?? poll.created_at ?? '').getTime()) / (1000 * 60 * 60 * 24));
+            return (
+              <div key={poll.id} className="rounded-lg border border-warning/50 bg-warning/10 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">"{poll.question}" has been live for {days} days</p>
+                    <p className="text-xs text-muted-foreground">Keep it going or close it to keep polls fresh?</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => handleExtendPoll(poll.id)}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Extend 7 days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs text-destructive hover:text-destructive"
+                    onClick={() => handleDeletePoll(poll.id)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Close poll
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Create Poll Button */}
       <Button
         variant="outline"
