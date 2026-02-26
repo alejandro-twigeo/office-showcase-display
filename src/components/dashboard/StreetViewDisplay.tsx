@@ -72,7 +72,7 @@ function MysteryCard({ difficulty, label, color }: { difficulty: number; label: 
 
 export function StreetViewDisplay() {
   return (
-    <div className="h-full min-h-0 grid grid-cols-[1fr_1fr_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
+    <div className="h-full min-h-0 flex flex-col md:grid md:grid-cols-[1fr_1fr_minmax(320px,1fr)] gap-[clamp(12px,1vw,18px)]">
       <MysteryCard difficulty={1} label="Easy" color="green" />
       <MysteryCard difficulty={3} label="Hard" color="red" />
       <div className="h-full min-h-0">

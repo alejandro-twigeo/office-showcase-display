@@ -108,6 +108,19 @@ export function usePolls() {
     },
   });
 
+  const extendPoll = useMutation({
+    mutationFn: async (pollId: string) => {
+      const { error } = await supabase
+        .from('polls')
+        .update({ started_at: new Date().toISOString() })
+        .eq('id', pollId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-polls'] });
+    },
+  });
+
   /** Append a free-text answer to a freetext poll atomically via RPC.
    *  Returns the option index the answer was placed at. */
   const appendOption = useMutation({
@@ -124,7 +137,7 @@ export function usePolls() {
     },
   });
 
-  return { activePolls, isLoading, createPoll, closePoll, updatePoll, appendOption };
+  return { activePolls, isLoading, createPoll, closePoll, updatePoll, extendPoll, appendOption };
 }
 
 export function useVotes(pollId: string | undefined) {
