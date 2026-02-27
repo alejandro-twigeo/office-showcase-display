@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights } from "@/hooks/useScoring";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
+import { usePresenceCount } from "@/hooks/usePresenceCount";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet default icon issue
@@ -526,6 +527,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
                   <div className="border-t pt-2">
                     <p className="text-xs text-muted-foreground text-center">
                       Days since last watered: {plantDaysLoading ? '…' : (plantDays == null ? 'unknown' : String(plantDays))}
+                      <span className="ml-1 text-white/40">({onlineUsers})</span>
                     </p>
                   </div>
                 </div>
