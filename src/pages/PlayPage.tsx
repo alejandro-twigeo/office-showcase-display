@@ -35,7 +35,7 @@ export default function PlayPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="max-w-lg lg:max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
@@ -74,9 +74,9 @@ export default function PlayPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-lg lg:max-w-4xl mx-auto p-4">
+      <main className="max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto p-4">
         {/* Tab buttons */}
-        <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-lg mb-4">
+        <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-lg mb-4 lg:max-w-4xl">
           {([
             { value: 'guess' as const, icon: MapPin, label: 'Guess' },
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
@@ -100,7 +100,7 @@ export default function PlayPage() {
 
         {/* Tab content */}
         {activeTab === 'guess' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             <GuessMap playerName={player.name} />
             <Leaderboard />
           </div>
