@@ -37,6 +37,15 @@ export function PlantStatus({ playerName }: { playerName: string }) {
     run();
   }, []);
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      console.log("AUTH USER:", data.user);
+    };
+
+    checkUser();
+  }, []);
+
   const handleWaterPlant = async () => {
     if (!plantId) return;
 
