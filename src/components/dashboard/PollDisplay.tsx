@@ -149,18 +149,13 @@ export function PollDisplay() {
                 No answers yet — submit one from the Play page!
               </p>
             ) : (
-              <div className="space-y-[clamp(4px,0.4vw,8px)]">
+              <div className="space-y-[clamp(4px,0.35vw,7px)]">
                 {sortedFreetextOptions.map(({ text, idx, count }) => {
                   const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+
                   return (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-[clamp(13px,0.9vw,22px)]">
-                        <span className="truncate pr-4">{text}</span>
-                        <span className="text-muted-foreground shrink-0">
-                          {count} ({Math.round(percentage)}%)
-                        </span>
-                      </div>
-                      <div className="h-[clamp(24px,1.8vw,36px)] bg-secondary rounded-md overflow-hidden relative">
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="relative flex-1 h-[clamp(26px,1.9vw,38px)] bg-secondary rounded-md overflow-hidden">
                         <div
                           className="h-full bg-primary/80 transition-all duration-500"
                           style={{ width: `${percentage}%` }}
@@ -168,6 +163,10 @@ export function PollDisplay() {
                         <span className="absolute inset-0 flex items-center px-3 text-[clamp(12px,0.85vw,18px)] font-medium truncate">
                           {text}
                         </span>
+                      </div>
+
+                      <div className="shrink-0 text-muted-foreground text-[clamp(12px,0.85vw,18px)] tabular-nums">
+                        {count} ({Math.round(percentage)}%)
                       </div>
                     </div>
                   );
