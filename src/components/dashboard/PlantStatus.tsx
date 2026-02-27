@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 // note: user guard removed to avoid missing useAuth hook
 
 type PlantRow = { id: string; last_watered_at: string | null };
@@ -54,13 +49,25 @@ export function PlantStatus({ playerName }: { playerName: string }) {
     setWatering(true);
     setTimeout(() => setWatering(false), 300);
 
-const { error } = await (supabase as any)
-  .from("plants")
-  .update({
-    last_watered_at: now.toISOString(),
-    last_watered_by_name: playerName,
-  })
-  .eq("id", plantId);
+    const safeName = (playerName ?? "").trim();
+
+    console.log("DEBUG watering", { plantId, playerName, safeName });
+
+    const { data, error } = await (supabase as any)
+      .from("plants")
+      .update({
+        last_watered_at: now.toISOString(),
+        last_watered_by_name: safeName,
+      })
+      .eq("id", plantId)
+      .select("id,last_watered_at,last_watered_by_name,updated_at")
+      .single();
+
+    console.log("DEBUG supabase result", { data, error });
+
+    if (error) {
+      console.error("Failed to update plant:", error);
+    }
 
     if (error) {
       console.error("Failed to update last_watered_at:", error);
@@ -77,7 +84,8 @@ const { error } = await (supabase as any)
 
   const tooltip = (
     <>
-      Bianca is the only living plant in the office, located in Workshop and proudly named after her most loyal caretaker.
+      Bianca is the only living plant in the office, located in Workshop and proudly named after her most loyal
+      caretaker.
       <br />
       If this digital plant looks unhappy, it means she needs water.
       <br />
@@ -93,9 +101,7 @@ const { error } = await (supabase as any)
             <img
               src={plantIcon}
               alt="Plant status"
-              className={`h-[clamp(72px,5.12vw,123px)] w-auto ${
-                plantLoading ? "opacity-60" : ""
-              }`}
+              className={`h-[clamp(72px,5.12vw,123px)] w-auto ${plantLoading ? "opacity-60" : ""}`}
             />
           </TooltipTrigger>
           <TooltipContent side="top" align="center">
