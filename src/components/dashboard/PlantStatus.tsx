@@ -12,6 +12,15 @@ export function PlantStatus({ playerName }: { playerName: string }) {
   const [watering, setWatering] = useState(false);
 
   useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      console.log("AUTH USER:", data.user);
+    };
+
+    checkUser();
+  }, []);
+
+  useEffect(() => {
     // fetch plant row without auth guard; make sure RLS allows anon reads if needed
     const run = async () => {
       setPlantLoading(true);
@@ -35,15 +44,6 @@ export function PlantStatus({ playerName }: { playerName: string }) {
     };
 
     run();
-  }, []);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      console.log("AUTH USER:", data.user);
-    };
-
-    checkUser();
   }, []);
 
   const handleWaterPlant = async () => {
