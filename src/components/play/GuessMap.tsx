@@ -295,7 +295,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
 export function GuessMap({ playerName }: GuessMapProps) {
   const deviceId = useDeviceId();
-  const onlineUsers = usePresenceCount("guess", { deviceId, playerName });
+  const onlineUsers = usePresenceCount("app", { deviceId });
   const { settings, updateSettings } = useScoring();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
