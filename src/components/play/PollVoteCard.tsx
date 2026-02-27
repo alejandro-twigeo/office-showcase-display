@@ -79,7 +79,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                 key={index}
                 onClick={() => handleVote(index)}
                 disabled={!!userVote || submitVote.isPending}
-                className={`w-full text-left p-3 rounded-md border transition-colors relative overflow-hidden ${
+                className={`w-full text-left p-3 py-2 min-h-[44px] rounded-md border transition-colors relative overflow-hidden ${
                   isSelected
                     ? "border-primary bg-primary/10"
                     : userVote
