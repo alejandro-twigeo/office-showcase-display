@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useVotes, usePolls, type Poll } from '@/hooks/usePolls';
-import { Check, Vote, ThumbsUp, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { useVotes, usePolls, type Poll } from "@/hooks/usePolls";
+import { Check, Vote, ThumbsUp, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface PollVoteCardProps {
   poll: Poll;
@@ -13,7 +13,7 @@ interface PollVoteCardProps {
 export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) {
   const { votes, submitVote } = useVotes(poll.id);
   const { appendOption } = usePolls();
-  const [freeText, setFreeText] = useState('');
+  const [freeText, setFreeText] = useState("");
 
   const userVote = votes.find((v) => v.device_id === deviceId);
 
@@ -51,7 +51,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
         player_name: playerName,
         option_index: index,
       });
-      setFreeText('');
+      setFreeText("");
     } catch {
       // ignore
     }
@@ -61,7 +61,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
   const totalVotes = votes.length;
 
   /* ── CHOICE poll ────────────────────────────────────── */
-  if (poll.poll_type === 'choice') {
+  if (poll.poll_type === "choice") {
     return (
       <div className="border rounded-lg p-4 space-y-3">
         <div>
@@ -81,10 +81,10 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                 disabled={!!userVote || submitVote.isPending}
                 className={`w-full text-left p-3 rounded-md border transition-colors relative overflow-hidden ${
                   isSelected
-                    ? 'border-primary bg-primary/10'
+                    ? "border-primary bg-primary/10"
                     : userVote
-                    ? 'border-border bg-secondary/20'
-                    : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+                      ? "border-border bg-secondary/20"
+                      : "border-border hover:border-primary/50 hover:bg-secondary/50"
                 }`}
               >
                 {userVote && (
@@ -94,7 +94,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                   />
                 )}
                 <div className="relative flex items-center justify-between">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 truncate">
                     {isSelected && <Check className="h-4 w-4 text-primary" />}
                     {option}
                   </span>
@@ -136,7 +136,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
             placeholder="Type your answer…"
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmitFreeText()}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmitFreeText()}
             maxLength={120}
             className="flex-1"
           />
@@ -153,9 +153,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
       {/* Existing answers to upvote */}
       {sortedOptions.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
-            {userVote ? 'Results:' : 'Or upvote an existing answer:'}
-          </p>
+          <p className="text-xs text-muted-foreground">{userVote ? "Results:" : "Or upvote an existing answer:"}</p>
           {sortedOptions.map(({ text, idx, count }) => {
             const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
             const isSelected = userVote?.option_index === idx;
@@ -164,7 +162,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
               <div
                 key={idx}
                 className={`relative rounded-md border overflow-hidden ${
-                  isSelected ? 'border-primary' : 'border-border'
+                  isSelected ? "border-primary" : "border-border"
                 }`}
               >
                 {/* vote bar background */}
@@ -175,7 +173,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                   />
                 )}
                 <div className="relative flex items-center justify-between gap-2 px-3 py-2">
-                  <span className={`text-sm flex-1 ${isSelected ? 'text-primary font-medium' : ''}`}>
+                  <span className={`text-sm flex-1 ${isSelected ? "text-primary font-medium" : ""}`}>
                     {isSelected && <Check className="inline h-3.5 w-3.5 mr-1" />}
                     {text}
                   </span>
@@ -204,9 +202,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
       )}
 
       {!userVote && poll.options.length === 0 && (
-        <p className="text-xs text-center text-muted-foreground">
-          Be the first to answer!
-        </p>
+        <p className="text-xs text-center text-muted-foreground">Be the first to answer!</p>
       )}
     </div>
   );
