@@ -10,7 +10,7 @@ import {
 
 type PlantRow = { id: string; last_watered_at: string | null };
 
-export function PlantStatus() {
+export function PlantStatus({ playerName }: { playerName: string }) {
   const [plantId, setPlantId] = useState<string | null>(null);
   const [lastWatered, setLastWatered] = useState<Date | null>(null);
   const [plantLoading, setPlantLoading] = useState(false);
@@ -54,10 +54,13 @@ export function PlantStatus() {
     setWatering(true);
     setTimeout(() => setWatering(false), 300);
 
-    const { error } = await (supabase as any)
-      .from("plants")
-      .update({ last_watered_at: now.toISOString() })
-      .eq("id", plantId);
+const { error } = await (supabase as any)
+  .from("plants")
+  .update({
+    last_watered_at: now.toISOString(),
+    last_watered_by_name: playerName,
+  })
+  .eq("id", plantId);
 
     if (error) {
       console.error("Failed to update last_watered_at:", error);
