@@ -100,7 +100,7 @@ export default function PlayPage() {
 
         {/* Tab content */}
         {activeTab === 'guess' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+          <div className="space-y-4">
             <GuessMap playerName={player.name} />
             <Leaderboard />
           </div>
