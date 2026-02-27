@@ -8,8 +8,7 @@ import { BarChart3, Clock, Users } from "lucide-react";
 export const ROTATE_SECONDS = 30;
 
 export function PollDisplay() {
-  const { activePolls, isLoading } = usePolls(); 
-
+  const { activePolls, isLoading } = usePolls();
 
   const [currentPollId, setCurrentPollId] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROTATE_SECONDS);
@@ -88,7 +87,7 @@ export function PollDisplay() {
 
   const currentPoll = useMemo(
     () => activePolls.find((p) => p.id === currentPollId) ?? null,
-    [activePolls, currentPollId]
+    [activePolls, currentPollId],
   );
 
   const { votes } = useVotes(currentPoll?.id);
@@ -104,7 +103,7 @@ export function PollDisplay() {
 
   // For freetext polls, sort options by vote count descending
   const sortedFreetextOptions = useMemo(() => {
-    if (!currentPoll || (currentPoll as any).poll_type !== 'freetext') return [];
+    if (!currentPoll || (currentPoll as any).poll_type !== "freetext") return [];
     return (currentPoll.options as string[])
       .map((text, idx) => ({ text, idx, count: voteCounts[idx] ?? 0 }))
       .sort((a, b) => b.count - a.count)
@@ -138,11 +137,9 @@ export function PollDisplay() {
           <div className="text-center flex flex-col items-center justify-center h-full">
             <BarChart3 className="h-[clamp(32px,3vw,64px)] w-[clamp(32px,3vw,64px)] text-muted-foreground mb-3" />
             <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No active polls</p>
-            <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] mt-1">
-              Create one from the Play page!
-            </p>
+            <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] mt-1">Create one from the Play page!</p>
           </div>
-        ) : (currentPoll as any).poll_type === 'freetext' ? (
+        ) : (currentPoll as any).poll_type === "freetext" ? (
           /* ── Freetext poll display ── */
           <div className="space-y-[clamp(8px,0.8vw,16px)]">
             <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
@@ -179,7 +176,9 @@ export function PollDisplay() {
             )}
             <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
               <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
-              <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} · {(currentPoll.options as string[]).length} answers</span>
+              <span>
+                {totalVotes} vote{totalVotes !== 1 ? "s" : ""} · {(currentPoll.options as string[]).length} answers
+              </span>
             </div>
           </div>
         ) : (
@@ -197,22 +196,19 @@ export function PollDisplay() {
                 const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
 
                 return (
-                  <div key={index} className="space-y-1">
-                    <div className="flex justify-between text-[clamp(14px,1vw,28px)]">
-                      <span>{option}</span>
-                      <span className="text-muted-foreground">
-                        {count} ({Math.round(percentage)}%)
-                      </span>
-                    </div>
-
-                    <div className="h-[clamp(28px,2vw,40px)] bg-secondary rounded-md overflow-hidden relative">
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="relative flex-1 h-[clamp(30px,2vw,40px)] bg-secondary rounded-md overflow-hidden">
                       <div
                         className="h-full bg-primary/80 transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       />
-                      <span className="absolute inset-0 flex items-center px-3 text-[clamp(14px,1vw,20px)] font-medium">
+                      <span className="absolute inset-0 flex items-center px-3 text-[clamp(14px,1vw,20px)] font-medium truncate">
                         {option}
                       </span>
+                    </div>
+
+                    <div className="shrink-0 text-muted-foreground text-[clamp(12px,0.9vw,18px)] tabular-nums">
+                      {count} ({Math.round(percentage)}%)
                     </div>
                   </div>
                 );
@@ -221,7 +217,9 @@ export function PollDisplay() {
 
             <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
               <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
-              <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
+              <span>
+                {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
+              </span>
             </div>
           </div>
         )}
