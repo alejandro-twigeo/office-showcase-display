@@ -95,7 +95,7 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -128,9 +128,6 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
             </Tooltip>
           )}
         </div>
-        <span className="text-[clamp(10px,0.8vw,14px)] text-muted-foreground whitespace-nowrap">
-          {daysSinceWatered !== null ? `${daysSinceWatered}d since watered` : "No data"}
-        </span>
       </div>
     </TooltipProvider>
   );
