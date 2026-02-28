@@ -6,6 +6,7 @@ import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { Leaderboard } from '../components/dashboard/Leaderboard';
+import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog } from 'lucide-react';
@@ -36,13 +37,16 @@ export default function PlayPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
-          >
-            <Monitor className="h-4 w-4" />
-            <span>TV mode</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+            >
+              <Monitor className="h-4 w-4" />
+              <span>TV mode</span>
+            </button>
+            <PlantStatus playerName={player.name} />
+          </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
