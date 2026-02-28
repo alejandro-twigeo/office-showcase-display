@@ -133,6 +133,8 @@ export type Database = {
           created_at: string
           id: string
           last_watered_at: string | null
+          last_watered_by_device_id: string | null
+          last_watered_by_name: string | null
           location: string | null
           name: string
           notes: string | null
@@ -144,6 +146,8 @@ export type Database = {
           created_at?: string
           id?: string
           last_watered_at?: string | null
+          last_watered_by_device_id?: string | null
+          last_watered_by_name?: string | null
           location?: string | null
           name: string
           notes?: string | null
@@ -155,6 +159,8 @@ export type Database = {
           created_at?: string
           id?: string
           last_watered_at?: string | null
+          last_watered_by_device_id?: string | null
+          last_watered_by_name?: string | null
           location?: string | null
           name?: string
           notes?: string | null
