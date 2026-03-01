@@ -110,9 +110,9 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
 
   return (
     <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-[clamp(20px,1.5vw,60px)]">
-          <Trophy className="h-[clamp(18px,1.2vw,26px)] w-[clamp(18px,1.2vw,50px)] text-primary" />
+      <CardHeader className="pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6">
+        <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,60px)]">
+          <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           Leaderboard
         </CardTitle>
         {sortedRounds.length > 0 && (

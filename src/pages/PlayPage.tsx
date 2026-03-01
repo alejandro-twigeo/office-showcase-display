@@ -36,7 +36,7 @@ export default function PlayPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <div className="max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto flex items-center justify-between">
+        <div className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
@@ -78,7 +78,7 @@ export default function PlayPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto p-4">
+      <main className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto px-2 sm:px-4 py-4">
         {/* Tab buttons */}
         <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-lg mb-4 lg:max-w-4xl">
           {([

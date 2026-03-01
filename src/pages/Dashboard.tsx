@@ -12,7 +12,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-[100dvh] md:h-[100dvh] w-screen md:overflow-hidden bg-background">
-      <div className="h-full w-full p-[clamp(16px,1.6vw,28px)]">
+      <div className="h-full w-full p-2 md:p-[clamp(16px,1.6vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_1fr] gap-[clamp(12px,1.2vw,20px)]">
 
           {/* Header */}
