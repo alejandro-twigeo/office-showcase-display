@@ -16,7 +16,7 @@ export interface ScoringSettings {
 
 const DEFAULT_SETTINGS: ScoringSettings = {
   distance_parameter: 500,
-  attempt_multipliers: [1.0, 0.9, 0.82, 0.75, 0.7],
+  attempt_multipliers: [1.0, 0.9, 0.82, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45],
   difficulty_weights: { easy: 1.0, hard: 1.2 },
   max_guesses_per_challenge: null,
 };
