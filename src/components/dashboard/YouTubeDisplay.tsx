@@ -183,7 +183,7 @@ export function YouTubeDisplay() {
       </CardHeader>
 
       <CardContent className="flex-1 min-h-0">
-        <div className="h-full grid grid-cols-[3fr_1fr] gap-[clamp(8px,0.8vw,16px)]">
+        <div className="h-full flex flex-col md:grid md:grid-cols-[3fr_1fr] gap-2 md:gap-[clamp(8px,0.8vw,16px)]">
           {/* Left — video + info */}
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
@@ -218,7 +218,7 @@ export function YouTubeDisplay() {
           </div>
 
           {/* Right — queue sidebar */}
-          <div className="min-h-0 flex flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
+          <div className="hidden md:flex min-h-0 flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
             <h4 className="flex items-center gap-1.5 text-[clamp(14px,1vw,20px)] font-medium mb-2 shrink-0">
               <ListMusic className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
               Queue
