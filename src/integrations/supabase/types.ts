@@ -382,6 +382,30 @@ export type Database = {
         }
         Relationships: []
       }
+      round_schedule: {
+        Row: {
+          enabled: boolean
+          id: number
+          last_auto_reset_at: string | null
+          reset_hour: number
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: number
+          last_auto_reset_at?: string | null
+          reset_hour?: number
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: number
+          last_auto_reset_at?: string | null
+          reset_hour?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rounds: {
         Row: {
           created_at: string
