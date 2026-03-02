@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRoundSchedule } from "@/hooks/useRoundSchedule";
 import { supabase } from "@/integrations/supabase/client";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { fetchMapillaryRound } from "@/lib/mapillary";
@@ -297,6 +300,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const deviceId = useDeviceId();
   const onlineUsers = usePresenceCount("app", { deviceId });
   const { settings, updateSettings } = useScoring();
+  const { schedule, updateSchedule } = useRoundSchedule();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
   const [passwordAction, setPasswordAction] = useState<{ type: 'new' } | null>(null);
@@ -546,7 +550,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
             </PopoverTrigger>
             <PopoverContent className="w-72 p-3" align="end">
               <div className="space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">New Round</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Manual Reset</p>
                 <p className="text-xs text-muted-foreground">Creates both an Easy and Hard challenge</p>
                 <Button variant="outline" size="sm" className="w-full h-8"
                   onClick={() => setPasswordAction({ type: 'new' })}
@@ -568,6 +572,43 @@ export function GuessMap({ playerName }: GuessMapProps) {
                     {actionError && <p className="text-xs text-destructive">{actionError}</p>}
                   </div>
                 )}
+
+                {/* Daily Auto-Reset */}
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Daily Auto-Reset</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Enabled</span>
+                    <Switch
+                      checked={schedule?.enabled ?? false}
+                      onCheckedChange={(checked) => updateSchedule.mutate({ enabled: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Stockholm time
+                    </span>
+                    <Select
+                      value={String(schedule?.reset_hour ?? 8)}
+                      onValueChange={(v) => updateSchedule.mutate({ reset_hour: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-24 h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, '0')}:00
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {schedule?.last_auto_reset_at && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Last auto-reset: {new Date(schedule.last_auto_reset_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
               </div>
             </PopoverContent>
           </Popover>
