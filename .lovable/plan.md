@@ -1,23 +1,20 @@
 
-# Fix Mystery Image Cropping + Enable Panning at All Zoom Levels
 
-## Problem
-The `ZoomableImage` component uses `object-cover` on the image, which crops/cuts parts of the image to fill the container. Users can only pan when zoomed in (`scale > 1`), so at default zoom they can't see the hidden parts.
+## Clean Up Empty Test Rounds
 
-## Solution
-Two changes to the `ZoomableImage` component in `src/components/play/GuessMap.tsx`:
+The database shows rounds 5 and 7-13 are completely empty (no locations, no guesses). Round 14 is the current active round with 2 locations and should be kept.
 
-1. **Change `object-cover` to `object-contain`** -- This ensures the full image is always visible without cropping. The image will fit entirely within the container (with letterboxing if needed).
+### Plan
 
-2. **Allow panning at all zoom levels** -- Remove the `if (scale <= 1) return;` guard in `handlePointerDown`, so users can drag/pan the image even at 1x zoom. This lets them explore the image freely. Also remove the auto-reset of translate when scale is 1.
+1. **Delete empty rounds from the database** via a data migration:
+   - Delete rounds 7, 8, 9, 10, 11, 12, 13 (all empty, no locations or guesses)
+   - Also delete round 5 which is similarly empty (0 locations, 0 guesses) -- unless you want to keep it
+   - Renumber round 14 to round 7 (or 8 if keeping round 5) so the leaderboard navigation is sequential: 1, 2, 3, 4, 5/6, 7 (current)
 
-3. **Update cursor** -- Show grab cursor at all times (not just when zoomed in) to signal the image is draggable.
+2. **No code changes needed** -- the leaderboard already works off whatever rounds exist in the database.
 
-## Technical Details
+### What stays intact
+- Round 14's locations and images remain untouched (just the round_number label changes)
+- Rounds 1-4 and 6 with their guesses are preserved
+- The auto-reset sequence will continue from the new number
 
-**File: `src/components/play/GuessMap.tsx`**
-
-- Line 98: Remove the `useEffect` that resets translate when `scale === 1`
-- Line 100-101: Remove the `if (scale <= 1) return;` guard in `handlePointerDown`
-- Line 125: Change cursor logic from `scale > 1 ? ... : 'default'` to always show grab/grabbing
-- Line 132: Change `object-cover` to `object-contain`
