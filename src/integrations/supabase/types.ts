@@ -412,18 +412,21 @@ export type Database = {
           id: string
           is_active: boolean
           round_number: number
+          wordle_word: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           is_active?: boolean
           round_number?: number
+          wordle_word?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           is_active?: boolean
           round_number?: number
+          wordle_word?: string | null
         }
         Relationships: []
       }
@@ -435,6 +438,7 @@ export type Database = {
           id: number
           max_guesses_per_challenge: number | null
           updated_at: string
+          wordle_points: number
         }
         Insert: {
           attempt_multipliers?: Json
@@ -443,6 +447,7 @@ export type Database = {
           id?: number
           max_guesses_per_challenge?: number | null
           updated_at?: string
+          wordle_points?: number
         }
         Update: {
           attempt_multipliers?: Json
@@ -451,6 +456,7 @@ export type Database = {
           id?: number
           max_guesses_per_challenge?: number | null
           updated_at?: string
+          wordle_points?: number
         }
         Relationships: []
       }
@@ -485,6 +491,44 @@ export type Database = {
             columns: ["poll_id"]
             isOneToOne: false
             referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wordle_scores: {
+        Row: {
+          attempts: number
+          created_at: string
+          device_id: string
+          id: string
+          player_name: string
+          round_id: string
+          solved: boolean
+        }
+        Insert: {
+          attempts: number
+          created_at?: string
+          device_id: string
+          id?: string
+          player_name: string
+          round_id: string
+          solved?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          player_name?: string
+          round_id?: string
+          solved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordle_scores_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
         ]
