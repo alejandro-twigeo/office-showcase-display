@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoundSchedule } from "@/hooks/useRoundSchedule";
@@ -15,6 +15,7 @@ import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights } from "@/hooks/useScoring";
+import { MiniGamesSelector } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
 import { usePresenceCount } from "@/hooks/usePresenceCount";
@@ -315,6 +316,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [editDistParam, setEditDistParam] = useState(String(settings.distance_parameter));
   const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
   const [editWeights, setEditWeights] = useState<DifficultyWeights>(settings.difficulty_weights);
+  const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
 
   const [plantDays, setPlantDays] = useState<number | null>(null);
   const [plantDaysLoading, setPlantDaysLoading] = useState(false);
@@ -323,6 +325,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
     setEditDistParam(String(settings.distance_parameter));
     setEditMultipliers(settings.attempt_multipliers.map(String));
     setEditWeights(settings.difficulty_weights);
+    setEditWordlePoints(String(settings.wordle_points));
   }, [settings]);
 
   useEffect(() => {
@@ -438,15 +441,17 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const handleSaveScoringSettings = () => {
     const distParam = parseFloat(editDistParam);
     const multipliers = editMultipliers.map(Number);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN)) return;
+    const wp = parseInt(editWordlePoints);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp)) return;
     updateSettings.mutate({
       distance_parameter: distParam,
       attempt_multipliers: multipliers,
       difficulty_weights: editWeights,
+      wordle_points: wp,
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'easy' | 'hard'>('easy');
+  const [activeTab, setActiveTab] = useState<'easy' | 'hard' | 'other'>('easy');
 
   return (
     <Card>
@@ -522,6 +527,13 @@ export function GuessMap({ playerName }: GuessMapProps) {
                           className="h-7 text-sm flex-1" />
                       </div>
                     </div>
+                  </div>
+                  {/* Wordle points */}
+                  <div className="space-y-1.5 border-t pt-3">
+                    <p className="text-xs font-medium">Wordle points (per solve)</p>
+                    <Input type="number" value={editWordlePoints} min={0}
+                      onChange={(e) => setEditWordlePoints(e.target.value)}
+                      className="h-8 text-sm" />
                   </div>
                   <Button size="sm" className="w-full h-8" onClick={handleSaveScoringSettings}
                     disabled={updateSettings.isPending}>
@@ -616,30 +628,42 @@ export function GuessMap({ playerName }: GuessMapProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Easy / Hard tabs */}
-        <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
-          <button onClick={() => setActiveTab('easy')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+        {/* Geo-Easy / Geo-Hard / Other tabs */}
+        <div className="flex items-center gap-1">
+          <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg flex-1">
+            <button onClick={() => setActiveTab('easy')}
+              className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+              }`}>
+              <Binoculars className="h-4 w-4 text-green-500" /> Geo-Easy
+            </button>
+            <button onClick={() => setActiveTab('hard')}
+              className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+              }`}>
+              <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
+            </button>
+          </div>
+          <button onClick={() => setActiveTab('other')}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all border ${
+              activeTab === 'other' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground border-transparent'
             }`}>
-            <Binoculars className="h-4 w-4 text-green-500" /> Easy
-          </button>
-          <button onClick={() => setActiveTab('hard')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-            }`}>
-            <Brain className="h-4 w-4 text-red-500" /> Hard
+            <Gamepad2 className="h-4 w-4" /> Other
           </button>
         </div>
 
-        <DifficultyGuessPanel
-          key={activeTab}
-          difficulty={activeTab === 'easy' ? 1 : 3}
-          playerName={playerName}
-          settings={settings}
-          onCreateRound={() => {}}
-          isCreating={isCreatingRound}
-        />
+        {activeTab !== 'other' ? (
+          <DifficultyGuessPanel
+            key={activeTab}
+            difficulty={activeTab === 'easy' ? 1 : 3}
+            playerName={playerName}
+            settings={settings}
+            onCreateRound={() => {}}
+            isCreating={isCreatingRound}
+          />
+        ) : (
+          <MiniGamesSelector playerName={playerName} />
+        )}
       </CardContent>
     </Card>
   );

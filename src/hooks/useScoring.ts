@@ -12,6 +12,7 @@ export interface ScoringSettings {
   attempt_multipliers: number[];
   difficulty_weights: DifficultyWeights;
   max_guesses_per_challenge: number | null;
+  wordle_points: number;
 }
 
 const DEFAULT_SETTINGS: ScoringSettings = {
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: ScoringSettings = {
   attempt_multipliers: [1.0, 0.9, 0.82, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45],
   difficulty_weights: { easy: 1.0, hard: 1.2 },
   max_guesses_per_challenge: null,
+  wordle_points: 20,
 };
 
 export function useScoring() {
@@ -29,7 +31,7 @@ export function useScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scoring_settings' as never)
-        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge')
+        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge, wordle_points')
         .eq('id', 1)
         .single();
       if (error) return DEFAULT_SETTINGS;
@@ -39,6 +41,7 @@ export function useScoring() {
         attempt_multipliers: (raw.attempt_multipliers as number[]),
         difficulty_weights: (raw.difficulty_weights as DifficultyWeights) ?? DEFAULT_SETTINGS.difficulty_weights,
         max_guesses_per_challenge: raw.max_guesses_per_challenge ?? null,
+        wordle_points: raw.wordle_points ?? 20,
       } as ScoringSettings;
     },
   });
@@ -50,6 +53,7 @@ export function useScoring() {
       if (next.attempt_multipliers) updatePayload.attempt_multipliers = next.attempt_multipliers;
       if (next.difficulty_weights) updatePayload.difficulty_weights = next.difficulty_weights;
       if (next.max_guesses_per_challenge !== undefined) updatePayload.max_guesses_per_challenge = next.max_guesses_per_challenge;
+      if (next.wordle_points != null) updatePayload.wordle_points = next.wordle_points;
 
       const { error } = await supabase
         .from('scoring_settings' as never)
