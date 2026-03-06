@@ -3,7 +3,7 @@ import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRounds } from '@/hooks/useRounds';
-import { useScoring } from '@/hooks/useScoring';
+import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
