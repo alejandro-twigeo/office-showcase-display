@@ -76,7 +76,7 @@ export function StreetViewDisplay() {
       <MysteryCard difficulty={1} label="Easy" color="green" />
       <MysteryCard difficulty={3} label="Hard" color="red" />
       <div className="h-full min-h-0">
-        <Leaderboard />
+        <RotatingLeaderboard />
       </div>
     </div>
   );

@@ -62,7 +62,7 @@ export function WordleLeaderboard() {
     <Card>
       <CardHeader className="pb-1 pt-3 px-3">
         <CardTitle className="flex items-center gap-1.5 text-sm">
-          <Trophy className="h-4 w-4 text-primary" />
+          <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           Wordle Leaderboard
         </CardTitle>
         {sortedRounds.length > 0 && (
