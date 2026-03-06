@@ -82,7 +82,7 @@ export function WordleLeaderboard({ dashboard = false }: { dashboard?: boolean }
           </div>
         )}
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
         {sorted.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">
             No Wordle scores yet
