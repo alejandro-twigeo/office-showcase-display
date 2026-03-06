@@ -7,7 +7,7 @@ import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
-export function WordleLeaderboard() {
+export function WordleLeaderboard({ dashboard = false }: { dashboard?: boolean }) {
   const { rounds } = useRounds();
   const { settings } = useScoring();
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
@@ -59,10 +59,10 @@ export function WordleLeaderboard() {
   const canGoNext = selectedRoundIdx > 0;
 
   return (
-    <Card>
-      <CardHeader className="pb-1 pt-3 px-3">
-        <CardTitle className="flex items-center gap-1.5 text-sm">
-          <Trophy className="h-4 w-4 text-primary" />
+    <Card className={dashboard ? "h-full min-h-0 flex flex-col" : ""}>
+      <CardHeader className={dashboard ? "pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6" : "pb-1 pt-3 px-3"}>
+        <CardTitle className={`flex items-center gap-1.5 ${dashboard ? "text-sm md:text-[clamp(20px,1.5vw,60px)]" : "text-sm"}`}>
+          <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           Wordle Leaderboard
         </CardTitle>
         {sortedRounds.length > 0 && (
@@ -82,7 +82,7 @@ export function WordleLeaderboard() {
           </div>
         )}
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
         {sorted.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">
             No Wordle scores yet

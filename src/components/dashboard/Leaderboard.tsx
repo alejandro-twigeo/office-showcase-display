@@ -113,7 +113,7 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
       <CardHeader className="pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6">
         <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,60px)]">
           <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
-          Leaderboard
+          GeoGuessr Leaderboard
         </CardTitle>
         {sortedRounds.length > 0 && (
           <div className="flex items-center justify-between mt-1">

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Binoculars, Brain } from "lucide-react";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
-import { Leaderboard } from "./Leaderboard";
+import { RotatingLeaderboard } from "./RotatingLeaderboard";
 import { Badge } from "@/components/ui/badge";
 
 const LOCAL_META_KEY = "wikiguess_meta";
@@ -76,7 +76,7 @@ export function StreetViewDisplay() {
       <MysteryCard difficulty={1} label="Easy" color="green" />
       <MysteryCard difficulty={3} label="Hard" color="red" />
       <div className="h-full min-h-0">
-        <Leaderboard />
+        <RotatingLeaderboard />
       </div>
     </div>
   );
