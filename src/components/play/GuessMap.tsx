@@ -327,6 +327,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
     setEditMultipliers(settings.attempt_multipliers.map(String));
     setEditWeights(settings.difficulty_weights);
     setEditWordlePoints(String(settings.wordle_points));
+    setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
   }, [settings]);
 
   useEffect(() => {
