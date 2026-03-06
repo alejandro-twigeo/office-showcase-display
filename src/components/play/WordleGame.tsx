@@ -141,7 +141,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           🟩 Wordle — Round {roundNumber}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Guess the 5-letter word. {wordlePoints} pts if you solve it!</p>
+        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts!</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Grid */}
