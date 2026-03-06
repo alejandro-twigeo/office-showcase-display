@@ -57,6 +57,7 @@ export function useScoring() {
       if (next.difficulty_weights) updatePayload.difficulty_weights = next.difficulty_weights;
       if (next.max_guesses_per_challenge !== undefined) updatePayload.max_guesses_per_challenge = next.max_guesses_per_challenge;
       if (next.wordle_points != null) updatePayload.wordle_points = next.wordle_points;
+      if (next.wordle_attempt_points) updatePayload.wordle_attempt_points = next.wordle_attempt_points;
 
       const { error } = await supabase
         .from('scoring_settings' as never)
