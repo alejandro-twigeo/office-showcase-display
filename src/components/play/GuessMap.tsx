@@ -532,12 +532,21 @@ export function GuessMap({ playerName }: GuessMapProps) {
                       </div>
                     </div>
                   </div>
-                  {/* Wordle points */}
+                  {/* Wordle scoring */}
                   <div className="space-y-1.5 border-t pt-3">
-                    <p className="text-xs font-medium">Wordle points (per solve)</p>
-                    <Input type="number" value={editWordlePoints} min={0}
-                      onChange={(e) => setEditWordlePoints(e.target.value)}
-                      className="h-8 text-sm" />
+                    <p className="text-xs font-medium">Wordle — Points per attempt</p>
+                    <p className="text-xs text-muted-foreground">More points for fewer attempts</p>
+                    <div className="space-y-1">
+                      {editWordleAttemptPoints.map((val, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-16">Attempt {i + 1}</span>
+                          <Input type="number" value={val} min={0}
+                            onChange={(e) => { const next = [...editWordleAttemptPoints]; next[i] = e.target.value; setEditWordleAttemptPoints(next); }}
+                            className="h-7 text-sm flex-1" />
+                          <span className="text-xs text-muted-foreground w-8 text-right">{val} pts</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <Button size="sm" className="w-full h-8" onClick={handleSaveScoringSettings}
                     disabled={updateSettings.isPending}>
