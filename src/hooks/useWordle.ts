@@ -5,6 +5,7 @@ import { useDeviceId } from './useDeviceId';
 import { supabase } from '@/integrations/supabase/client';
 import { getWordForRound, isValidWord } from '@/lib/wordlist';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { calculateWordleScore } from './useScoring';
 
 export type LetterStatus = 'correct' | 'present' | 'absent' | 'empty';
 
