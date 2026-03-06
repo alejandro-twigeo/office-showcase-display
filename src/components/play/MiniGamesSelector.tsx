@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { WordleGame } from './WordleGame';
-import { WordleLeaderboard } from './WordleLeaderboard';
 import { Gamepad2 } from 'lucide-react';
 
 interface MiniGame {
@@ -36,7 +35,6 @@ export function MiniGamesSelector({ playerName }: MiniGamesSelectorProps) {
           ← Back to games
         </Button>
         <WordleGame playerName={playerName} />
-        <WordleLeaderboard />
       </div>
     );
   }

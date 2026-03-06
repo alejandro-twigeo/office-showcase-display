@@ -13,6 +13,7 @@ export interface ScoringSettings {
   difficulty_weights: DifficultyWeights;
   max_guesses_per_challenge: number | null;
   wordle_points: number;
+  wordle_attempt_points: number[];
 }
 
 const DEFAULT_SETTINGS: ScoringSettings = {
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS: ScoringSettings = {
   difficulty_weights: { easy: 1.0, hard: 1.2 },
   max_guesses_per_challenge: null,
   wordle_points: 20,
+  wordle_attempt_points: [20, 18, 15, 12, 10, 8],
 };
 
 export function useScoring() {
@@ -31,7 +33,7 @@ export function useScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scoring_settings' as never)
-        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge, wordle_points')
+        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge, wordle_points, wordle_attempt_points')
         .eq('id', 1)
         .single();
       if (error) return DEFAULT_SETTINGS;
@@ -42,6 +44,7 @@ export function useScoring() {
         difficulty_weights: (raw.difficulty_weights as DifficultyWeights) ?? DEFAULT_SETTINGS.difficulty_weights,
         max_guesses_per_challenge: raw.max_guesses_per_challenge ?? null,
         wordle_points: raw.wordle_points ?? 20,
+        wordle_attempt_points: (raw.wordle_attempt_points as number[]) ?? DEFAULT_SETTINGS.wordle_attempt_points,
       } as ScoringSettings;
     },
   });
@@ -54,6 +57,7 @@ export function useScoring() {
       if (next.difficulty_weights) updatePayload.difficulty_weights = next.difficulty_weights;
       if (next.max_guesses_per_challenge !== undefined) updatePayload.max_guesses_per_challenge = next.max_guesses_per_challenge;
       if (next.wordle_points != null) updatePayload.wordle_points = next.wordle_points;
+      if (next.wordle_attempt_points) updatePayload.wordle_attempt_points = next.wordle_attempt_points;
 
       const { error } = await supabase
         .from('scoring_settings' as never)
@@ -90,6 +94,12 @@ export function calculateScore(
   const multiplierIndex = Math.min(guessNumber - 1, settings.attempt_multipliers.length - 1);
   const multiplier = settings.attempt_multipliers[multiplierIndex] ?? settings.attempt_multipliers[settings.attempt_multipliers.length - 1];
   return Math.round(points * multiplier);
+}
+
+/** Calculate Wordle score based on attempt number */
+export function calculateWordleScore(attempts: number, settings: ScoringSettings): number {
+  const idx = Math.min(attempts - 1, settings.wordle_attempt_points.length - 1);
+  return settings.wordle_attempt_points[idx] ?? 0;
 }
 
 /** Format "87 pts (42 km)" */

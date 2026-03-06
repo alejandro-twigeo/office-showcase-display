@@ -43,7 +43,9 @@ export function WordleGame({ playerName }: WordleGameProps) {
     won,
     error,
     targetWord,
-    wordlePoints,
+    earnedPoints,
+    existingEarnedPoints,
+    settings,
     keyStatuses,
     alreadyPlayed,
     existingScore,
@@ -119,7 +121,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
             <>
               <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
               <p className="font-medium text-foreground">You solved it in {existingScore.attempts} attempt{existingScore.attempts > 1 ? 's' : ''}!</p>
-              <p className="text-sm text-muted-foreground">+{wordlePoints} pts earned</p>
+              <p className="text-sm text-muted-foreground">+{existingEarnedPoints} pts earned</p>
             </>
           ) : (
             <>
@@ -139,7 +141,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           🟩 Wordle — Round {roundNumber}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Guess the 5-letter word. {wordlePoints} pts if you solve it!</p>
+        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts!</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Grid */}
@@ -170,7 +172,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
                   <Trophy className="h-5 w-5 text-warning" />
                   <span className="font-semibold text-foreground">You got it in {guesses.length}!</span>
                 </div>
-                <p className="text-sm text-muted-foreground">+{wordlePoints} pts</p>
+                <p className="text-sm text-muted-foreground">+{earnedPoints} pts</p>
               </>
             ) : (
               <>

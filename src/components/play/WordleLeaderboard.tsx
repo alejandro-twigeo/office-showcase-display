@@ -3,14 +3,13 @@ import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRounds } from '@/hooks/useRounds';
-import { useScoring } from '@/hooks/useScoring';
+import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
 export function WordleLeaderboard() {
   const { rounds } = useRounds();
   const { settings } = useScoring();
-  const wordlePoints = settings.wordle_points;
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
 
   const sortedRounds = useMemo(() =>
@@ -101,7 +100,7 @@ export function WordleLeaderboard() {
               <div className="ml-auto shrink-0 text-right">
                 {entry.solved ? (
                   <>
-                    <span className="text-sm font-mono text-accent font-semibold">{wordlePoints} pts</span>
+                    <span className="text-sm font-mono text-accent font-semibold">{calculateWordleScore(entry.attempts, settings)} pts</span>
                     <div className="text-xs text-muted-foreground">{entry.attempts}/6 tries</div>
                   </>
                 ) : (

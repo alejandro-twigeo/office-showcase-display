@@ -438,6 +438,7 @@ export type Database = {
           id: number
           max_guesses_per_challenge: number | null
           updated_at: string
+          wordle_attempt_points: Json
           wordle_points: number
         }
         Insert: {
@@ -447,6 +448,7 @@ export type Database = {
           id?: number
           max_guesses_per_challenge?: number | null
           updated_at?: string
+          wordle_attempt_points?: Json
           wordle_points?: number
         }
         Update: {
@@ -456,6 +458,7 @@ export type Database = {
           id?: number
           max_guesses_per_challenge?: number | null
           updated_at?: string
+          wordle_attempt_points?: Json
           wordle_points?: number
         }
         Relationships: []

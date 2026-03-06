@@ -5,6 +5,7 @@ import { useDeviceId } from './useDeviceId';
 import { supabase } from '@/integrations/supabase/client';
 import { getWordForRound, isValidWord } from '@/lib/wordlist';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { calculateWordleScore } from './useScoring';
 
 export type LetterStatus = 'correct' | 'present' | 'absent' | 'empty';
 
@@ -147,6 +148,11 @@ export function useWordle(playerName: string) {
     return map;
   }, [guesses]);
 
+  const earnedPoints = won ? calculateWordleScore(guesses.length, settings) : 0;
+  const existingEarnedPoints = existingScore?.solved
+    ? calculateWordleScore(existingScore.attempts, settings)
+    : 0;
+
   return {
     guesses,
     currentInput,
@@ -157,6 +163,9 @@ export function useWordle(playerName: string) {
     error,
     targetWord,
     wordlePoints,
+    earnedPoints,
+    existingEarnedPoints,
+    settings,
     keyStatuses,
     alreadyPlayed: !!existingScore,
     existingScore,

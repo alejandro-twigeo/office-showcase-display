@@ -14,7 +14,7 @@ import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights } from "@/hooks/useScoring";
+import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights, type ScoringSettings } from "@/hooks/useScoring";
 import { MiniGamesSelector } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
@@ -31,6 +31,7 @@ L.Icon.Default.mergeOptions({
 
 interface GuessMapProps {
   playerName: string;
+  onActiveTabChange?: (tab: 'easy' | 'hard' | 'other') => void;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -297,7 +298,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
   const deviceId = useDeviceId();
   const onlineUsers = usePresenceCount("app", { deviceId });
   const { settings, updateSettings } = useScoring();
@@ -317,6 +318,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
   const [editWeights, setEditWeights] = useState<DifficultyWeights>(settings.difficulty_weights);
   const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
+  const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState(settings.wordle_attempt_points.map(String));
 
   const [plantDays, setPlantDays] = useState<number | null>(null);
   const [plantDaysLoading, setPlantDaysLoading] = useState(false);
@@ -326,6 +328,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
     setEditMultipliers(settings.attempt_multipliers.map(String));
     setEditWeights(settings.difficulty_weights);
     setEditWordlePoints(String(settings.wordle_points));
+    setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
   }, [settings]);
 
   useEffect(() => {
@@ -442,16 +445,22 @@ export function GuessMap({ playerName }: GuessMapProps) {
     const distParam = parseFloat(editDistParam);
     const multipliers = editMultipliers.map(Number);
     const wp = parseInt(editWordlePoints);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp)) return;
+    const wap = editWordleAttemptPoints.map(Number);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
     updateSettings.mutate({
       distance_parameter: distParam,
       attempt_multipliers: multipliers,
       difficulty_weights: editWeights,
       wordle_points: wp,
+      wordle_attempt_points: wap,
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
+  const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
+    setActiveTabInternal(tab);
+    onActiveTabChange?.(tab);
+  };
 
   return (
     <Card>
@@ -528,12 +537,21 @@ export function GuessMap({ playerName }: GuessMapProps) {
                       </div>
                     </div>
                   </div>
-                  {/* Wordle points */}
+                  {/* Wordle scoring */}
                   <div className="space-y-1.5 border-t pt-3">
-                    <p className="text-xs font-medium">Wordle points (per solve)</p>
-                    <Input type="number" value={editWordlePoints} min={0}
-                      onChange={(e) => setEditWordlePoints(e.target.value)}
-                      className="h-8 text-sm" />
+                    <p className="text-xs font-medium">Wordle — Points per attempt</p>
+                    <p className="text-xs text-muted-foreground">More points for fewer attempts</p>
+                    <div className="space-y-1">
+                      {editWordleAttemptPoints.map((val, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-16">Attempt {i + 1}</span>
+                          <Input type="number" value={val} min={0}
+                            onChange={(e) => { const next = [...editWordleAttemptPoints]; next[i] = e.target.value; setEditWordleAttemptPoints(next); }}
+                            className="h-7 text-sm flex-1" />
+                          <span className="text-xs text-muted-foreground w-8 text-right">{val} pts</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <Button size="sm" className="w-full h-8" onClick={handleSaveScoringSettings}
                     disabled={updateSettings.isPending}>

@@ -6,6 +6,7 @@ import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { Leaderboard } from '../components/dashboard/Leaderboard';
+import { WordleLeaderboard } from '../components/play/WordleLeaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
@@ -21,6 +22,7 @@ export default function PlayPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
+  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -105,8 +107,8 @@ export default function PlayPage() {
         {/* Tab content */}
         {activeTab === 'guess' && (
           <div className="space-y-4">
-            <GuessMap playerName={player.name} />
-            <Leaderboard />
+            <GuessMap playerName={player.name} onActiveTabChange={setGamesSubTab} />
+            {gamesSubTab === 'other' ? <WordleLeaderboard /> : <Leaderboard />}
           </div>
         )}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
