@@ -31,6 +31,7 @@ L.Icon.Default.mergeOptions({
 
 interface GuessMapProps {
   playerName: string;
+  onActiveTabChange?: (tab: 'easy' | 'hard' | 'other') => void;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
