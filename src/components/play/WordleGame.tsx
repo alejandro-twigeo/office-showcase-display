@@ -121,7 +121,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
             <>
               <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
               <p className="font-medium text-foreground">You solved it in {existingScore.attempts} attempt{existingScore.attempts > 1 ? 's' : ''}!</p>
-              <p className="text-sm text-muted-foreground">+{wordlePoints} pts earned</p>
+              <p className="text-sm text-muted-foreground">+{existingEarnedPoints} pts earned</p>
             </>
           ) : (
             <>
