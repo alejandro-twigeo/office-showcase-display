@@ -35,7 +35,6 @@ export function MiniGamesSelector({ playerName }: MiniGamesSelectorProps) {
           ← Back to games
         </Button>
         <WordleGame playerName={playerName} />
-        <WordleLeaderboard />
       </div>
     );
   }

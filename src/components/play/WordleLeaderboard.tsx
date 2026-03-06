@@ -100,7 +100,7 @@ export function WordleLeaderboard() {
               <div className="ml-auto shrink-0 text-right">
                 {entry.solved ? (
                   <>
-                    <span className="text-sm font-mono text-accent font-semibold">{wordlePoints} pts</span>
+                    <span className="text-sm font-mono text-accent font-semibold">{calculateWordleScore(entry.attempts, settings)} pts</span>
                     <div className="text-xs text-muted-foreground">{entry.attempts}/6 tries</div>
                   </>
                 ) : (

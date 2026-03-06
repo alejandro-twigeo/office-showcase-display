@@ -172,7 +172,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
                   <Trophy className="h-5 w-5 text-warning" />
                   <span className="font-semibold text-foreground">You got it in {guesses.length}!</span>
                 </div>
-                <p className="text-sm text-muted-foreground">+{wordlePoints} pts</p>
+                <p className="text-sm text-muted-foreground">+{earnedPoints} pts</p>
               </>
             ) : (
               <>

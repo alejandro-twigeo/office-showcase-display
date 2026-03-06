@@ -456,7 +456,11 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
+  const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
+    setActiveTabInternal(tab);
+    onActiveTabChange?.(tab);
+  };
 
   return (
     <Card>

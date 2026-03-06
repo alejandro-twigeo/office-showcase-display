@@ -96,6 +96,12 @@ export function calculateScore(
   return Math.round(points * multiplier);
 }
 
+/** Calculate Wordle score based on attempt number */
+export function calculateWordleScore(attempts: number, settings: ScoringSettings): number {
+  const idx = Math.min(attempts - 1, settings.wordle_attempt_points.length - 1);
+  return settings.wordle_attempt_points[idx] ?? 0;
+}
+
 /** Format "87 pts (42 km)" */
 export function formatScoreDisplay(distance_km: number, score: number): string {
   const km = distance_km < 1

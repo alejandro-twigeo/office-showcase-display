@@ -107,8 +107,8 @@ export default function PlayPage() {
         {/* Tab content */}
         {activeTab === 'guess' && (
           <div className="space-y-4">
-            <GuessMap playerName={player.name} />
-            <Leaderboard />
+            <GuessMap playerName={player.name} onActiveTabChange={setGamesSubTab} />
+            {gamesSubTab === 'other' ? <WordleLeaderboard /> : <Leaderboard />}
           </div>
         )}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
