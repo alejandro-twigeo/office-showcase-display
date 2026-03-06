@@ -444,12 +444,14 @@ export function GuessMap({ playerName }: GuessMapProps) {
     const distParam = parseFloat(editDistParam);
     const multipliers = editMultipliers.map(Number);
     const wp = parseInt(editWordlePoints);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp)) return;
+    const wap = editWordleAttemptPoints.map(Number);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
     updateSettings.mutate({
       distance_parameter: distParam,
       attempt_multipliers: multipliers,
       difficulty_weights: editWeights,
       wordle_points: wp,
+      wordle_attempt_points: wap,
     });
   };
 
