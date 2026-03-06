@@ -317,6 +317,7 @@ export function GuessMap({ playerName }: GuessMapProps) {
   const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
   const [editWeights, setEditWeights] = useState<DifficultyWeights>(settings.difficulty_weights);
   const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
+  const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState(settings.wordle_attempt_points.map(String));
 
   const [plantDays, setPlantDays] = useState<number | null>(null);
   const [plantDaysLoading, setPlantDaysLoading] = useState(false);
