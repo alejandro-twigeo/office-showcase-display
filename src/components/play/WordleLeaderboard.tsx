@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 export function WordleLeaderboard() {
   const { rounds } = useRounds();
   const { settings } = useScoring();
-  const wordlePoints = settings.wordle_points;
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
 
   const sortedRounds = useMemo(() =>
