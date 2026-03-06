@@ -33,7 +33,7 @@ export function useScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scoring_settings' as never)
-        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge, wordle_points')
+        .select('distance_parameter, attempt_multipliers, difficulty_weights, max_guesses_per_challenge, wordle_points, wordle_attempt_points')
         .eq('id', 1)
         .single();
       if (error) return DEFAULT_SETTINGS;
@@ -44,6 +44,7 @@ export function useScoring() {
         difficulty_weights: (raw.difficulty_weights as DifficultyWeights) ?? DEFAULT_SETTINGS.difficulty_weights,
         max_guesses_per_challenge: raw.max_guesses_per_challenge ?? null,
         wordle_points: raw.wordle_points ?? 20,
+        wordle_attempt_points: (raw.wordle_attempt_points as number[]) ?? DEFAULT_SETTINGS.wordle_attempt_points,
       } as ScoringSettings;
     },
   });
