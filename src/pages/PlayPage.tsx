@@ -22,6 +22,7 @@ export default function PlayPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
+  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
