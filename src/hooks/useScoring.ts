@@ -13,6 +13,7 @@ export interface ScoringSettings {
   difficulty_weights: DifficultyWeights;
   max_guesses_per_challenge: number | null;
   wordle_points: number;
+  wordle_attempt_points: number[];
 }
 
 const DEFAULT_SETTINGS: ScoringSettings = {
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS: ScoringSettings = {
   difficulty_weights: { easy: 1.0, hard: 1.2 },
   max_guesses_per_challenge: null,
   wordle_points: 20,
+  wordle_attempt_points: [20, 18, 15, 12, 10, 8],
 };
 
 export function useScoring() {
