@@ -1,5 +1,5 @@
 import { StreetViewDisplay } from "@/components/dashboard/StreetViewDisplay";
-import { PollDisplay } from "@/components/dashboard/PollDisplay";
+import { RotatingPollNews } from "@/components/dashboard/RotatingPollNews";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { PositiveMessagesBanner } from "@/components/dashboard/PositiveMessagesBanner";
 import { PlantStatus } from "@/components/dashboard/PlantStatus";
