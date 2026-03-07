@@ -4,3 +4,5 @@ project_id = "jrpwlvdwhuxpbqykomzw"
 verify_jwt = false
 [functions.youtube-playlist]
 verify_jwt = false
+[functions.ingest-news]
+verify_jwt = false
