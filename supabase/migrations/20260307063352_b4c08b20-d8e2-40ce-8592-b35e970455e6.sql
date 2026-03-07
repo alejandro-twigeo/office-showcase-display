@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can delete daily_news" ON public.daily_news FOR DELETE USING (true);
