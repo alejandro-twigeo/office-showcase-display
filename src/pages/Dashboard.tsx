@@ -53,7 +53,7 @@ export default function Dashboard() {
                   <YouTubeDisplay />
                 </div>
                 <div className="min-h-[250px] md:min-h-0 overflow-hidden rounded-xl">
-                  <PollDisplay />
+                  <RotatingPollNews />
                 </div>
               </div>
 
