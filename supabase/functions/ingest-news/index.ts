@@ -45,6 +45,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Delete all rows except the latest one
+    await supabase
+      .from("daily_news")
+      .delete()
+      .neq("run_date", run_date);
+
     return new Response(
       JSON.stringify({ ok: true, run_date, item_count: items.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
