@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoundSchedule } from "@/hooks/useRoundSchedule";
