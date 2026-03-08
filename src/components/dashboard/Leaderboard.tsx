@@ -140,6 +140,7 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
           </div>
         )}
       </CardHeader>
+      {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">
         {combined.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,34px)]">

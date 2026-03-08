@@ -7,7 +7,7 @@ import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
-export function WordleLeaderboard({ dashboard = false }: { dashboard?: boolean }) {
+export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboard?: boolean; progressBar?: React.ReactNode }) {
   const { rounds } = useRounds();
   const { settings } = useScoring();
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);

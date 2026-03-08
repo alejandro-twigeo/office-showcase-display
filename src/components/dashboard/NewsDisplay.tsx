@@ -62,7 +62,7 @@ export function NewsDisplay() {
         ) : (
           <div className="space-y-[clamp(8px,0.8vw,16px)]">
             {items.length > 1 && (
-              <Progress value={(elapsed / CYCLE_MS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
+              <Progress value={(pollTimeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
             )}
             <div className="flex items-start gap-2">
               <Badge variant="secondary" className="shrink-0 text-[clamp(10px,0.7vw,14px)]">
