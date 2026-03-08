@@ -42,10 +42,40 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const [guessPos, setGuessPos] = useState<{ lat: number; lng: number } | null>(null);
   const [guesses, setGuesses] = useState<{ distance: number; score: number }[]>([]);
   const [bestScore, setBestScore] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const imgContainerRef = useRef<HTMLDivElement>(null);
+
+  const MAX_ZOOM = 5;
+
+  const handleZoomIn = () => setZoom(z => Math.min(z + 1, MAX_ZOOM));
+  const handleZoomOut = () => {
+    setZoom(z => {
+      const nz = Math.max(z - 1, 1);
+      if (nz === 1) setPan({ x: 0, y: 0 });
+      return nz;
+    });
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging || !dragStart.current) return;
+    setPan({
+      x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.panY + (e.clientY - dragStart.current.y),
+    });
+  };
+  const onPointerUp = () => { setDragging(false); dragStart.current = null; };
 
   const handleSelectCity = async (city: typeof CITIES[0]) => {
     setSelectedCity(city);
