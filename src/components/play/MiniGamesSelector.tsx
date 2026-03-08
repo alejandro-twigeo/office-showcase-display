@@ -68,20 +68,6 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
         {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} roundId={roundId} />}
-
-        {selectedGame !== 'wordle' && (
-          <MinigameLeaderboard
-            gameId={selectedGame}
-            title={MINI_GAMES.find(g => g.id === selectedGame)?.name ?? ''}
-            emoji={MINI_GAMES.find(g => g.id === selectedGame)?.emoji}
-            formatMeta={(meta) => {
-              if (meta.time_seconds != null) return `${Math.floor(meta.time_seconds / 60)}:${String(meta.time_seconds % 60).padStart(2, '0')}`;
-              if (meta.moves != null) return `${meta.moves} moves`;
-              if (meta.attempts != null) return `${meta.attempts} attempts`;
-              return '';
-            }}
-          />
-        )}
       </div>
     );
   }
