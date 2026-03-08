@@ -63,8 +63,8 @@ export function UsageAnalytics() {
         supabase
           .from('minigame_scores')
           .select('game_id, player_name, date')
-          .gte('date', sinceDateStr)
-          .lte('date', untilStr.slice(0, 10)),
+          .gte('date', fromStr)
+          .lte('date', toStr),
         supabase
           .from('wordle_scores')
           .select('player_name, created_at')
