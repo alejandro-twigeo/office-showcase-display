@@ -30,6 +30,7 @@ const MINI_GAMES: MiniGame[] = [
 interface MiniGamesSelectorProps {
   playerName: string;
   onGameChange?: (gameId: string | null) => void;
+  roundId?: string;
 }
 
 export interface MiniGamesSelectorHandle {
@@ -37,7 +38,7 @@ export interface MiniGamesSelectorHandle {
 }
 
 export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
-  function MiniGamesSelector({ playerName, onGameChange }, ref) {
+  function MiniGamesSelector({ playerName, onGameChange, roundId }, ref) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
 
@@ -62,11 +63,11 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
           ← Back to games
         </Button>
         {selectedGame === 'wordle' && <WordleGame playerName={playerName} />}
-        {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} />}
-        {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} />}
-        {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} />}
-        {selectedGame === 'pairs' && <PairsGame playerName={playerName} />}
-        {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} />}
+        {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} roundId={roundId} />}
 
         {selectedGame !== 'wordle' && (
           <MinigameLeaderboard

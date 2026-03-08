@@ -11,12 +11,13 @@ const EMOJIS = ['🌸', '🌊', '🔥', '⭐', '🎵', '🍕', '🚀', '🎨'];
 
 interface PairsGameProps {
   playerName: string;
+  roundId?: string;
 }
 
-export function PairsGame({ playerName }: PairsGameProps) {
+export function PairsGame({ playerName, roundId }: PairsGameProps) {
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
-  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName);
+  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
   const tiles = useMemo(() => {
@@ -73,6 +74,7 @@ export function PairsGame({ playerName }: PairsGameProps) {
             player_name: playerName,
             device_id: deviceId,
             score,
+            round_id: roundId,
             meta: { time_seconds: time, moves: totalMoves },
           });
         }

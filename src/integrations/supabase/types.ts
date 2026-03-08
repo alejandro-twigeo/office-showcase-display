@@ -132,6 +132,7 @@ export type Database = {
           id: string
           meta: Json
           player_name: string
+          round_id: string | null
           score: number
         }
         Insert: {
@@ -142,6 +143,7 @@ export type Database = {
           id?: string
           meta?: Json
           player_name: string
+          round_id?: string | null
           score?: number
         }
         Update: {
@@ -152,9 +154,18 @@ export type Database = {
           id?: string
           meta?: Json
           player_name?: string
+          round_id?: string | null
           score?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "minigame_scores_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plant_watering_logs: {
         Row: {

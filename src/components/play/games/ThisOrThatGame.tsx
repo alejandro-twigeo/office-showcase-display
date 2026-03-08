@@ -65,12 +65,13 @@ function generateDailyQuestions(dateStr: string): Question[] {
 
 interface ThisOrThatGameProps {
   playerName: string;
+  roundId?: string;
 }
 
-export function ThisOrThatGame({ playerName }: ThisOrThatGameProps) {
+export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
-  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName);
+  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
   const questions = useMemo(() => generateDailyQuestions(todayDate()), []);
@@ -100,6 +101,7 @@ export function ThisOrThatGame({ playerName }: ThisOrThatGameProps) {
           player_name: playerName,
           device_id: deviceId,
           score: totalScore,
+          round_id: roundId,
           meta: { correct: correctCount, total: 5 },
         });
         setDone(true);
