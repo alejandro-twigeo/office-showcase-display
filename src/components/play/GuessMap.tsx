@@ -308,6 +308,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
   const [passwordAction, setPasswordAction] = useState<{ type: 'new' } | null>(null);
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
+  const miniGameRef = useRef<MiniGamesSelectorHandle>(null);
 
 
   const { createNewLocation: createEasy } = useActiveLocation(1);
