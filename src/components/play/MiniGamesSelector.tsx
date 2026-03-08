@@ -54,14 +54,6 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
   if (selectedGame) {
     return (
       <div className="space-y-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => selectGame(null)}
-          className="text-muted-foreground"
-        >
-          ← Back to games
-        </Button>
         {selectedGame === 'wordle' && <WordleGame playerName={playerName} />}
         {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} roundId={roundId} />}
