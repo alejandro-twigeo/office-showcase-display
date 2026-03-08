@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { PollRotationProvider } from "./contexts/pollRotation";
 import Dashboard from "./pages/Dashboard";
 import PlayPage from "./pages/PlayPage";
+import ManagerPage from "./pages/ManagerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
