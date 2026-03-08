@@ -10,7 +10,7 @@ const MAZE_SIZE = 15; // odd number for walls + paths
 
 type Cell = 'wall' | 'path' | 'start' | 'end';
 
-/** Generate maze using recursive backtracker */
+/** Generate maze using recursive backtracker, then open extra walls for multiple paths */
 function generateMaze(size: number, rng: () => number): Cell[][] {
   const grid: Cell[][] = Array.from({ length: size }, () => Array(size).fill('wall'));
 
@@ -28,6 +28,26 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
   }
 
   carve(1, 1);
+
+  // Open extra walls to create multiple possible paths (≈15% of interior walls)
+  const interiorWalls: [number, number][] = [];
+  for (let r = 2; r < size - 2; r++) {
+    for (let c = 2; c < size - 2; c++) {
+      if (grid[r][c] === 'wall') {
+        // Only open walls that connect two path cells (horizontally or vertically)
+        const hConnect = r > 0 && r < size - 1 && grid[r - 1][c] !== 'wall' && grid[r + 1][c] !== 'wall';
+        const vConnect = c > 0 && c < size - 1 && grid[r][c - 1] !== 'wall' && grid[r][c + 1] !== 'wall';
+        if (hConnect || vConnect) interiorWalls.push([r, c]);
+      }
+    }
+  }
+  interiorWalls.sort(() => rng() - 0.5);
+  const toOpen = Math.floor(interiorWalls.length * 0.15);
+  for (let i = 0; i < toOpen; i++) {
+    const [r, c] = interiorWalls[i];
+    grid[r][c] = 'path';
+  }
+
   grid[1][1] = 'start';
   grid[size - 2][size - 2] = 'end';
   return grid;
