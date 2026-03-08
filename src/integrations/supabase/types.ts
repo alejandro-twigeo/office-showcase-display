@@ -650,6 +650,7 @@ export type Database = {
         Row: {
           channel_title: string | null
           created_at: string | null
+          current_time_seconds: number | null
           id: string
           is_deleted: boolean
           is_favorite: boolean
@@ -665,6 +666,7 @@ export type Database = {
         Insert: {
           channel_title?: string | null
           created_at?: string | null
+          current_time_seconds?: number | null
           id?: string
           is_deleted?: boolean
           is_favorite?: boolean
@@ -680,6 +682,7 @@ export type Database = {
         Update: {
           channel_title?: string | null
           created_at?: string | null
+          current_time_seconds?: number | null
           id?: string
           is_deleted?: boolean
           is_favorite?: boolean
