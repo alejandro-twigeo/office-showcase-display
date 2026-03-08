@@ -308,39 +308,41 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           {!started && !done && (
             <button
               onClick={handleStart}
-              className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-md hover:opacity-90 transition-opacity"
+              className="px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-md hover:opacity-90 transition-opacity my-8"
             >
               ▶ Start
             </button>
           )}
-          <div
-            ref={mazeGridRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none w-fit"
-            style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
-            {maze.map((row, ri) => row.map((cell, ci) => {
-              const isPlayer = ri === playerPos.r && ci === playerPos.c;
-              const isPath = path.has(`${ri}-${ci}`);
-              return (
-                <div
-                  key={`${ri}-${ci}`}
-                  style={{ width: cellSize, height: cellSize }}
-                  className={`flex items-center justify-center text-[0.5rem] transition-colors
-                    ${cell === 'wall' ? 'bg-muted-foreground/40' : ''}
-                    ${cell === 'start' ? 'bg-green-500/20' : ''}
-                    ${cell === 'end' ? 'bg-primary/20' : ''}
-                    ${cell === 'path' && isPath && !isPlayer ? 'bg-primary/10' : ''}
-                    ${cell === 'path' && !isPath ? 'bg-background' : ''}
-                    ${isPlayer ? 'bg-primary rounded-sm' : ''}`}
-                >
-                  {cell === 'start' && !isPlayer && '🏁'}
-                  {cell === 'end' && '⭐'}
-                  {isPlayer && '●'}
-                </div>
-              );
-            }))}
-          </div>
+          {started && (
+            <div
+              ref={mazeGridRef}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none w-fit"
+              style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
+              {maze.map((row, ri) => row.map((cell, ci) => {
+                const isPlayer = ri === playerPos.r && ci === playerPos.c;
+                const isPath = path.has(`${ri}-${ci}`);
+                return (
+                  <div
+                    key={`${ri}-${ci}`}
+                    style={{ width: cellSize, height: cellSize }}
+                    className={`flex items-center justify-center text-[0.5rem] transition-colors
+                      ${cell === 'wall' ? 'bg-muted-foreground/40' : ''}
+                      ${cell === 'start' ? 'bg-green-500/20' : ''}
+                      ${cell === 'end' ? 'bg-primary/20' : ''}
+                      ${cell === 'path' && isPath && !isPlayer ? 'bg-primary/10' : ''}
+                      ${cell === 'path' && !isPath ? 'bg-background' : ''}
+                      ${isPlayer ? 'bg-primary rounded-sm' : ''}`}
+                  >
+                    {cell === 'start' && !isPlayer && '🏁'}
+                    {cell === 'end' && '⭐'}
+                    {isPlayer && '●'}
+                  </div>
+                );
+              }))}
+            </div>
+          )}
         </div>
 
         {done && (
