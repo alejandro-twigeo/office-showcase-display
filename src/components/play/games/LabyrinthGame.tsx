@@ -166,6 +166,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const [playerPos, setPlayerPos] = useState<{ r: number; c: number }>(mazeStart);
   const [path, setPath] = useState<Set<string>>(new Set([`${mazeStart.r}-${mazeStart.c}`]));
   const [resets, setResets] = useState(0);
+  const [started, setStarted] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
@@ -178,6 +179,11 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [startTime, done]);
 
+  const handleStart = useCallback(() => {
+    setStarted(true);
+    setStartTime(Date.now());
+  }, []);
+
   const resetPosition = useCallback(() => {
     setPlayerPos(mazeStart);
     setPath(new Set([`${mazeStart.r}-${mazeStart.c}`]));
@@ -185,7 +191,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }, [mazeStart]);
 
   const movePlayer = useCallback(async (dr: number, dc: number) => {
-    if (done) return;
+    if (done || !started) return;
     const nr = playerPos.r + dr;
     const nc = playerPos.c + dc;
     if (nr < 0 || nr >= MAZE_SIZE || nc < 0 || nc >= MAZE_SIZE) return;
@@ -193,7 +199,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       resetPosition();
       return;
     }
-    if (!startTime) setStartTime(Date.now());
     setPlayerPos({ r: nr, c: nc });
     setPath(prev => new Set(prev).add(`${nr}-${nc}`));
 
@@ -212,7 +217,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         meta: { time_seconds: time, resets },
       });
     }
-  }, [playerPos, done, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
+  }, [playerPos, done, started, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
 
   // Keyboard controls — prevent page scroll on arrow keys
   useEffect(() => {
@@ -256,9 +261,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }, [done, getCellFromTouch, playerPos, movePlayer]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!started || done) return;
     e.preventDefault();
-    if (!startTime && !done) setStartTime(Date.now());
-    // Also process the initial touch position
     const t = e.touches[0];
     const cell = getCellFromTouch(t.clientX, t.clientY);
     if (!cell) return;
@@ -268,7 +272,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     if (Math.abs(dr) + Math.abs(dc) === 1) {
       movePlayer(dr, dc);
     }
-  }, [done, startTime, getCellFromTouch, playerPos, movePlayer]);
+  }, [done, started, getCellFromTouch, playerPos, movePlayer]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -287,7 +291,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
-  const cellSize = `min(calc((100vw - 2rem) / ${MAZE_SIZE}), calc((100vh - 14rem) / ${MAZE_SIZE}), 2rem)`;
+  const cellSize = `min(calc((100vw - 3rem) / ${MAZE_SIZE}), calc((100vh - 16rem) / ${MAZE_SIZE}), 1.5rem)`;
 
   return (
     <Card>
@@ -299,13 +303,21 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         </div>
         <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
       </CardHeader>
-      <CardContent className="px-1 sm:px-6">
-        <div className="flex justify-center">
+      <CardContent className="px-1 sm:px-4">
+        <div className="flex flex-col items-center gap-3">
+          {!started && !done && (
+            <button
+              onClick={handleStart}
+              className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-md hover:opacity-90 transition-opacity"
+            >
+              ▶ Start
+            </button>
+          )}
           <div
             ref={mazeGridRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none"
+            className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none w-fit"
             style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
             {maze.map((row, ri) => row.map((cell, ci) => {
               const isPlayer = ri === playerPos.r && ci === playerPos.c;
@@ -314,7 +326,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                 <div
                   key={`${ri}-${ci}`}
                   style={{ width: cellSize, height: cellSize }}
-                  className={`flex items-center justify-center text-xs transition-colors
+                  className={`flex items-center justify-center text-[0.5rem] transition-colors
                     ${cell === 'wall' ? 'bg-muted-foreground/40' : ''}
                     ${cell === 'start' ? 'bg-green-500/20' : ''}
                     ${cell === 'end' ? 'bg-primary/20' : ''}
@@ -330,7 +342,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             }))}
           </div>
         </div>
-
 
         {done && (
           <p className="text-center font-semibold text-primary mt-3">🎉 You escaped!</p>
