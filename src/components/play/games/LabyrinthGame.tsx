@@ -6,11 +6,11 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
-const MAZE_SIZE = 11; // odd number for walls + paths
+const MAZE_SIZE = 15; // odd number for walls + paths
 
 type Cell = 'wall' | 'path' | 'start' | 'end';
 
-/** Generate maze using recursive backtracker */
+/** Generate maze using recursive backtracker, then open extra walls for multiple paths */
 function generateMaze(size: number, rng: () => number): Cell[][] {
   const grid: Cell[][] = Array.from({ length: size }, () => Array(size).fill('wall'));
 
@@ -28,6 +28,26 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
   }
 
   carve(1, 1);
+
+  // Open extra walls to create multiple possible paths (≈15% of interior walls)
+  const interiorWalls: [number, number][] = [];
+  for (let r = 2; r < size - 2; r++) {
+    for (let c = 2; c < size - 2; c++) {
+      if (grid[r][c] === 'wall') {
+        // Only open walls that connect two path cells (horizontally or vertically)
+        const hConnect = r > 0 && r < size - 1 && grid[r - 1][c] !== 'wall' && grid[r + 1][c] !== 'wall';
+        const vConnect = c > 0 && c < size - 1 && grid[r][c - 1] !== 'wall' && grid[r][c + 1] !== 'wall';
+        if (hConnect || vConnect) interiorWalls.push([r, c]);
+      }
+    }
+  }
+  interiorWalls.sort(() => rng() - 0.5);
+  const toOpen = Math.floor(interiorWalls.length * 0.15);
+  for (let i = 0; i < toOpen; i++) {
+    const [r, c] = interiorWalls[i];
+    grid[r][c] = 'path';
+  }
+
   grid[1][1] = 'start';
   grid[size - 2][size - 2] = 'end';
   return grid;
@@ -100,13 +120,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [playerPos, done, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
 
-  // Keyboard controls
+  // Keyboard controls — prevent page scroll on arrow keys
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'w') movePlayer(-1, 0);
-      else if (e.key === 'ArrowDown' || e.key === 's') movePlayer(1, 0);
-      else if (e.key === 'ArrowLeft' || e.key === 'a') movePlayer(0, -1);
-      else if (e.key === 'ArrowRight' || e.key === 'd') movePlayer(0, 1);
+      if (e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); movePlayer(-1, 0); }
+      else if (e.key === 'ArrowDown' || e.key === 's') { e.preventDefault(); movePlayer(1, 0); }
+      else if (e.key === 'ArrowLeft' || e.key === 'a') { e.preventDefault(); movePlayer(0, -1); }
+      else if (e.key === 'ArrowRight' || e.key === 'd') { e.preventDefault(); movePlayer(0, 1); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);

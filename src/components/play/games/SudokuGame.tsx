@@ -74,8 +74,8 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
     const seed = dateSeed(todayDate());
     const rng = seededRandom(seed + 2);
     const s = generateSolved(rng);
-    // Hard: remove 24 of 36 cells
-    const p = createPuzzle(s, rng, 24);
+    // Medium: remove 18 of 36 cells
+    const p = createPuzzle(s, rng, 18);
     return { solved: s, puzzle: p };
   }, []);
 
@@ -157,7 +157,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">🔢 Sudoku 6×6</CardTitle>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" /> {formatTime(elapsed)}
-          <span className="ml-auto">Hard · 2×3 blocks</span>
+          <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

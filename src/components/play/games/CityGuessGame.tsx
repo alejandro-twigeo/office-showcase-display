@@ -7,6 +7,7 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { fetchMapillaryRound, type MapillaryImage } from '@/lib/mapillary';
 import { CheckCircle, MapPin, Loader2 } from 'lucide-react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const CITIES: { name: string; lat: number; lng: number }[] = [
   { name: 'New York', lat: 40.7128, lng: -74.006 },
@@ -70,6 +71,8 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       setGuessPos({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     leafletRef.current = map;
+    // Leaflet needs a nudge after the container becomes visible
+    setTimeout(() => map.invalidateSize(), 200);
     return () => { map.remove(); leafletRef.current = null; };
   }, [selectedCity]);
 
