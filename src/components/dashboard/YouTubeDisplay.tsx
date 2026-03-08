@@ -172,6 +172,20 @@ export function YouTubeDisplay() {
     return () => observer.disconnect();
   }, []);
 
+  // Periodically persist playback position (every 5s)
+  useEffect(() => {
+    if (!currentVideo?.id) return;
+    const id = currentVideo.id;
+    const interval = setInterval(async () => {
+      if (!playerRef.current || !playerReadyRef.current) return;
+      try {
+        const seconds = Math.floor(playerRef.current.getCurrentTime());
+        await ytQueue().update({ current_time_seconds: seconds }).eq("id", id);
+      } catch { /* ignore */ }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentVideo?.id]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
