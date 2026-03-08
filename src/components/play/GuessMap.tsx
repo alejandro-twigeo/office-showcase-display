@@ -479,7 +479,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
               <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
             </button>
           </div>
-          <button onClick={() => setActiveTab('other')}
+          <button onClick={() => { setActiveTab('other'); miniGameRef.current?.reset(); }}
             className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all border ${
               activeTab === 'other' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground border-transparent'
             }`}>
