@@ -87,13 +87,14 @@ export function YouTubeDisplay() {
     }
 
     const videoId = currentVideo.video_id;
+    const resumeAt = currentVideo.current_time_seconds ?? 0;
 
     const initPlayer = () => {
       if (!containerRef.current) return;
 
       // Reuse existing player only if it's fully ready
       if (playerRef.current && playerReadyRef.current) {
-        playerRef.current.loadVideoById(videoId);
+        playerRef.current.loadVideoById(videoId, resumeAt);
         // Explicitly call playVideo in case autoplay is blocked
         setTimeout(() => playerRef.current?.playVideo(), 300);
         return;
