@@ -90,20 +90,17 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
           </p>
         ) : (
           sorted.map((entry, i) => (
-            <div key={entry.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50">
-              <div className="flex items-center justify-center w-6 shrink-0">
+            <div key={entry.id} className={`flex items-center gap-1.5 rounded-md bg-secondary/50 ${dashboard ? 'py-1 px-1.5' : 'p-2'}`}>
+              <div className="flex items-center justify-center w-5 shrink-0">
                 {entry.solved ? getRankIcon(i + 1) : <span className="text-xs text-muted-foreground">—</span>}
               </div>
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-lg shrink-0">{avatarMap.get(entry.player_name) ?? '👤'}</span>
-                <span className="font-medium text-sm break-all">{entry.player_name}</span>
-              </div>
-              <div className="ml-auto shrink-0 text-right">
+              <span className={`${dashboard ? 'text-base' : 'text-lg'} shrink-0`}>{avatarMap.get(entry.player_name) ?? '👤'}</span>
+              <span className={`font-medium truncate min-w-0 ${dashboard ? 'text-[clamp(12px,0.9vw,16px)]' : 'text-sm'}`}>{entry.player_name}</span>
+              <div className="ml-auto shrink-0 text-right leading-tight">
                 {entry.solved ? (
-                  <>
-                    <span className="text-sm font-mono text-accent font-semibold">{calculateWordleScore(entry.attempts, settings)} pts</span>
-                    <div className="text-xs text-muted-foreground">{entry.attempts}/6 tries</div>
-                  </>
+                  <span className={`font-mono text-accent font-semibold ${dashboard ? 'text-[clamp(12px,0.9vw,16px)]' : 'text-sm'}`}>
+                    {calculateWordleScore(entry.attempts, settings)} <span className="text-muted-foreground font-normal text-[0.75em]">{entry.attempts}/6</span>
+                  </span>
                 ) : (
                   <span className="text-xs text-muted-foreground">failed</span>
                 )}
