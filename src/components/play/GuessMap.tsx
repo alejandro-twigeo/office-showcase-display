@@ -345,6 +345,30 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
     setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
   }, [settings]);
 
+  // Fetch mini game settings for edit
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('scoring_settings' as never)
+        .select('city_guess_distance_param, city_guess_max_attempts, thisorthat_points_per_q, thisorthat_streak_bonus, sudoku_max_points, sudoku_time_param, pairs_max_points, pairs_time_param, pairs_move_penalty, labyrinth_max_points, labyrinth_time_param, labyrinth_reset_penalty')
+        .eq('id', 1).single();
+      if (data) {
+        const d = data as any;
+        setEditCityDistParam(String(d.city_guess_distance_param ?? 200));
+        setEditCityMaxAttempts(String(d.city_guess_max_attempts ?? 3));
+        setEditTotPtsPerQ(String(d.thisorthat_points_per_q ?? 5));
+        setEditTotStreak(String(d.thisorthat_streak_bonus ?? 0.2));
+        setEditSudokuMax(String(d.sudoku_max_points ?? 100));
+        setEditSudokuTime(String(d.sudoku_time_param ?? 300));
+        setEditPairsMax(String(d.pairs_max_points ?? 100));
+        setEditPairsTime(String(d.pairs_time_param ?? 120));
+        setEditPairsMovePen(String(d.pairs_move_penalty ?? 2));
+        setEditLabMax(String(d.labyrinth_max_points ?? 100));
+        setEditLabTime(String(d.labyrinth_time_param ?? 60));
+        setEditLabResetPen(String(d.labyrinth_reset_penalty ?? 5));
+      }
+    })();
+  }, [scoringOpen]);
+
   useEffect(() => {
     if (!scoringOpen) return;
     let active = true;
