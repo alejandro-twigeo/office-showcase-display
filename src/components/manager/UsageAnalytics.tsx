@@ -112,7 +112,7 @@ export function UsageAnalytics() {
       setTotalUniqueDevices(allUsers.size);
       setTotalVisitsCount(allVisits);
 
-      const dayCount = Math.max(1, Math.round((untilDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const dayCount = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
       for (let i = 0; i < dayCount; i++) {
         const d = new Date(fromDate);
