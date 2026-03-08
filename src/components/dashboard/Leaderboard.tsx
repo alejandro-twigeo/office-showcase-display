@@ -22,9 +22,11 @@ interface LeaderboardProps {
   hardGuesses?: Guess[];
   /** Optional progress bar element rendered below header */
   progressBar?: React.ReactNode;
+  /** When true, hides round navigation (used on TV dashboard) */
+  dashboard?: boolean;
 }
 
-export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses, progressBar }: LeaderboardProps) {
+export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses, progressBar, dashboard = false }: LeaderboardProps) {
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
   const { rounds } = useRounds();
