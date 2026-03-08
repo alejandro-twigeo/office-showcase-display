@@ -24,11 +24,15 @@ function PlaylistItemsView({
   playerName,
   recentVideos,
   onBack,
+  onPlayNow,
+  onAddToQueue,
 }: {
   playlist: Playlist;
   playerName: string;
   recentVideos: YouTubeVideo[];
   onBack: () => void;
+  onPlayNow?: (videoId: string) => void;
+  onAddToQueue?: (videoId: string) => void;
 }) {
   const { items, addItem, removeItem } = usePlaylistItems(playlist.id);
   const { addToQueue } = useYoutubeQueue();
