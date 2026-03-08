@@ -35,12 +35,13 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
 
 interface LabyrinthGameProps {
   playerName: string;
+  roundId?: string;
 }
 
-export function LabyrinthGame({ playerName }: LabyrinthGameProps) {
+export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
-  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName);
+  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
   const maze = useMemo(() => {
