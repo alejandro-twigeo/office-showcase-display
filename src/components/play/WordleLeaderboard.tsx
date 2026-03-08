@@ -81,12 +81,6 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
             </Button>
           </div>
         )}
-        {sortedRounds.length > 0 && dashboard && (
-          <span className="text-xs font-medium text-muted-foreground mt-1">
-            Round {selectedRound?.round_number ?? '?'}
-            {selectedRound?.is_active && ' (current)'}
-          </span>
-        )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>

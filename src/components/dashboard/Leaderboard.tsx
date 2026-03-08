@@ -117,12 +117,6 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
           <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           GeoGuessr Leaderboard
         </CardTitle>
-        {sortedRounds.length > 0 && (
-          <span className="text-xs font-medium text-muted-foreground mt-1">
-            Round {selectedRound?.round_number ?? '?'}
-            {selectedRound?.is_active && ' (current)'}
-          </span>
-        )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">

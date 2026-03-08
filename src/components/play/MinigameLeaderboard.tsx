@@ -70,9 +70,6 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
             </Button>
           </div>
         )}
-        {dashboard && (
-          <span className="text-xs font-medium text-muted-foreground mt-1">Today</span>
-        )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
