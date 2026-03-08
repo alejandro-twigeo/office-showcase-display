@@ -98,9 +98,53 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
     }
   }
 
-  grid[1][1] = 'start';
-  grid[size - 2][size - 2] = 'end';
-  return grid;
+  // Find the two path cells with the longest BFS distance to maximise challenge
+  let bestStart = { r: 1, c: 1 };
+  let bestEnd = { r: size - 2, c: size - 2 };
+  let bestDist = 0;
+
+  // Collect all path cells
+  const pathCells: { r: number; c: number }[] = [];
+  for (let r = 1; r < size - 1; r++) {
+    for (let c = 1; c < size - 1; c++) {
+      if (grid[r][c] !== 'wall') pathCells.push({ r, c });
+    }
+  }
+
+  // Sample ~30 random pairs to find a long path (full search too expensive)
+  const samples = Math.min(pathCells.length, 30);
+  for (let i = 0; i < samples; i++) {
+    const a = pathCells[Math.floor(rng() * pathCells.length)];
+    const b = pathCells[Math.floor(rng() * pathCells.length)];
+    if (a.r === b.r && a.c === b.c) continue;
+    const d = bfsDistance(grid, a.r, a.c, b.r, b.c);
+    if (d > bestDist) {
+      bestDist = d;
+      bestStart = a;
+      bestEnd = b;
+    }
+  }
+
+  // Also check corners / edges for potentially longer paths
+  const corners = [
+    { r: 1, c: 1 }, { r: 1, c: size - 2 },
+    { r: size - 2, c: 1 }, { r: size - 2, c: size - 2 },
+  ].filter(p => grid[p.r][p.c] !== 'wall');
+  for (const a of corners) {
+    for (const b of corners) {
+      if (a === b) continue;
+      const d = bfsDistance(grid, a.r, a.c, b.r, b.c);
+      if (d > bestDist) {
+        bestDist = d;
+        bestStart = a;
+        bestEnd = b;
+      }
+    }
+  }
+
+  grid[bestStart.r][bestStart.c] = 'start';
+  grid[bestEnd.r][bestEnd.c] = 'end';
+  return { grid, start: bestStart, end: bestEnd };
 }
 
 interface LabyrinthGameProps {
