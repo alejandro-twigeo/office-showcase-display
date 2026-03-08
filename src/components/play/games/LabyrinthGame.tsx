@@ -132,26 +132,49 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [movePlayer]);
 
-  // Touch/swipe controls
-  const touchRef = useRef<{ x: number; y: number } | null>(null);
+  // Continuous touch-drag: trace your finger across the maze grid
+  const mazeGridRef = useRef<HTMLDivElement>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const getCellFromTouch = useCallback((clientX: number, clientY: number): { r: number; c: number } | null => {
+    if (!mazeGridRef.current) return null;
+    const rect = mazeGridRef.current.getBoundingClientRect();
+    const cellW = rect.width / MAZE_SIZE;
+    const cellH = rect.height / MAZE_SIZE;
+    const c = Math.floor((clientX - rect.left) / cellW);
+    const r = Math.floor((clientY - rect.top) / cellH);
+    if (r < 0 || r >= MAZE_SIZE || c < 0 || c >= MAZE_SIZE) return null;
+    return { r, c };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (done) return;
+    e.preventDefault(); // prevent page scroll while dragging on maze
     const t = e.touches[0];
-    touchRef.current = { x: t.clientX, y: t.clientY };
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchRef.current) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchRef.current.x;
-    const dy = t.clientY - touchRef.current.y;
-    touchRef.current = null;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      movePlayer(0, dx > 0 ? 1 : -1);
-    } else {
-      movePlayer(dy > 0 ? 1 : -1, 0);
+    const cell = getCellFromTouch(t.clientX, t.clientY);
+    if (!cell) return;
+    const { r, c } = cell;
+    // Only move if adjacent to current position (1 step away, no diagonal)
+    const dr = r - playerPos.r;
+    const dc = c - playerPos.c;
+    if (Math.abs(dr) + Math.abs(dc) === 1) {
+      movePlayer(dr, dc);
     }
-  };
+  }, [done, getCellFromTouch, playerPos, movePlayer]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!startTime && !done) setStartTime(Date.now());
+    // Also process the initial touch position
+    const t = e.touches[0];
+    const cell = getCellFromTouch(t.clientX, t.clientY);
+    if (!cell) return;
+    const { r, c } = cell;
+    const dr = r - playerPos.r;
+    const dc = c - playerPos.c;
+    if (Math.abs(dr) + Math.abs(dc) === 1) {
+      movePlayer(dr, dc);
+    }
+  }, [done, startTime, getCellFromTouch, playerPos, movePlayer]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -180,14 +203,15 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
           <span className="flex items-center gap-1"><RotateCcw className="h-3 w-3" /> {resets} resets</span>
         </div>
-        <p className="text-xs text-muted-foreground">Use arrow keys or swipe. Touching a wall resets you.</p>
+        <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
       </CardHeader>
-      <CardContent
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <CardContent>
         <div className="flex justify-center">
-          <div className="inline-grid gap-0 border border-foreground rounded overflow-hidden"
+          <div
+            ref={mazeGridRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            className="inline-grid gap-0 border border-foreground rounded overflow-hidden touch-none"
             style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
             {maze.map((row, ri) => row.map((cell, ci) => {
               const isPlayer = ri === playerPos.r && ci === playerPos.c;
@@ -213,17 +237,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           </div>
         </div>
 
-        {/* D-pad for mobile */}
-        <div className="flex justify-center mt-4">
-          <div className="grid grid-cols-3 gap-1 w-32">
-            <div />
-            <button onClick={() => movePlayer(-1, 0)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">↑</button>
-            <div />
-            <button onClick={() => movePlayer(0, -1)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">←</button>
-            <button onClick={() => movePlayer(1, 0)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">↓</button>
-            <button onClick={() => movePlayer(0, 1)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">→</button>
-          </div>
-        </div>
 
         {done && (
           <p className="text-center font-semibold text-primary mt-3">🎉 You escaped!</p>
