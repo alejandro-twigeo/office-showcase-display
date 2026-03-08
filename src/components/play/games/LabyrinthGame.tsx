@@ -196,7 +196,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     const nc = playerPos.c + dc;
     if (nr < 0 || nr >= MAZE_SIZE || nc < 0 || nc >= MAZE_SIZE) return;
     if (maze[nr][nc] === 'wall') {
-      resetPosition();
       return;
     }
     setPlayerPos({ r: nr, c: nc });
