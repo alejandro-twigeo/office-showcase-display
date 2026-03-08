@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, User, ListMusic } from "lucide-react";
+import { Youtube, ListMusic } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
