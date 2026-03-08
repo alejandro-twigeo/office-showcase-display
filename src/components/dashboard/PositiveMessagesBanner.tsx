@@ -38,11 +38,15 @@ export function PositiveMessagesBanner() {
   const [overflows, setOverflows] = useState(false);
 
   useEffect(() => {
-    const el = textRef.current;
-    const container = containerRef.current;
-    if (!el || !container) return;
-    setOverflows(el.scrollWidth > container.clientWidth);
-  }, [index, displayMsg]);
+    // Small delay to let fonts/layout settle before measuring
+    const id = requestAnimationFrame(() => {
+      const el = textRef.current;
+      const container = containerRef.current;
+      if (!el || !container) return;
+      setOverflows(el.scrollWidth > container.clientWidth + 2);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [index, displayMsg, displayBy]);
 
   // countdown computed from poll context
   const totalElapsed = (rotations % 2 === 1 ? ROTATE_SECONDS : 0) +
