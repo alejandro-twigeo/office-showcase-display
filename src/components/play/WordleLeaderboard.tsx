@@ -65,7 +65,7 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
           <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           Wordle Leaderboard
         </CardTitle>
-        {sortedRounds.length > 0 && (
+        {sortedRounds.length > 0 && !dashboard && (
           <div className="flex items-center justify-between mt-1">
             <Button variant="ghost" size="icon" className="h-6 w-6"
               onClick={() => setSelectedRoundIdx(i => i + 1)} disabled={!canGoPrev}>
@@ -80,6 +80,12 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        )}
+        {sortedRounds.length > 0 && dashboard && (
+          <span className="text-xs font-medium text-muted-foreground mt-1">
+            Round {selectedRound?.round_number ?? '?'}
+            {selectedRound?.is_active && ' (current)'}
+          </span>
         )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
