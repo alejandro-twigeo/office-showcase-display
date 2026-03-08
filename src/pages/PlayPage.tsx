@@ -98,6 +98,13 @@ export default function PlayPage() {
                   Edit Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => navigate('/manager')}
+                >
+                  <Shield className="h-4 w-4" />
+                  Manager Mode
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   className="text-destructive focus:text-destructive gap-2"
                   onClick={logout}
                 >

@@ -9,6 +9,7 @@ import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
 import { MinigameLeaderboard } from './MinigameLeaderboard';
 import { Gamepad2 } from 'lucide-react';
+import { useGameIcons } from '@/hooks/useGameIcons';
 
 interface MiniGame {
   id: string;
@@ -33,6 +34,7 @@ interface MiniGamesSelectorProps {
 
 export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelectorProps) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const { icons } = useGameIcons();
 
   const selectGame = (id: string | null) => {
     setSelectedGame(id);
@@ -57,7 +59,6 @@ export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelecto
         {selectedGame === 'pairs' && <PairsGame playerName={playerName} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} />}
 
-        {/* Show leaderboard for non-wordle games (wordle has its own) */}
         {selectedGame !== 'wordle' && (
           <MinigameLeaderboard
             gameId={selectedGame}
@@ -85,15 +86,21 @@ export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelecto
         <p className="text-xs text-muted-foreground">Pick a game to play</p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {MINI_GAMES.map((game) => (
             <button
               key={game.id}
               onClick={() => selectGame(game.id)}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center aspect-square justify-center"
+              className="flex flex-col items-center gap-1 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center"
             >
-              <span className="text-3xl">{game.emoji}</span>
-              <p className="font-medium text-xs leading-tight">{game.name}</p>
+              <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
+                {icons[game.id] ? (
+                  <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl">{game.emoji}</span>
+                )}
+              </div>
+              <p className="font-medium text-[10px] leading-tight">{game.name}</p>
             </button>
           ))}
         </div>

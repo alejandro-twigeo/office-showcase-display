@@ -18,6 +18,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/tv" element={<Dashboard />} />
           <Route path="/play" element={<PlayPage />} />
+          <Route path="/manager" element={<ManagerPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </HashRouter>
