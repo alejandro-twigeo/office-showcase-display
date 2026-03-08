@@ -38,7 +38,7 @@ function MysteryCard({ difficulty, label, fillHeight }: { difficulty: number; la
   }, [activeLocation?.id]);
 
   return (
-    <Card className={`${fillHeight ? "h-full" : "h-[180px] md:h-full"} min-h-0 flex flex-col p-0 overflow-hidden`}>
+    <Card className={`${fillHeight ? "h-full" : "h-[180px] lg:h-full"} min-h-0 flex flex-col p-0 overflow-hidden`}>
       {activeLocation?.pano_id ? (
         <div className="relative w-full flex-1 min-h-0">
           <img src={activeLocation.pano_id} alt={`${label} GeoGuess location`} className="absolute inset-0 w-full h-full object-cover" />
@@ -75,12 +75,12 @@ export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boo
       className={`${
         forceDesktop
           ? "h-full min-h-0 grid grid-cols-3"
-          : "h-full min-h-0 flex flex-col md:grid md:grid-cols-3"
-      } gap-[clamp(12px,1vw,18px)]`}
+          : "h-full min-h-0 flex flex-col lg:grid lg:grid-cols-3"
+      } gap-3 lg:gap-[clamp(12px,1vw,18px)]`}
     >
       <MysteryCard difficulty={1} label="Easy" fillHeight={forceDesktop} />
       <MysteryCard difficulty={3} label="Hard" fillHeight={forceDesktop} />
-      <div className={`${forceDesktop ? "h-full min-h-0" : "min-h-[220px] md:h-full md:min-h-0"}`}>
+      <div className={`${forceDesktop ? "h-full min-h-0" : "min-h-[220px] lg:h-full lg:min-h-0"}`}>
         <RotatingLeaderboard />
       </div>
     </div>
