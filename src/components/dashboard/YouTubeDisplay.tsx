@@ -4,6 +4,7 @@ import { Youtube, ListMusic } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -16,11 +17,16 @@ declare global {
 }
 
 type YTPlayer = {
-  loadVideoById: (videoId: string) => void;
+  loadVideoById: (videoId: string, startSeconds?: number) => void;
   playVideo: () => void;
+  getCurrentTime: () => number;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   setSize: (width: number, height: number) => void;
   destroy: () => void;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ytQueue = () => (supabase as any).from("youtube_queue");
 
 const ytAPIReadyCallbacks: Array<() => void> = [];
 let ytAPILoaded = false;
@@ -81,13 +87,14 @@ export function YouTubeDisplay() {
     }
 
     const videoId = currentVideo.video_id;
+    const resumeAt = currentVideo.current_time_seconds ?? 0;
 
     const initPlayer = () => {
       if (!containerRef.current) return;
 
       // Reuse existing player only if it's fully ready
       if (playerRef.current && playerReadyRef.current) {
-        playerRef.current.loadVideoById(videoId);
+        playerRef.current.loadVideoById(videoId, resumeAt);
         // Explicitly call playVideo in case autoplay is blocked
         setTimeout(() => playerRef.current?.playVideo(), 300);
         return;
@@ -120,6 +127,7 @@ export function YouTubeDisplay() {
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          start: resumeAt,
         },
         events: {
           onReady: () => {
@@ -163,6 +171,20 @@ export function YouTubeDisplay() {
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Periodically persist playback position (every 5s)
+  useEffect(() => {
+    if (!currentVideo?.id) return;
+    const id = currentVideo.id;
+    const interval = setInterval(async () => {
+      if (!playerRef.current || !playerReadyRef.current) return;
+      try {
+        const seconds = Math.floor(playerRef.current.getCurrentTime());
+        await ytQueue().update({ current_time_seconds: seconds }).eq("id", id);
+      } catch { /* ignore */ }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentVideo?.id]);
 
   // Cleanup on unmount
   useEffect(() => {

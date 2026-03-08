@@ -18,6 +18,7 @@ export interface YouTubeVideo {
   queued_at: string | null;
   status: VideoStatus;
   channel_title: string | null;
+  current_time_seconds: number | null;
 }
 
 // Typed Supabase table accessor that avoids deep type instantiation

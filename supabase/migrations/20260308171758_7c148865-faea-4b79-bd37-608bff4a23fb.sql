@@ -1,0 +1,1 @@
+ALTER TABLE public.youtube_queue ADD COLUMN current_time_seconds integer DEFAULT NULL;
