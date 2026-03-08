@@ -242,9 +242,6 @@ export function YouTubeDisplay() {
                         <p className="text-[clamp(12px,0.85vw,16px)] font-medium line-clamp-2 leading-tight">
                           {i + 1}. {item.title}
                         </p>
-                        <p className="text-[clamp(10px,0.7vw,13px)] text-muted-foreground mt-0.5">
-                          {item.queued_by}
-                        </p>
                       </div>
                     </div>
                   ))}
