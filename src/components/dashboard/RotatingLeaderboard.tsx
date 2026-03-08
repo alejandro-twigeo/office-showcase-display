@@ -64,5 +64,5 @@ export function RotatingLeaderboard() {
       />
     );
   }
-  return <Leaderboard progressBar={progressBar} />;
+  return <Leaderboard dashboard progressBar={progressBar} />;
 }
