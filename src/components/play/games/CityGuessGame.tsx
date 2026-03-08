@@ -71,6 +71,8 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       setGuessPos({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     leafletRef.current = map;
+    // Leaflet needs a nudge after the container becomes visible
+    setTimeout(() => map.invalidateSize(), 200);
     return () => { map.remove(); leafletRef.current = null; };
   }, [selectedCity]);
 

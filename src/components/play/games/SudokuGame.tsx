@@ -157,7 +157,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">🔢 Sudoku 6×6</CardTitle>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" /> {formatTime(elapsed)}
-          <span className="ml-auto">Hard · 2×3 blocks</span>
+          <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

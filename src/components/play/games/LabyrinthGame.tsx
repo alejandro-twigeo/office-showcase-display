@@ -100,13 +100,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [playerPos, done, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
 
-  // Keyboard controls
+  // Keyboard controls — prevent page scroll on arrow keys
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'w') movePlayer(-1, 0);
-      else if (e.key === 'ArrowDown' || e.key === 's') movePlayer(1, 0);
-      else if (e.key === 'ArrowLeft' || e.key === 'a') movePlayer(0, -1);
-      else if (e.key === 'ArrowRight' || e.key === 'd') movePlayer(0, 1);
+      if (e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); movePlayer(-1, 0); }
+      else if (e.key === 'ArrowDown' || e.key === 's') { e.preventDefault(); movePlayer(1, 0); }
+      else if (e.key === 'ArrowLeft' || e.key === 'a') { e.preventDefault(); movePlayer(0, -1); }
+      else if (e.key === 'ArrowRight' || e.key === 'd') { e.preventDefault(); movePlayer(0, 1); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
