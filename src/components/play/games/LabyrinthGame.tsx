@@ -77,7 +77,7 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
           if (grid[r+dr]?.[c+dc] !== 'wall') neighbours++;
         }
         // Dead-end: only 1 neighbour — try to extend into an adjacent wall
-        if (neighbours === 1 && rng() < 0.6) {
+        if (neighbours === 1 && rng() < 0.75) {
           const dirs = [[-1,0],[1,0],[0,-1],[0,1]].sort(() => rng() - 0.5);
           for (const [dr, dc] of dirs) {
             const nr = r + dr, nc = c + dc;
