@@ -6,7 +6,7 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
-const MAZE_SIZE = 19; // odd number for walls + paths
+const MAZE_SIZE = 25; // odd number for walls + paths
 
 type Cell = 'wall' | 'path' | 'start' | 'end';
 
