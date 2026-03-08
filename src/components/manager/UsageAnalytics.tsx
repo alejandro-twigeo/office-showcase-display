@@ -60,12 +60,19 @@ export function UsageAnalytics() {
 
       const byDate = new Map<string, Set<string>>();
       const countByDate = new Map<string, number>();
+      const allDevices = new Set<string>();
+      let allVisits = 0;
       for (const v of (visits || [])) {
         const d = v.visited_at.slice(0, 10);
         if (!byDate.has(d)) byDate.set(d, new Set());
         byDate.get(d)!.add(v.device_id);
         countByDate.set(d, (countByDate.get(d) || 0) + 1);
+        allDevices.add(v.device_id);
+        allVisits++;
       }
+
+      setTotalUniqueDevices(allDevices.size);
+      setTotalVisitsCount(allVisits);
 
       const dayCount = Math.max(1, Math.round((untilDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
