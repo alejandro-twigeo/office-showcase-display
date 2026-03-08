@@ -320,6 +320,20 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
   const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
   const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState(settings.wordle_attempt_points.map(String));
 
+  // Mini game settings edit state
+  const [editCityDistParam, setEditCityDistParam] = useState('200');
+  const [editCityMaxAttempts, setEditCityMaxAttempts] = useState('3');
+  const [editTotPtsPerQ, setEditTotPtsPerQ] = useState('5');
+  const [editTotStreak, setEditTotStreak] = useState('0.2');
+  const [editSudokuMax, setEditSudokuMax] = useState('100');
+  const [editSudokuTime, setEditSudokuTime] = useState('300');
+  const [editPairsMax, setEditPairsMax] = useState('100');
+  const [editPairsTime, setEditPairsTime] = useState('120');
+  const [editPairsMovePen, setEditPairsMovePen] = useState('2');
+  const [editLabMax, setEditLabMax] = useState('100');
+  const [editLabTime, setEditLabTime] = useState('60');
+  const [editLabResetPen, setEditLabResetPen] = useState('5');
+
   const [plantDays, setPlantDays] = useState<number | null>(null);
   const [plantDaysLoading, setPlantDaysLoading] = useState(false);
 
