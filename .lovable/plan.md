@@ -1,20 +1,42 @@
 
 
-## Clean Up Empty Test Rounds
+## Persist Playback Position
 
-The database shows rounds 5 and 7-13 are completely empty (no locations, no guesses). Round 14 is the current active round with 2 locations and should be kept.
+The core problem: when the YouTube component unmounts (navigation) and remounts, it calls `loadVideoById()` which starts at 0:00 because no position is stored.
 
-### Plan
+### Approach
 
-1. **Delete empty rounds from the database** via a data migration:
-   - Delete rounds 7, 8, 9, 10, 11, 12, 13 (all empty, no locations or guesses)
-   - Also delete round 5 which is similarly empty (0 locations, 0 guesses) -- unless you want to keep it
-   - Renumber round 14 to round 7 (or 8 if keeping round 5) so the leaderboard navigation is sequential: 1, 2, 3, 4, 5/6, 7 (current)
+**Add a `current_time_seconds` column** to `youtube_queue` and periodically write the playback position from the YT player. On mount, use `loadVideoById(videoId, { startSeconds })` to resume.
 
-2. **No code changes needed** -- the leaderboard already works off whatever rounds exist in the database.
+### Database Change
 
-### What stays intact
-- Round 14's locations and images remain untouched (just the round_number label changes)
-- Rounds 1-4 and 6 with their guesses are preserved
-- The auto-reset sequence will continue from the new number
+- Add `current_time_seconds` (integer, nullable, default null) to `youtube_queue`
+
+### Code Changes
+
+**1. `YouTubeDisplay.tsx` -- write position periodically**
+- Add a `setInterval` (every 5s) that calls `player.getCurrentTime()` and writes it to the DB via a lightweight update (`ytQueue().update({ current_time_seconds }).eq("id", currentVideoId)`)
+- On `onReady`, if `currentVideo.current_time_seconds` exists, call `player.seekTo(seconds, true)` instead of starting from 0
+
+**2. `useYoutubeQueue.ts` -- expose `current_time_seconds`**
+- Add `current_time_seconds` to the `YouTubeVideo` interface
+- The existing query already does `select("*")`, so the new column will be included automatically
+
+**3. Resume on mount**
+- In `initPlayer`, after creating the YT.Player, use `startSeconds` in `playerVars` or call `seekTo` in the `onReady` callback using the value from the database
+- When reusing an existing player (`loadVideoById`), pass `{ startSeconds }` as the second argument
+
+### Flow
+
+```text
+Playing video → every 5s write current_time to DB
+  ↓
+Navigate away → component unmounts (interval cleared)
+  ↓
+Navigate back → component mounts, queries current-video
+  ↓
+current_time_seconds = 147 → player.seekTo(147)
+```
+
+This is lightweight (one small UPDATE every 5s on a single row) and fully solves the restart problem without needing a leader system.
 
