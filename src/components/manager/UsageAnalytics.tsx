@@ -51,14 +51,32 @@ export function UsageAnalytics() {
       const untilStr = untilDate.toISOString();
       const sinceDateStr = sinceStr.slice(0, 10);
 
-      const { data: visits } = await (supabase as any)
-        .from('visit_logs')
-        .select('player_name, visited_at')
-        .not('player_name', 'is', null)
-        .gte('visited_at', sinceStr)
-        .lte('visited_at', untilStr)
-        .order('visited_at', { ascending: false });
+      // Fetch visit logs + game activity in parallel to build complete visitor picture
+      const [{ data: visits }, { data: minigameData }, { data: wordleData }, { data: guessData }] = await Promise.all([
+        (supabase as any)
+          .from('visit_logs')
+          .select('player_name, visited_at')
+          .not('player_name', 'is', null)
+          .gte('visited_at', sinceStr)
+          .lte('visited_at', untilStr),
+        supabase
+          .from('minigame_scores')
+          .select('game_id, player_name, date')
+          .gte('date', sinceDateStr)
+          .lte('date', untilStr.slice(0, 10)),
+        supabase
+          .from('wordle_scores')
+          .select('player_name, created_at')
+          .gte('created_at', sinceStr)
+          .lte('created_at', untilStr),
+        supabase
+          .from('guesses')
+          .select('player_name, created_at')
+          .gte('created_at', sinceStr)
+          .lte('created_at', untilStr),
+      ]);
 
+      // Build visitor map from visit_logs
       const byDate = new Map<string, Set<string>>();
       const countByDate = new Map<string, number>();
       const allUsers = new Set<string>();
@@ -73,6 +91,22 @@ export function UsageAnalytics() {
         allUsers.add(name);
         allVisits++;
       }
+
+      // Also count anyone who played a game as a visitor for that day
+      const addVisitor = (name: string, date: string) => {
+        if (!name || !date) return;
+        if (!byDate.has(date)) byDate.set(date, new Set());
+        if (!byDate.get(date)!.has(name)) {
+          byDate.get(date)!.add(name);
+          countByDate.set(date, (countByDate.get(date) || 0) + 1);
+          allVisits++;
+        }
+        allUsers.add(name);
+      };
+
+      for (const s of (minigameData || [])) addVisitor(s.player_name, s.date);
+      for (const w of (wordleData || [])) addVisitor(w.player_name, (w.created_at || '').slice(0, 10));
+      for (const g of (guessData || [])) addVisitor(g.player_name, (g.created_at || '').slice(0, 10));
 
       setTotalUniqueDevices(allUsers.size);
       setTotalVisitsCount(allVisits);
@@ -91,46 +125,29 @@ export function UsageAnalytics() {
       }
       setDayStats(stats);
 
-      const { data: minigameData } = await supabase
-        .from('minigame_scores')
-        .select('game_id, device_id, date')
-        .gte('date', sinceDateStr)
-        .lte('date', untilStr.slice(0, 10));
-
-      const { data: wordleData } = await supabase
-        .from('wordle_scores')
-        .select('device_id, created_at')
-        .gte('created_at', sinceStr)
-        .lte('created_at', untilStr);
-
+      // Build game stats from already-fetched data using player_name
       const gameByDay = new Map<string, Map<string, Set<string>>>();
       for (const s of (minigameData || [])) {
         if (!gameByDay.has(s.game_id)) gameByDay.set(s.game_id, new Map());
         const dateMap = gameByDay.get(s.game_id)!;
         if (!dateMap.has(s.date)) dateMap.set(s.date, new Set());
-        dateMap.get(s.date)!.add(s.device_id);
+        dateMap.get(s.date)!.add(s.player_name);
       }
 
       const wordleDays = new Map<string, Set<string>>();
       for (const w of (wordleData || [])) {
         const d = w.created_at.slice(0, 10);
         if (!wordleDays.has(d)) wordleDays.set(d, new Set());
-        wordleDays.get(d)!.add(w.device_id);
+        wordleDays.get(d)!.add(w.player_name);
       }
       if (wordleDays.size > 0) gameByDay.set('wordle', wordleDays);
-
-      const { data: guessData } = await supabase
-        .from('guesses')
-        .select('device_id, created_at')
-        .gte('created_at', sinceStr)
-        .lte('created_at', untilStr);
 
       const geoDays = new Map<string, Set<string>>();
       for (const g of (guessData || [])) {
         const d = (g.created_at || '').slice(0, 10);
         if (!d) continue;
         if (!geoDays.has(d)) geoDays.set(d, new Set());
-        geoDays.get(d)!.add(g.device_id);
+        geoDays.get(d)!.add(g.player_name);
       }
       if (geoDays.size > 0) gameByDay.set('geoguessr', geoDays);
 
