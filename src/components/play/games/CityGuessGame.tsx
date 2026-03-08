@@ -5,7 +5,7 @@ import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
-import { CheckCircle, MapPin, Loader2 } from 'lucide-react';
+import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -42,10 +42,40 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const [guessPos, setGuessPos] = useState<{ lat: number; lng: number } | null>(null);
   const [guesses, setGuesses] = useState<{ distance: number; score: number }[]>([]);
   const [bestScore, setBestScore] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const imgContainerRef = useRef<HTMLDivElement>(null);
+
+  const MAX_ZOOM = 5;
+
+  const handleZoomIn = () => setZoom(z => Math.min(z + 1, MAX_ZOOM));
+  const handleZoomOut = () => {
+    setZoom(z => {
+      const nz = Math.max(z - 1, 1);
+      if (nz === 1) setPan({ x: 0, y: 0 });
+      return nz;
+    });
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging || !dragStart.current) return;
+    setPan({
+      x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.panY + (e.clientY - dragStart.current.y),
+    });
+  };
+  const onPointerUp = () => { setDragging(false); dragStart.current = null; };
 
   const handleSelectCity = async (city: typeof CITIES[0]) => {
     setSelectedCity(city);
@@ -166,8 +196,35 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {image && (
-          <div className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black">
-            <img src={image.thumb_url} alt="mystery location" className="w-full h-full object-cover" />
+          <div className="relative">
+            <div
+              ref={imgContainerRef}
+              className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            >
+              <img
+                src={image.thumb_url}
+                alt="mystery location"
+                className="w-full h-full object-contain pointer-events-none"
+                draggable={false}
+                style={{
+                  transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </div>
+            <div className="absolute top-2 right-2 flex gap-1">
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomOut} disabled={zoom <= 1}>
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+            </div>
+            <span className="absolute top-2 left-2 text-xs bg-secondary/80 px-1.5 py-0.5 rounded font-mono">{zoom}x</span>
           </div>
         )}
 
