@@ -345,7 +345,7 @@ function PlaylistItemsView({
 }
 
 /* ── Main panel ──────────────────────────────────────────────────────────── */
-export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps) {
+export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQueue }: PlaylistsPanelProps) {
   const { playlists, createPlaylist, deletePlaylist, renamePlaylist } = usePlaylists();
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [newName, setNewName] = useState("");
