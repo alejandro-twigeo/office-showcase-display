@@ -60,9 +60,9 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     }
   };
 
-  // Init leaflet map
+  // Init leaflet map – must wait until loading is done so the div is mounted
   useEffect(() => {
-    if (!mapRef.current || leafletRef.current || !selectedCity) return;
+    if (!mapRef.current || leafletRef.current || !selectedCity || loading) return;
     const map = L.map(mapRef.current).setView([selectedCity.lat, selectedCity.lng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
@@ -71,10 +71,9 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       setGuessPos({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     leafletRef.current = map;
-    // Leaflet needs a nudge after the container becomes visible
     setTimeout(() => map.invalidateSize(), 200);
     return () => { map.remove(); leafletRef.current = null; };
-  }, [selectedCity]);
+  }, [selectedCity, loading]);
 
   // Update marker
   useEffect(() => {

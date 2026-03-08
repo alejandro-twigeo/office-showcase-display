@@ -121,14 +121,15 @@ export async function fetchMapillaryCity(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Search nearby tiles (spread of ±2 tiles around center)
-      const spread = 2;
-      const tilesToTry = Array.from({ length: 6 }, () => ({
-        x: cx + Math.floor(Math.random() * (spread * 2 + 1)) - spread,
-        y: cy + Math.floor(Math.random() * (spread * 2 + 1)) - spread,
-      }));
-      // Always include the center tile
-      tilesToTry.unshift({ x: cx, y: cy });
+      // Search only immediately adjacent tiles (±1) to stay within the city
+      const spread = 1;
+      const tilesToTry: { x: number; y: number }[] = [{ x: cx, y: cy }];
+      for (let dx = -spread; dx <= spread; dx++) {
+        for (let dy = -spread; dy <= spread; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          tilesToTry.push({ x: cx + dx, y: cy + dy });
+        }
+      }
 
       const allImages: TileImage[] = [];
       const results = await Promise.all(
