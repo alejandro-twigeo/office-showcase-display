@@ -193,7 +193,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
-  const cellSize = `min(calc((100vw - 4rem) / ${MAZE_SIZE}), 2rem)`;
+  const cellSize = `min(calc((100vw - 2rem) / ${MAZE_SIZE}), 2rem)`;
 
   return (
     <Card>
@@ -205,7 +205,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         </div>
         <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-1 sm:px-6">
         <div className="flex justify-center">
           <div
             ref={mazeGridRef}
