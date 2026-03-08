@@ -68,7 +68,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
           <p className="font-medium">{poll.question}</p>
           <p className="text-xs text-muted-foreground">by {poll.created_by}</p>
         </div>
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {poll.options.map((option, index) => {
             const count = getVoteCount(index);
             const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
@@ -79,7 +79,7 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                 key={index}
                 onClick={() => handleVote(index)}
                 disabled={!!userVote || submitVote.isPending}
-                className={`w-full text-left p-3 py-2 min-h-[44px] rounded-md border transition-colors relative overflow-hidden ${
+                className={`w-full text-left px-2.5 py-1.5 min-h-[40px] rounded-md border transition-colors relative overflow-hidden ${
                   isSelected
                     ? "border-primary bg-primary/10"
                     : userVote
@@ -93,13 +93,13 @@ export function PollVoteCard({ poll, deviceId, playerName }: PollVoteCardProps) 
                     style={{ width: `${percentage}%` }}
                   />
                 )}
-                <div className="relative flex items-center justify-between">
-                  <span className="flex items-center gap-2 truncate">
-                    {isSelected && <Check className="h-4 w-4 text-primary" />}
+                <div className="relative flex flex-col gap-0.5">
+                  <span className="flex items-center gap-1.5 text-sm truncate">
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
                     {option}
                   </span>
                   {userVote && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {count} ({Math.round(percentage)}%)
                     </span>
                   )}
