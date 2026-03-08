@@ -28,6 +28,9 @@ type YTPlayer = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ytQueue = () => (supabase as any).from("youtube_queue");
 
+const ytAPIReadyCallbacks: Array<() => void> = [];
+let ytAPILoaded = false;
+
 function loadYouTubeAPI(onReady: () => void) {
   ytAPIReadyCallbacks.push(onReady);
 
