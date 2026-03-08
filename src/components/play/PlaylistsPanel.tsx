@@ -65,9 +65,13 @@ function PlaylistItemsView({
   const inPlaylist = new Set(items.map((i) => i.video_id));
 
   const handlePlayList = () => {
-    items.forEach((item) =>
-      addToQueue.mutate({ video_id: item.video_id, queued_by: playerName }),
-    );
+    items.forEach((item) => {
+      if (onAddToQueue) {
+        onAddToQueue(item.video_id);
+      } else {
+        liveAddToQueue.mutate({ video_id: item.video_id, queued_by: playerName });
+      }
+    });
   };
 
   const handleAddFromHistory = (video: YouTubeVideo) => {
