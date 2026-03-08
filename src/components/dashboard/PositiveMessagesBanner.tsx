@@ -42,8 +42,11 @@ export function PositiveMessagesBanner() {
   return (
     <div className="overflow-hidden">
       <div className="px-[clamp(20px,1.8vw,40px)] py-[clamp(12px,1vw,24px)] flex flex-col items-center gap-1">
-        <div className="flex items-center gap-[clamp(10px,0.8vw,18px)]">
-          <p className="text-[clamp(16px,1.4vw,30px)] font-medium leading-snug truncate">
+        <div className="w-full overflow-hidden">
+          <p
+            key={index}
+            className="text-[clamp(16px,1.4vw,30px)] font-medium leading-snug whitespace-nowrap text-center animate-marquee-if-needed"
+          >
             {displayMsg}{displayBy && <span className="text-muted-foreground font-normal ml-2">— {displayBy}</span>}
           </p>
         </div>

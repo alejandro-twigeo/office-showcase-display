@@ -174,3 +174,13 @@
     font-size: 190%;   /* 4K UHD TV */
   }
 }
+
+/* Marquee scroll for messages that overflow their container */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee-if-needed {
+  animation: marquee-scroll 12s linear infinite;
+}
