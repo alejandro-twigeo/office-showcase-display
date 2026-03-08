@@ -223,6 +223,7 @@ export function UsageAnalytics() {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
+                weekStartsOn={1}
                 selected={toDate}
                 onSelect={(d) => d && setToDate(d)}
                 disabled={(d) => d < fromDate || d > new Date()}
