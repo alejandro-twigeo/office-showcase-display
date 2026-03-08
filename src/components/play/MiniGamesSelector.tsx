@@ -32,9 +32,18 @@ interface MiniGamesSelectorProps {
   onGameChange?: (gameId: string | null) => void;
 }
 
-export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelectorProps) {
+export interface MiniGamesSelectorHandle {
+  reset: () => void;
+}
+
+export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
+  function MiniGamesSelector({ playerName, onGameChange }, ref) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
+
+  useImperativeHandle(ref, () => ({
+    reset: () => { setSelectedGame(null); onGameChange?.(null); },
+  }));
 
   const selectGame = (id: string | null) => {
     setSelectedGame(id);
