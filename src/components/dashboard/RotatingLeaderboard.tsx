@@ -1,9 +1,10 @@
-import { usePollRotations } from "@/contexts/pollRotation";
+import { useState, useEffect, useRef } from "react";
 import { Leaderboard } from "./Leaderboard";
 import { WordleLeaderboard } from "@/components/play/WordleLeaderboard";
 import { MinigameLeaderboard } from "@/components/play/MinigameLeaderboard";
 import { Progress } from "@/components/ui/progress";
-import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
+
+const LEADERBOARD_ROTATE_SECONDS = 15;
 
 const GAME_ROTATION = [
   { type: 'geo' as const },
@@ -16,15 +17,31 @@ const GAME_ROTATION = [
 ];
 
 /**
- * Rotates between all game leaderboards every poll rotation cycle (30s).
+ * Rotates between all game leaderboards every 15 seconds (independent of poll rotation).
  */
 export function RotatingLeaderboard() {
-  const { rotations, pollTimeLeft } = usePollRotations();
-  const idx = rotations % GAME_ROTATION.length;
+  const [rotation, setRotation] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(LEADERBOARD_ROTATE_SECONDS);
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setRotation(r => r + 1);
+          return LEADERBOARD_ROTATE_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  const idx = rotation % GAME_ROTATION.length;
   const current = GAME_ROTATION[idx];
 
   const progressBar = (
-    <Progress value={(pollTimeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
+    <Progress value={(timeLeft / LEADERBOARD_ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
   );
 
   if (current.type === 'wordle') {
