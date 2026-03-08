@@ -132,26 +132,49 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [movePlayer]);
 
-  // Touch/swipe controls
-  const touchRef = useRef<{ x: number; y: number } | null>(null);
+  // Continuous touch-drag: trace your finger across the maze grid
+  const mazeGridRef = useRef<HTMLDivElement>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const getCellFromTouch = useCallback((clientX: number, clientY: number): { r: number; c: number } | null => {
+    if (!mazeGridRef.current) return null;
+    const rect = mazeGridRef.current.getBoundingClientRect();
+    const cellW = rect.width / MAZE_SIZE;
+    const cellH = rect.height / MAZE_SIZE;
+    const c = Math.floor((clientX - rect.left) / cellW);
+    const r = Math.floor((clientY - rect.top) / cellH);
+    if (r < 0 || r >= MAZE_SIZE || c < 0 || c >= MAZE_SIZE) return null;
+    return { r, c };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (done) return;
+    e.preventDefault(); // prevent page scroll while dragging on maze
     const t = e.touches[0];
-    touchRef.current = { x: t.clientX, y: t.clientY };
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchRef.current) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchRef.current.x;
-    const dy = t.clientY - touchRef.current.y;
-    touchRef.current = null;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      movePlayer(0, dx > 0 ? 1 : -1);
-    } else {
-      movePlayer(dy > 0 ? 1 : -1, 0);
+    const cell = getCellFromTouch(t.clientX, t.clientY);
+    if (!cell) return;
+    const { r, c } = cell;
+    // Only move if adjacent to current position (1 step away, no diagonal)
+    const dr = r - playerPos.r;
+    const dc = c - playerPos.c;
+    if (Math.abs(dr) + Math.abs(dc) === 1) {
+      movePlayer(dr, dc);
     }
-  };
+  }, [done, getCellFromTouch, playerPos, movePlayer]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!startTime && !done) setStartTime(Date.now());
+    // Also process the initial touch position
+    const t = e.touches[0];
+    const cell = getCellFromTouch(t.clientX, t.clientY);
+    if (!cell) return;
+    const { r, c } = cell;
+    const dr = r - playerPos.r;
+    const dc = c - playerPos.c;
+    if (Math.abs(dr) + Math.abs(dc) === 1) {
+      movePlayer(dr, dc);
+    }
+  }, [done, startTime, getCellFromTouch, playerPos, movePlayer]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
