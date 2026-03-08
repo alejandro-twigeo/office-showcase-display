@@ -196,8 +196,35 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {image && (
-          <div className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black">
-            <img src={image.thumb_url} alt="mystery location" className="w-full h-full object-cover" />
+          <div className="relative">
+            <div
+              ref={imgContainerRef}
+              className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            >
+              <img
+                src={image.thumb_url}
+                alt="mystery location"
+                className="w-full h-full object-contain pointer-events-none"
+                draggable={false}
+                style={{
+                  transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </div>
+            <div className="absolute top-2 right-2 flex gap-1">
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomOut} disabled={zoom <= 1}>
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+            </div>
+            <span className="absolute top-2 left-2 text-xs bg-secondary/80 px-1.5 py-0.5 rounded font-mono">{zoom}x</span>
           </div>
         )}
 
