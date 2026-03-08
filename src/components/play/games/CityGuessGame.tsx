@@ -51,7 +51,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     setSelectedCity(city);
     setLoading(true);
     try {
-      const img = await fetchMapillaryRound(1); // Easy difficulty within city
+      const img = await fetchMapillaryCity(city.lat, city.lng);
       setImage(img);
     } catch (e) {
       console.error('Failed to load city image', e);
