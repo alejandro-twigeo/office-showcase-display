@@ -365,7 +365,7 @@ export default function ManagerPage() {
           <CardContent className="space-y-4">
             <Button variant="outline" size="sm" className="w-full" onClick={createFullRound} disabled={isCreatingRound}>
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? 'animate-spin' : ''}`} />
-              New Round (Easy + Hard)
+              New Round (All Games)
             </Button>
 
             <div className="border-t pt-3 space-y-2">
