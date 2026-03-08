@@ -31,7 +31,7 @@ function bfsDistance(grid: Cell[][], sr: number, sc: number, er: number, ec: num
 }
 
 /** Generate maze using recursive backtracker, add dead-end extensions and branching */
-function generateMaze(size: number, rng: () => number): Cell[][] {
+function generateMaze(size: number, rng: () => number): { grid: Cell[][]; start: { r: number; c: number }; end: { r: number; c: number } } {
   const grid: Cell[][] = Array.from({ length: size }, () => Array(size).fill('wall'));
 
   function carve(r: number, c: number) {
