@@ -161,17 +161,10 @@ export function UsageAnalytics() {
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const totalUniqueVisitors = (() => {
-    const allDevices = new Set<string>();
-    // We need to re-aggregate from dayStats which only has counts, not device sets
-    // Use the total across the range
-    return dayStats.reduce((s, d) => s + d.uniqueVisitors, 0);
-  })();
   const daysWithData = dayStats.filter(d => d.uniqueVisitors > 0).length || 1;
-  const avgVisitorsPerDay = Math.round(totalUniqueVisitors / daysWithData * 10) / 10;
-  const totalVisits = dayStats.reduce((s, d) => s + d.totalVisits, 0);
-  const avgVisitsPerPerson = totalUniqueVisitors > 0
-    ? Math.round((totalVisits / totalUniqueVisitors) * 10) / 10
+  const avgVisitorsPerDay = Math.round(totalUniqueDevices / daysWithData * 10) / 10;
+  const avgVisitsPerPerson = totalUniqueDevices > 0
+    ? Math.round((totalVisitsCount / totalUniqueDevices) * 10) / 10
     : 0;
 
   return (
