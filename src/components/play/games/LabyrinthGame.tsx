@@ -179,10 +179,10 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }, [startTime, done]);
 
   const resetPosition = useCallback(() => {
-    setPlayerPos({ r: 1, c: 1 });
-    setPath(new Set(['1-1']));
+    setPlayerPos(mazeStart);
+    setPath(new Set([`${mazeStart.r}-${mazeStart.c}`]));
     setResets(r => r + 1);
-  }, []);
+  }, [mazeStart]);
 
   const movePlayer = useCallback(async (dr: number, dc: number) => {
     if (done) return;
