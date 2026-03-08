@@ -48,13 +48,16 @@ export default function Dashboard() {
 
           {/* Main grid */}
           <div className="min-h-0 overflow-y-auto md:overflow-hidden">
-            <div className="h-auto md:h-full flex flex-col md:grid md:grid-rows-[55fr_45fr] gap-[clamp(12px,1.2vw,20px)] md:min-h-0">
-              <div className="min-h-0 flex flex-col md:grid md:grid-cols-[2fr_1fr] gap-[clamp(12px,1.2vw,20px)]">
+            <div className="h-auto md:h-full flex flex-col md:grid md:grid-rows-[1fr_1fr] gap-[clamp(12px,1.2vw,20px)] md:min-h-0">
+              <div className="min-h-0 flex flex-col md:grid md:grid-cols-3 gap-[clamp(12px,1.2vw,20px)]">
                 <div className="min-h-[300px] md:min-h-0 md:h-full overflow-hidden rounded-xl">
                   <YouTubeDisplay />
                 </div>
                 <div className="min-h-[250px] md:min-h-0 overflow-hidden rounded-xl">
-                  <RotatingPollNews />
+                  <NewsDisplay />
+                </div>
+                <div className="min-h-[250px] md:min-h-0 overflow-hidden rounded-xl">
+                  <PollDisplay />
                 </div>
               </div>
 
