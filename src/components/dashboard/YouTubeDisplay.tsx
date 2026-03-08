@@ -204,15 +204,9 @@ export function YouTubeDisplay() {
                     className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
                   />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
-                    {currentVideo.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-[clamp(13px,0.9vw,18px)] text-muted-foreground">
-                    <User className="h-[clamp(14px,0.9vw,18px)] w-[clamp(14px,0.9vw,18px)]" />
-                    <span>Queued by {currentVideo.queued_by}</span>
-                  </div>
-                </div>
+                <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
+                  {currentVideo.title}
+                </h4>
               </div>
             )}
           </div>
