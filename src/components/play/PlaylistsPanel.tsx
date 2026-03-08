@@ -14,6 +14,8 @@ import {
 interface PlaylistsPanelProps {
   playerName: string;
   recentVideos: YouTubeVideo[];
+  onPlayNow?: (videoId: string) => void;
+  onAddToQueue?: (videoId: string) => void;
 }
 
 /* ── Inner: items view for a single playlist ─────────────────────────────── */
@@ -22,14 +24,18 @@ function PlaylistItemsView({
   playerName,
   recentVideos,
   onBack,
+  onPlayNow,
+  onAddToQueue,
 }: {
   playlist: Playlist;
   playerName: string;
   recentVideos: YouTubeVideo[];
   onBack: () => void;
+  onPlayNow?: (videoId: string) => void;
+  onAddToQueue?: (videoId: string) => void;
 }) {
   const { items, addItem, removeItem } = usePlaylistItems(playlist.id);
-  const { addToQueue } = useYoutubeQueue();
+  const { addToQueue: liveAddToQueue } = useYoutubeQueue();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [search, setSearch] = useState("");
   const [mixUrl, setMixUrl] = useState("");
@@ -59,9 +65,13 @@ function PlaylistItemsView({
   const inPlaylist = new Set(items.map((i) => i.video_id));
 
   const handlePlayList = () => {
-    items.forEach((item) =>
-      addToQueue.mutate({ video_id: item.video_id, queued_by: playerName }),
-    );
+    items.forEach((item) => {
+      if (onAddToQueue) {
+        onAddToQueue(item.video_id);
+      } else {
+        liveAddToQueue.mutate({ video_id: item.video_id, queued_by: playerName });
+      }
+    });
   };
 
   const handleAddFromHistory = (video: YouTubeVideo) => {
@@ -200,7 +210,7 @@ function PlaylistItemsView({
           size="sm"
           className="h-7 px-2 text-xs shrink-0"
           onClick={handlePlayList}
-          disabled={items.length === 0 || addToQueue.isPending}
+          disabled={items.length === 0 || liveAddToQueue.isPending}
         >
           <Play className="h-3.5 w-3.5 mr-1" />
           Play list
@@ -335,7 +345,7 @@ function PlaylistItemsView({
 }
 
 /* ── Main panel ──────────────────────────────────────────────────────────── */
-export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps) {
+export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQueue }: PlaylistsPanelProps) {
   const { playlists, createPlaylist, deletePlaylist, renamePlaylist } = usePlaylists();
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [newName, setNewName] = useState("");
@@ -385,6 +395,8 @@ export function PlaylistsPanel({ playerName, recentVideos }: PlaylistsPanelProps
         playerName={playerName}
         recentVideos={recentVideos}
         onBack={() => setSelectedPlaylist(null)}
+        onPlayNow={onPlayNow}
+        onAddToQueue={onAddToQueue}
       />
     );
   }
