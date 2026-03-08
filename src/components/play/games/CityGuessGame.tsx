@@ -5,7 +5,7 @@ import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
-import { CheckCircle, MapPin, Loader2 } from 'lucide-react';
+import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
