@@ -142,7 +142,7 @@ export default function PlayPage() {
             <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
               setGamesSubTab(tab);
               if (tab !== 'other') setActiveMinigame(null);
-            }} />
+            }} onMinigameChange={setActiveMinigame} />
             {renderLeaderboard()}
           </div>
         )}
