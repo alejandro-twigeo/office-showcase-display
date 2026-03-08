@@ -389,8 +389,8 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
           Make Your Guess
         </CardTitle>
         <div className="flex items-center gap-2 mt-2">
-          {/* Scoring settings */}
-          <Popover open={scoringOpen} onOpenChange={(open) => {
+        <div className="flex items-center gap-2 mt-2 ml-auto">
+
             setScoringOpen(open);
             if (!open) { setScoringPassword(''); setScoringError(''); setScoringUnlocked(false); }
           }}>
