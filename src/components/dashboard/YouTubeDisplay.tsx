@@ -218,7 +218,14 @@ export function YouTubeDisplay() {
             )}
           </div>
 
-          {/* Right — queue sidebar */}
+          {/* Right — queue sidebar (compact on mobile, full on desktop) */}
+          {queue.length > 0 && (
+            <div className="flex md:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
+              <ListMusic className="h-3.5 w-3.5" />
+              <span>{queue.length} in queue</span>
+              <span className="truncate">— Next: {queue[0]?.title}</span>
+            </div>
+          )}
           <div className="hidden md:flex min-h-0 flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
             <h4 className="flex items-center gap-1.5 text-[clamp(14px,1vw,20px)] font-medium mb-2 shrink-0">
               <ListMusic className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
