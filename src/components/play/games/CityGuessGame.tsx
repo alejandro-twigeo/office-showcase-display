@@ -26,12 +26,13 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 interface CityGuessGameProps {
   playerName: string;
+  roundId?: string;
 }
 
-export function CityGuessGame({ playerName }: CityGuessGameProps) {
+export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
-  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName);
+  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
   const [selectedCity, setSelectedCity] = useState<typeof CITIES[0] | null>(null);
