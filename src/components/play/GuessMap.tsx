@@ -479,7 +479,7 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
     setScoringError('');
   };
 
-  const handleSaveScoringSettings = () => {
+  const handleSaveScoringSettings = async () => {
     const distParam = parseFloat(editDistParam);
     const multipliers = editMultipliers.map(Number);
     const wp = parseInt(editWordlePoints);
@@ -492,6 +492,21 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
       wordle_points: wp,
       wordle_attempt_points: wap,
     });
+    // Save mini game settings separately
+    await supabase.from('scoring_settings' as never).update({
+      city_guess_distance_param: parseFloat(editCityDistParam),
+      city_guess_max_attempts: parseInt(editCityMaxAttempts),
+      thisorthat_points_per_q: parseInt(editTotPtsPerQ),
+      thisorthat_streak_bonus: parseFloat(editTotStreak),
+      sudoku_max_points: parseInt(editSudokuMax),
+      sudoku_time_param: parseInt(editSudokuTime),
+      pairs_max_points: parseInt(editPairsMax),
+      pairs_time_param: parseInt(editPairsTime),
+      pairs_move_penalty: parseInt(editPairsMovePen),
+      labyrinth_max_points: parseInt(editLabMax),
+      labyrinth_time_param: parseInt(editLabTime),
+      labyrinth_reset_penalty: parseInt(editLabResetPen),
+    } as never).eq('id', 1);
   };
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
