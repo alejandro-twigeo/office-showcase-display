@@ -372,41 +372,8 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
     setActionError('');
   };
 
-  const handleScoringPasswordConfirm = () => {
-    if (scoringPassword !== '5678') { setScoringError('Wrong password'); return; }
-    setScoringUnlocked(true);
-    setScoringError('');
-  };
 
-  const handleSaveScoringSettings = async () => {
-    const distParam = parseFloat(editDistParam);
-    const multipliers = editMultipliers.map(Number);
-    const wp = parseInt(editWordlePoints);
-    const wap = editWordleAttemptPoints.map(Number);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
-    updateSettings.mutate({
-      distance_parameter: distParam,
-      attempt_multipliers: multipliers,
-      difficulty_weights: editWeights,
-      wordle_points: wp,
-      wordle_attempt_points: wap,
-    });
-    // Save mini game settings separately
-    await supabase.from('scoring_settings' as never).update({
-      city_guess_distance_param: parseFloat(editCityDistParam),
-      city_guess_max_attempts: parseInt(editCityMaxAttempts),
-      thisorthat_points_per_q: parseInt(editTotPtsPerQ),
-      thisorthat_streak_bonus: parseFloat(editTotStreak),
-      sudoku_max_points: parseInt(editSudokuMax),
-      sudoku_time_param: parseInt(editSudokuTime),
-      pairs_max_points: parseInt(editPairsMax),
-      pairs_time_param: parseInt(editPairsTime),
-      pairs_move_penalty: parseInt(editPairsMovePen),
-      labyrinth_max_points: parseInt(editLabMax),
-      labyrinth_time_param: parseInt(editLabTime),
-      labyrinth_reset_penalty: parseInt(editLabResetPen),
-    } as never).eq('id', 1);
-  };
+
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
