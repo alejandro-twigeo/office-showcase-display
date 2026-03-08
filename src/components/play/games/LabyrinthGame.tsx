@@ -61,7 +61,7 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
     }
   }
   interiorWalls.sort(() => rng() - 0.5);
-  const toOpen = Math.floor(interiorWalls.length * 0.08);
+  const toOpen = Math.floor(interiorWalls.length * 0.04);
   for (let i = 0; i < toOpen; i++) {
     const [r, c] = interiorWalls[i];
     grid[r][c] = 'path';
