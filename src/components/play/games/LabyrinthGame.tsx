@@ -211,7 +211,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             ref={mazeGridRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            className="inline-grid gap-0 border border-foreground rounded overflow-hidden touch-none"
+            className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none"
             style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
             {maze.map((row, ri) => row.map((cell, ci) => {
               const isPlayer = ri === playerPos.r && ci === playerPos.c;
@@ -221,12 +221,12 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                   key={`${ri}-${ci}`}
                   style={{ width: cellSize, height: cellSize }}
                   className={`flex items-center justify-center text-xs transition-colors
-                    ${cell === 'wall' ? 'bg-foreground' : ''}
-                    ${cell === 'start' ? 'bg-green-500/30' : ''}
-                    ${cell === 'end' ? 'bg-primary/30' : ''}
+                    ${cell === 'wall' ? 'bg-muted-foreground/40' : ''}
+                    ${cell === 'start' ? 'bg-green-500/20' : ''}
+                    ${cell === 'end' ? 'bg-primary/20' : ''}
                     ${cell === 'path' && isPath && !isPlayer ? 'bg-primary/10' : ''}
                     ${cell === 'path' && !isPath ? 'bg-background' : ''}
-                    ${isPlayer ? 'bg-primary' : ''}`}
+                    ${isPlayer ? 'bg-primary rounded-sm' : ''}`}
                 >
                   {cell === 'start' && !isPlayer && '🏁'}
                   {cell === 'end' && '⭐'}
