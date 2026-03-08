@@ -302,6 +302,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
   const deviceId = useDeviceId();
   const { settings } = useScoring();
+  const { activeRound } = useRounds();
   const { schedule, updateSchedule } = useRoundSchedule();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);

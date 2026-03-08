@@ -63,11 +63,11 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
           ← Back to games
         </Button>
         {selectedGame === 'wordle' && <WordleGame playerName={playerName} />}
-        {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} />}
-        {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} />}
-        {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} />}
-        {selectedGame === 'pairs' && <PairsGame playerName={playerName} />}
-        {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} />}
+        {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} roundId={roundId} />}
 
         {selectedGame !== 'wordle' && (
           <MinigameLeaderboard

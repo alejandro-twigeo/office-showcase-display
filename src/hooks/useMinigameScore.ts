@@ -11,6 +11,7 @@ export interface MinigameScoreRow {
   score: number;
   meta: Record<string, any>;
   created_at: string;
+  round_id: string | null;
 }
 
 /** Get today's date string in YYYY-MM-DD */
@@ -103,21 +104,22 @@ export function useMinigameLeaderboard(gameId: string, date: string) {
   return query;
 }
 
-/** Hook: check if player already played today */
-export function useMinigameTodayScore(gameId: string, playerName: string) {
+/** Hook: check if player already played in a given round */
+export function useMinigameTodayScore(gameId: string, playerName: string, roundId?: string | null) {
   return useQuery({
-    queryKey: ['minigame_today', gameId, playerName],
+    queryKey: ['minigame_today', gameId, playerName, roundId],
     queryFn: async () => {
+      if (!roundId) return null;
       const { data } = await supabase
         .from('minigame_scores' as any)
         .select('*')
         .eq('game_id', gameId)
-        .eq('date', todayDate())
+        .eq('round_id', roundId)
         .eq('player_name', playerName)
         .maybeSingle();
       return data as unknown as MinigameScoreRow | null;
     },
-    enabled: !!playerName,
+    enabled: !!playerName && !!roundId,
   });
 }
 
@@ -130,6 +132,7 @@ export function useSubmitMinigameScore() {
       player_name: string;
       device_id: string;
       score: number;
+      round_id?: string;
       meta?: Record<string, any>;
       date?: string;
     }) => {
@@ -141,8 +144,9 @@ export function useSubmitMinigameScore() {
           player_name: params.player_name,
           device_id: params.device_id,
           score: params.score,
+          round_id: params.round_id ?? null,
           meta: params.meta ?? {},
-        } as any, { onConflict: 'game_id,date,player_name' });
+        } as any, { onConflict: 'game_id,round_id,player_name' });
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
