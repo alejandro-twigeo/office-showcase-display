@@ -383,118 +383,131 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" />
-          Make Your Guess
-        </CardTitle>
-        <div className="flex items-center gap-2 mt-2 ml-auto">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            {activeTab === 'other' ? 'Other Games' : 'Make Your Guess'}
+          </CardTitle>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={activeTab === 'other' ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => {
+                if (activeTab === 'other') {
+                  setActiveTab('easy');
+                } else {
+                  setActiveTab('other');
+                  miniGameRef.current?.reset();
+                }
+              }}
+            >
+              <Gamepad2 className="h-3.5 w-3.5" />
+              {activeTab === 'other' ? '← Geo Guess' : 'Other Games'}
+            </Button>
 
-          {/* Round settings */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" title="Round settings">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-3" align="end">
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Manual Reset</p>
-                <p className="text-xs text-muted-foreground">Creates both an Easy and Hard challenge</p>
-                <Button variant="outline" size="sm" className="w-full h-8"
-                  onClick={() => setPasswordAction({ type: 'new' })}
-                  disabled={isCreatingRound}>
-                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? "animate-spin" : ""}`} />
-                  New Round
+            {/* Round settings */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Round settings">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
                 </Button>
-                {passwordAction && (
-                  <div className="space-y-2 border-t pt-2">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      <Input type="password" placeholder="Password"
-                        value={actionPassword}
-                        onChange={(e) => { setActionPassword(e.target.value); setActionError(''); }}
-                        onKeyDown={(e) => e.key === 'Enter' && handlePasswordConfirm()}
-                        className="flex-1 h-8 text-sm" />
-                      <Button size="sm" onClick={handlePasswordConfirm} className="h-8">Start</Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-3" align="end">
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Manual Reset</p>
+                  <p className="text-xs text-muted-foreground">Creates both an Easy and Hard challenge</p>
+                  <Button variant="outline" size="sm" className="w-full h-8"
+                    onClick={() => setPasswordAction({ type: 'new' })}
+                    disabled={isCreatingRound}>
+                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? "animate-spin" : ""}`} />
+                    New Round
+                  </Button>
+                  {passwordAction && (
+                    <div className="space-y-2 border-t pt-2">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <Input type="password" placeholder="Password"
+                          value={actionPassword}
+                          onChange={(e) => { setActionPassword(e.target.value); setActionError(''); }}
+                          onKeyDown={(e) => e.key === 'Enter' && handlePasswordConfirm()}
+                          className="flex-1 h-8 text-sm" />
+                        <Button size="sm" onClick={handlePasswordConfirm} className="h-8">Start</Button>
+                      </div>
+                      {actionError && <p className="text-xs text-destructive">{actionError}</p>}
                     </div>
-                    {actionError && <p className="text-xs text-destructive">{actionError}</p>}
-                  </div>
-                )}
-
-                {/* Daily Auto-Reset */}
-                <div className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Daily Auto-Reset</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Enabled</span>
-                    <Switch
-                      checked={schedule?.enabled ?? false}
-                      onCheckedChange={(checked) => updateSchedule.mutate({ enabled: checked })}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Stockholm time
-                    </span>
-                    <Select
-                      value={String(schedule?.reset_hour ?? 8)}
-                      onValueChange={(v) => updateSchedule.mutate({ reset_hour: parseInt(v) })}
-                    >
-                      <SelectTrigger className="w-24 h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <SelectItem key={i} value={String(i)}>
-                            {String(i).padStart(2, '0')}:00
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {schedule?.last_auto_reset_at && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Last auto-reset: {new Date(schedule.last_auto_reset_at).toLocaleString()}
-                    </p>
                   )}
+
+                  {/* Daily Auto-Reset */}
+                  <div className="border-t pt-3 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Daily Auto-Reset</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Enabled</span>
+                      <Switch
+                        checked={schedule?.enabled ?? false}
+                        onCheckedChange={(checked) => updateSchedule.mutate({ enabled: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Stockholm time
+                      </span>
+                      <Select
+                        value={String(schedule?.reset_hour ?? 8)}
+                        onValueChange={(v) => updateSchedule.mutate({ reset_hour: parseInt(v) })}
+                      >
+                        <SelectTrigger className="w-24 h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <SelectItem key={i} value={String(i)}>
+                              {String(i).padStart(2, '0')}:00
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {schedule?.last_auto_reset_at && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Last auto-reset: {new Date(schedule.last_auto_reset_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Geo-Easy / Geo-Hard / Other tabs */}
-        <div className="grid grid-cols-3 gap-1 bg-muted p-1 rounded-lg">
-          <button onClick={() => setActiveTab('easy')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-            }`}>
-            <Binoculars className="h-4 w-4 text-green-500" /> Geo-Easy
-          </button>
-          <button onClick={() => setActiveTab('hard')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-            }`}>
-            <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
-          </button>
-          <button onClick={() => { setActiveTab('other'); miniGameRef.current?.reset(); }}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              activeTab === 'other' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-            }`}>
-            <Gamepad2 className="h-4 w-4" /> Other
-          </button>
-        </div>
-
         {activeTab !== 'other' ? (
-          <DifficultyGuessPanel
-            key={activeTab}
-            difficulty={activeTab === 'easy' ? 1 : 3}
-            playerName={playerName}
-            settings={settings}
-            onCreateRound={() => {}}
-            isCreating={isCreatingRound}
-          />
+          <>
+            {/* Geo-Easy / Geo-Hard tabs */}
+            <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
+              <button onClick={() => setActiveTab('easy')}
+                className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                  activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+                }`}>
+                <Binoculars className="h-4 w-4 text-green-500" /> Geo-Easy
+              </button>
+              <button onClick={() => setActiveTab('hard')}
+                className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                  activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+                }`}>
+                <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
+              </button>
+            </div>
+            <DifficultyGuessPanel
+              key={activeTab}
+              difficulty={activeTab === 'easy' ? 1 : 3}
+              playerName={playerName}
+              settings={settings}
+              onCreateRound={() => {}}
+              isCreating={isCreatingRound}
+            />
+          </>
         ) : (
           <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={onMinigameChange} roundId={activeRound?.id} />
         )}
