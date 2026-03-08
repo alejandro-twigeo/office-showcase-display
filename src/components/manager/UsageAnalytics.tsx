@@ -22,6 +22,8 @@ interface GameStat {
 export function UsageAnalytics() {
   const [dayStats, setDayStats] = useState<DayStat[]>([]);
   const [gameStats, setGameStats] = useState<GameStat[]>([]);
+  const [totalUniqueDevices, setTotalUniqueDevices] = useState(0);
+  const [totalVisitsCount, setTotalVisitsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [fromDate, setFromDate] = useState<Date>(() => {
