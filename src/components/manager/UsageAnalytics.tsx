@@ -220,7 +220,7 @@ export function UsageAnalytics() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border bg-secondary/30 p-2 text-center">
                 <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-bold">{totalUniqueVisitors}</p>
+                <p className="text-lg font-bold">{totalUniqueDevices}</p>
                 <p className="text-[10px] text-muted-foreground">Total visitors</p>
               </div>
               <div className="rounded-lg border bg-secondary/30 p-2 text-center">
