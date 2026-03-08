@@ -15,7 +15,7 @@ import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
-import { MiniGamesSelector } from "./MiniGamesSelector";
+import { MiniGamesSelector, type MiniGamesSelectorHandle } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
 import { usePresenceCount } from "@/hooks/usePresenceCount";
@@ -308,6 +308,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
   const [passwordAction, setPasswordAction] = useState<{ type: 'new' } | null>(null);
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
+  const miniGameRef = useRef<MiniGamesSelectorHandle>(null);
 
 
   const { createNewLocation: createEasy } = useActiveLocation(1);
@@ -478,7 +479,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
               <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
             </button>
           </div>
-          <button onClick={() => setActiveTab('other')}
+          <button onClick={() => { setActiveTab('other'); miniGameRef.current?.reset(); }}
             className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all border ${
               activeTab === 'other' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground border-transparent'
             }`}>
@@ -496,7 +497,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
             isCreating={isCreatingRound}
           />
         ) : (
-          <MiniGamesSelector playerName={playerName} onGameChange={onMinigameChange} />
+          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={onMinigameChange} />
         )}
       </CardContent>
     </Card>

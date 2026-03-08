@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useImperativeHandle, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { WordleGame } from './WordleGame';
@@ -32,9 +32,18 @@ interface MiniGamesSelectorProps {
   onGameChange?: (gameId: string | null) => void;
 }
 
-export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelectorProps) {
+export interface MiniGamesSelectorHandle {
+  reset: () => void;
+}
+
+export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
+  function MiniGamesSelector({ playerName, onGameChange }, ref) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
+
+  useImperativeHandle(ref, () => ({
+    reset: () => { setSelectedGame(null); onGameChange?.(null); },
+  }));
 
   const selectGame = (id: string | null) => {
     setSelectedGame(id);
@@ -107,4 +116,5 @@ export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelecto
       </CardContent>
     </Card>
   );
-}
+});
+
