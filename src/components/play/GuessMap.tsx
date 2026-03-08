@@ -495,7 +495,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
             isCreating={isCreatingRound}
           />
         ) : (
-          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={onMinigameChange} />
+          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={onMinigameChange} roundId={activeRound?.id} />
         )}
       </CardContent>
     </Card>
