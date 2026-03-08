@@ -205,7 +205,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         </div>
         <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-1 sm:px-6">
         <div className="flex justify-center">
           <div
             ref={mazeGridRef}
