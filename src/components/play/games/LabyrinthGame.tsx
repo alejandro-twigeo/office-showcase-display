@@ -203,14 +203,15 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
           <span className="flex items-center gap-1"><RotateCcw className="h-3 w-3" /> {resets} resets</span>
         </div>
-        <p className="text-xs text-muted-foreground">Use arrow keys or swipe. Touching a wall resets you.</p>
+        <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
       </CardHeader>
-      <CardContent
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <CardContent>
         <div className="flex justify-center">
-          <div className="inline-grid gap-0 border border-foreground rounded overflow-hidden"
+          <div
+            ref={mazeGridRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            className="inline-grid gap-0 border border-foreground rounded overflow-hidden touch-none"
             style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
             {maze.map((row, ri) => row.map((cell, ci) => {
               const isPlayer = ri === playerPos.r && ci === playerPos.c;
