@@ -22,9 +22,11 @@ interface LeaderboardProps {
   hardGuesses?: Guess[];
   /** Optional progress bar element rendered below header */
   progressBar?: React.ReactNode;
+  /** When true, hides round navigation (used on TV dashboard) */
+  dashboard?: boolean;
 }
 
-export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses, progressBar }: LeaderboardProps) {
+export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses, progressBar, dashboard = false }: LeaderboardProps) {
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
   const { rounds } = useRounds();
@@ -111,12 +113,28 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
   const canGoNext = selectedRoundIdx > 0;
 
   return (
-    <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6">
-        <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,60px)]">
-          <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
+    <Card className={dashboard ? "h-full min-h-0 flex flex-col" : ""}>
+      <CardHeader className={dashboard ? "pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6" : "pb-1 pt-3 px-3"}>
+        <CardTitle className={`flex items-center gap-1.5 ${dashboard ? "text-sm md:text-[clamp(20px,1.5vw,60px)]" : "text-sm"}`}>
+          <Trophy className={`h-4 w-4 ${dashboard ? "md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)]" : ""} text-primary`} />
           GeoGuessr Leaderboard
         </CardTitle>
+        {!dashboard && sortedRounds.length > 0 && (
+          <div className="flex items-center justify-between mt-1">
+            <Button variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setSelectedRoundIdx(i => i + 1)} disabled={!canGoPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground">
+              Round {selectedRound?.round_number ?? '?'}
+              {selectedRound?.is_active && ' (current)'}
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setSelectedRoundIdx(i => i - 1)} disabled={!canGoNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">
