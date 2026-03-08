@@ -193,7 +193,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
-  const cellSize = `min(calc((100vw - 2rem) / ${MAZE_SIZE}), 2rem)`;
+  const cellSize = `min(calc((100vw - 2rem) / ${MAZE_SIZE}), calc((100vh - 14rem) / ${MAZE_SIZE}), 2rem)`;
 
   return (
     <Card>
