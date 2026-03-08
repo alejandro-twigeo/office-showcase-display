@@ -38,7 +38,7 @@ export interface MiniGamesSelectorHandle {
 }
 
 export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
-  function MiniGamesSelector({ playerName, onGameChange }, ref) {
+  function MiniGamesSelector({ playerName, onGameChange, roundId }, ref) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
 
