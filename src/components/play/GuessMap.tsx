@@ -301,8 +301,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
 export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
   const deviceId = useDeviceId();
-  const onlineUsers = usePresenceCount("app", { deviceId });
-  const { settings, updateSettings } = useScoring();
+  const { settings } = useScoring();
   const { schedule, updateSchedule } = useRoundSchedule();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
@@ -310,8 +309,6 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
 
-
-  const [plantDays, setPlantDays] = useState<number | null>(null);
 
   const { createNewLocation: createEasy } = useActiveLocation(1);
   const { createNewLocation: createHard } = useActiveLocation(3);
