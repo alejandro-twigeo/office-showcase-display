@@ -148,29 +148,25 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
           </p>
         ) : (
           combined.map((entry, i) => (
-            <div key={entry.name} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50">
-              <div className="flex items-center justify-center w-6 shrink-0">
+            <div key={entry.name} className="flex items-center gap-1.5 py-1 px-1.5 rounded-md bg-secondary/50">
+              <div className="flex items-center justify-center w-5 shrink-0">
                 {getRankIcon(i + 1)}
               </div>
-              <div className="flex items-center gap-1 shrink-0 min-w-0">
-                <span className="text-lg shrink-0">{avatarMap.get(entry.name) ?? '👤'}</span>
-                <span className="font-medium text-[clamp(14px,1vw,18px)] break-all">
-                  {entry.name}
+              <span className="text-base shrink-0">{avatarMap.get(entry.name) ?? '👤'}</span>
+              <span className="font-medium text-[clamp(12px,0.9vw,16px)] truncate min-w-0">
+                {entry.name}
+              </span>
+              <div className="ml-auto shrink-0 text-right leading-tight">
+                <span className="text-[clamp(12px,0.9vw,16px)] font-mono text-accent font-semibold">
+                  {entry.total}
                 </span>
-              </div>
-              <div className="ml-auto shrink-0 text-right">
-                <span className="text-[clamp(14px,1vw,18px)] font-mono text-accent font-semibold">
-                  {entry.total} pts
-                </span>
-                <div className="flex items-center gap-1.5 text-[clamp(10px,0.7vw,12px)] text-muted-foreground">
+                <div className="flex items-center gap-1 text-[clamp(9px,0.6vw,11px)] text-muted-foreground">
                   <span className="inline-flex items-center gap-0.5">
-                    <Binoculars className="h-3 w-3 text-green-500" />{entry.easy}
-                    {entry.easyAttempt > 0 && <span className="opacity-70">(#{entry.easyAttempt})</span>}
+                    <Binoculars className="h-2.5 w-2.5 text-green-500" />{entry.easy}
                   </span>
                   <span>·</span>
                   <span className="inline-flex items-center gap-0.5">
-                    <Brain className="h-3 w-3 text-red-500" />{entry.hard}
-                    {entry.hardAttempt > 0 && <span className="opacity-70">(#{entry.hardAttempt})</span>}
+                    <Brain className="h-2.5 w-2.5 text-red-500" />{entry.hard}
                   </span>
                 </div>
               </div>
