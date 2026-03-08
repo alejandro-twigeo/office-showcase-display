@@ -61,12 +61,13 @@ function createPuzzle(solved: number[][], rng: () => number, removals: number): 
 
 interface SudokuGameProps {
   playerName: string;
+  roundId?: string;
 }
 
-export function SudokuGame({ playerName }: SudokuGameProps) {
+export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
-  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName);
+  const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
   const { solved, puzzle } = useMemo(() => {
