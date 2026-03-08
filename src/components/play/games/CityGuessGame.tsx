@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
-import { fetchMapillaryRound, type MapillaryImage } from '@/lib/mapillary';
+import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
 import { CheckCircle, MapPin, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
