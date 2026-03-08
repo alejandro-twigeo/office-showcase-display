@@ -53,7 +53,7 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
       <CardHeader className={dashboard ? "pb-1 pt-3 px-3 md:pb-3 md:pt-6 md:px-6" : "pb-1 pt-3 px-3"}>
         <CardTitle className={`flex items-center gap-1.5 ${dashboard ? "text-sm md:text-[clamp(20px,1.5vw,60px)]" : "text-sm"}`}>
           <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
-          {emoji} {title}
+          {emoji} {title} Leaderboard
         </CardTitle>
         <div className="flex items-center justify-between mt-1">
           <Button variant="ghost" size="icon" className="h-6 w-6"
