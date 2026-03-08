@@ -395,6 +395,8 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
         playerName={playerName}
         recentVideos={recentVideos}
         onBack={() => setSelectedPlaylist(null)}
+        onPlayNow={onPlayNow}
+        onAddToQueue={onAddToQueue}
       />
     );
   }
