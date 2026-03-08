@@ -118,26 +118,10 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
           GeoGuessr Leaderboard
         </CardTitle>
         {sortedRounds.length > 0 && (
-          <div className="flex items-center justify-between mt-1">
-            <Button
-              variant="ghost" size="icon" className="h-6 w-6"
-              onClick={() => setSelectedRoundIdx(i => i + 1)}
-              disabled={!canGoPrev}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs font-medium text-muted-foreground">
-              Round {selectedRound?.round_number ?? '?'}
-              {selectedRound?.is_active && ' (current)'}
-            </span>
-            <Button
-              variant="ghost" size="icon" className="h-6 w-6"
-              onClick={() => setSelectedRoundIdx(i => i - 1)}
-              disabled={!canGoNext}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <span className="text-xs font-medium text-muted-foreground mt-1">
+            Round {selectedRound?.round_number ?? '?'}
+            {selectedRound?.is_active && ' (current)'}
+          </span>
         )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}

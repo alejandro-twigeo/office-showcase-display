@@ -55,19 +55,24 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
           <Trophy className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,50px)] text-primary" />
           {emoji} {title} Leaderboard
         </CardTitle>
-        <div className="flex items-center justify-between mt-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6"
-            onClick={() => setDateIdx(i => i + 1)} disabled={!canGoPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs font-medium text-muted-foreground">
-            {selectedDate === todayDate() ? 'Today' : selectedDate}
-          </span>
-          <Button variant="ghost" size="icon" className="h-6 w-6"
-            onClick={() => setDateIdx(i => i - 1)} disabled={!canGoNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {!dashboard && (
+          <div className="flex items-center justify-between mt-1">
+            <Button variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setDateIdx(i => i + 1)} disabled={!canGoPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground">
+              {selectedDate === todayDate() ? 'Today' : selectedDate}
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6"
+              onClick={() => setDateIdx(i => i - 1)} disabled={!canGoNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        {dashboard && (
+          <span className="text-xs font-medium text-muted-foreground mt-1">Today</span>
+        )}
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
