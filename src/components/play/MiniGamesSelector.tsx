@@ -116,4 +116,5 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
       </CardContent>
     </Card>
   );
-}
+});
+
