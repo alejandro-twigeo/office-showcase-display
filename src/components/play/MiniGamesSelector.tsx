@@ -7,7 +7,7 @@ import { ThisOrThatGame } from './games/ThisOrThatGame';
 import { SudokuGame } from './games/SudokuGame';
 import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
-import { MinigameLeaderboard } from './MinigameLeaderboard';
+
 import { Gamepad2 } from 'lucide-react';
 import { useGameIcons } from '@/hooks/useGameIcons';
 
