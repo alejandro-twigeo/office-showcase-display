@@ -495,6 +495,7 @@ export type Database = {
           city_guess_max_attempts: number
           difficulty_weights: Json
           distance_parameter: number
+          game_icons: Json
           id: number
           labyrinth_max_points: number
           labyrinth_reset_penalty: number
@@ -518,6 +519,7 @@ export type Database = {
           city_guess_max_attempts?: number
           difficulty_weights?: Json
           distance_parameter?: number
+          game_icons?: Json
           id?: number
           labyrinth_max_points?: number
           labyrinth_reset_penalty?: number
@@ -541,6 +543,7 @@ export type Database = {
           city_guess_max_attempts?: number
           difficulty_weights?: Json
           distance_parameter?: number
+          game_icons?: Json
           id?: number
           labyrinth_max_points?: number
           labyrinth_reset_penalty?: number
