@@ -153,15 +153,16 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">🔢 Sudoku 6×6</CardTitle>
+      <CardHeader className="pb-1">
+        <CardTitle className="text-base flex items-center gap-2">🔢 Sudoku 6×6</CardTitle>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" /> {formatTime(elapsed)}
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex justify-center">
+      <CardContent className="space-y-2 px-3 pb-3">
+        {/* Grid + number pad in a compact layout */}
+        <div className="flex flex-col items-center gap-2">
           <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded">
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
@@ -173,7 +174,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-lg font-bold transition-colors
+                  className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center text-base sm:text-lg font-bold transition-colors
                     ${borderR} ${borderB}
                     ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer hover:bg-primary/10'}
                     ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}
@@ -184,24 +185,24 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
               );
             }))}
           </div>
-        </div>
 
-        {/* Number pad */}
-        <div className="flex justify-center gap-1.5">
-          {[1, 2, 3, 4, 5, 6].map(n => (
-            <Button key={n} variant="outline" size="sm" className="w-10 h-10 text-lg font-bold"
-              onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
-              {n}
+          {/* Number pad — compact row */}
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 4, 5, 6].map(n => (
+              <Button key={n} variant="outline" size="sm" className="w-9 h-9 sm:w-10 sm:h-10 text-base sm:text-lg font-bold p-0"
+                onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
+                {n}
+              </Button>
+            ))}
+            <Button variant="ghost" size="sm" className="w-9 h-9 sm:w-10 sm:h-10 text-sm p-0"
+              onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
+              ✕
             </Button>
-          ))}
-          <Button variant="ghost" size="sm" className="w-10 h-10 text-sm"
-            onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
-            ✕
-          </Button>
+          </div>
         </div>
 
         {done && (
-          <div className="text-center py-2">
+          <div className="text-center py-1">
             <p className="font-semibold text-primary">🎉 Solved in {formatTime(elapsed)}!</p>
           </div>
         )}
