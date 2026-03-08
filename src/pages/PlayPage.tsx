@@ -83,11 +83,12 @@ export default function PlayPage() {
       {/* Content */}
       <main className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto px-2 sm:px-4 py-4">
         {/* Tab buttons */}
-        <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-lg mb-4 lg:max-w-4xl">
+        <div className="grid grid-cols-5 gap-1 bg-muted p-1 rounded-lg mb-4 lg:max-w-4xl">
           {([
             { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
             { value: 'youtube' as const, icon: Youtube, label: 'Music' },
+            { value: 'news' as const, icon: Newspaper, label: 'News' },
             { value: 'vibes' as const, icon: Heart, label: 'Vibes' },
           ]).map(({ value, icon: Icon, label }) => (
             <button
