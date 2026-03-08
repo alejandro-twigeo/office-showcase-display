@@ -15,7 +15,7 @@ import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
-import { MiniGamesSelector } from "./MiniGamesSelector";
+import { MiniGamesSelector, type MiniGamesSelectorHandle } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
 import { usePresenceCount } from "@/hooks/usePresenceCount";
