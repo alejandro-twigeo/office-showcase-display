@@ -174,7 +174,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
         {attemptsLeft > 0 && (
           <>
-            <div ref={mapRef} className="h-48 rounded-lg border" />
+            <div ref={mapRef} className="h-48 sm:h-56 rounded-lg border z-0" />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit Guess ({attemptsLeft} left)
             </Button>
