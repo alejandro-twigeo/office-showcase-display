@@ -158,8 +158,8 @@ export function UsageAnalytics() {
     // Use the total across the range
     return dayStats.reduce((s, d) => s + d.uniqueVisitors, 0);
   })();
-  const totalDays = dayStats.length || 1;
-  const avgVisitorsPerDay = Math.round(totalUniqueVisitors / totalDays * 10) / 10;
+  const daysWithData = dayStats.filter(d => d.uniqueVisitors > 0).length || 1;
+  const avgVisitorsPerDay = Math.round(totalUniqueVisitors / daysWithData * 10) / 10;
   const totalVisits = dayStats.reduce((s, d) => s + d.totalVisits, 0);
   const avgVisitsPerPerson = totalUniqueVisitors > 0
     ? Math.round((totalVisits / totalUniqueVisitors) * 10) / 10
