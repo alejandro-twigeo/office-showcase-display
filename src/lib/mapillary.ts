@@ -109,6 +109,51 @@ const TILE_SPREAD: Record<Difficulty, number> = {
   3: 8,
 };
 
+/* ── City-scoped fetch (for City Guess game) ─────────────── */
+export async function fetchMapillaryCity(
+  lat: number,
+  lng: number,
+  maxRetries = 10,
+): Promise<MapillaryImage> {
+  const token = await getToken();
+  let lastErr: unknown;
+  const { x: cx, y: cy } = lngLatToTile(lng, lat, TILE_ZOOM);
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Search nearby tiles (spread of ±2 tiles around center)
+      const spread = 2;
+      const tilesToTry = Array.from({ length: 6 }, () => ({
+        x: cx + Math.floor(Math.random() * (spread * 2 + 1)) - spread,
+        y: cy + Math.floor(Math.random() * (spread * 2 + 1)) - spread,
+      }));
+      // Always include the center tile
+      tilesToTry.unshift({ x: cx, y: cy });
+
+      const allImages: TileImage[] = [];
+      const results = await Promise.all(
+        tilesToTry.map((t) => fetchTileImages(token, t.x, t.y))
+      );
+      for (const imgs of results) allImages.push(...imgs);
+
+      if (allImages.length === 0) continue;
+
+      const shuffled = allImages.sort(() => Math.random() - 0.5).slice(0, 5);
+      for (const img of shuffled) {
+        const thumbUrl = await fetchThumbUrl(token, img.id);
+        if (thumbUrl) {
+          return { id: img.id, lat: img.lat, lng: img.lng, thumb_url: thumbUrl };
+        }
+      }
+    } catch (e) {
+      lastErr = e;
+      console.warn(`City Mapillary attempt ${attempt + 1} failed:`, e);
+    }
+  }
+
+  throw lastErr ?? new Error("No Mapillary images found for this city");
+}
+
 /* ── Public entry point ──────────────────────────────────── */
 export async function fetchMapillaryRound(
   difficulty: Difficulty,

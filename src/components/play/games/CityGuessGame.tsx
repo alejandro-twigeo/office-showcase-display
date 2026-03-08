@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
-import { fetchMapillaryRound, type MapillaryImage } from '@/lib/mapillary';
+import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
 import { CheckCircle, MapPin, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -51,7 +51,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     setSelectedCity(city);
     setLoading(true);
     try {
-      const img = await fetchMapillaryRound(1); // Easy difficulty within city
+      const img = await fetchMapillaryCity(city.lat, city.lng);
       setImage(img);
     } catch (e) {
       console.error('Failed to load city image', e);
@@ -174,7 +174,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
         {attemptsLeft > 0 && (
           <>
-            <div ref={mapRef} className="h-48 rounded-lg border" />
+            <div ref={mapRef} className="h-48 sm:h-56 rounded-lg border z-0" />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit Guess ({attemptsLeft} left)
             </Button>
