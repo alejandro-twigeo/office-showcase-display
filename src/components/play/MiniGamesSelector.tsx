@@ -85,18 +85,15 @@ export function MiniGamesSelector({ playerName, onGameChange }: MiniGamesSelecto
         <p className="text-xs text-muted-foreground">Pick a game to play</p>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {MINI_GAMES.map((game) => (
             <button
               key={game.id}
               onClick={() => selectGame(game.id)}
-              className="flex items-center gap-3 p-3 rounded-lg border bg-secondary/30 hover:bg-secondary/60 transition-colors text-left"
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center aspect-square justify-center"
             >
-              <span className="text-2xl">{game.emoji}</span>
-              <div>
-                <p className="font-medium text-sm">{game.name}</p>
-                <p className="text-xs text-muted-foreground">{game.description}</p>
-              </div>
+              <span className="text-3xl">{game.emoji}</span>
+              <p className="font-medium text-xs leading-tight">{game.name}</p>
             </button>
           ))}
         </div>
