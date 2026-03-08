@@ -14,6 +14,8 @@ import {
 interface PlaylistsPanelProps {
   playerName: string;
   recentVideos: YouTubeVideo[];
+  onPlayNow?: (videoId: string) => void;
+  onAddToQueue?: (videoId: string) => void;
 }
 
 /* ── Inner: items view for a single playlist ─────────────────────────────── */
