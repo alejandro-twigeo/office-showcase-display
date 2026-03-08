@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, User, ListMusic } from "lucide-react";
+import { Youtube, ListMusic } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -204,15 +204,9 @@ export function YouTubeDisplay() {
                     className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
                   />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
-                    {currentVideo.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-[clamp(13px,0.9vw,18px)] text-muted-foreground">
-                    <User className="h-[clamp(14px,0.9vw,18px)] w-[clamp(14px,0.9vw,18px)]" />
-                    <span>Queued by {currentVideo.queued_by}</span>
-                  </div>
-                </div>
+                <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
+                  {currentVideo.title}
+                </h4>
               </div>
             )}
           </div>
@@ -247,9 +241,6 @@ export function YouTubeDisplay() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[clamp(12px,0.85vw,16px)] font-medium line-clamp-2 leading-tight">
                           {i + 1}. {item.title}
-                        </p>
-                        <p className="text-[clamp(10px,0.7vw,13px)] text-muted-foreground mt-0.5">
-                          {item.queued_by}
                         </p>
                       </div>
                     </div>

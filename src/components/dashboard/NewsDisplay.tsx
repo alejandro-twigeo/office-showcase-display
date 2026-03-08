@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Newspaper, ExternalLink } from "lucide-react";
 import { useDailyNews, NewsItem } from "@/hooks/useDailyNews";
 
@@ -9,14 +10,21 @@ const CYCLE_MS = 10_000;
 export function NewsDisplay() {
   const { news, isLoading } = useDailyNews();
   const [index, setIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   const items: NewsItem[] = news?.items ?? [];
 
   useEffect(() => {
     if (items.length <= 1) return;
     const t = setInterval(() => {
-      setIndex((i) => (i + 1) % items.length);
-    }, CYCLE_MS);
+      setElapsed((e) => {
+        if (e + 1000 >= CYCLE_MS) {
+          setIndex((i) => (i + 1) % items.length);
+          return 0;
+        }
+        return e + 1000;
+      });
+    }, 1000);
     return () => clearInterval(t);
   }, [items.length]);
 
@@ -56,6 +64,9 @@ export function NewsDisplay() {
           </div>
         ) : (
           <div className="space-y-[clamp(8px,0.8vw,16px)]">
+            {items.length > 1 && (
+              <Progress value={(elapsed / CYCLE_MS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
+            )}
             <div className="flex items-start gap-2">
               <Badge variant="secondary" className="shrink-0 text-[clamp(10px,0.7vw,14px)]">
                 {item.audience}
