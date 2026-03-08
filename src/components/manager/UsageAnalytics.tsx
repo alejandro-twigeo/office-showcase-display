@@ -45,11 +45,12 @@ export function UsageAnalytics() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const sinceStr = fromDate.toISOString();
-      const untilDate = new Date(toDate);
-      untilDate.setHours(23, 59, 59, 999);
-      const untilStr = untilDate.toISOString();
-      const sinceDateStr = sinceStr.slice(0, 10);
+      // Use date strings for date-column queries, and wide UTC range for timestamp queries
+      const fromStr = format(fromDate, 'yyyy-MM-dd');
+      const toStr = format(toDate, 'yyyy-MM-dd');
+      // For timestamp columns, use a wide range to cover all timezones
+      const sinceStr = fromStr + 'T00:00:00.000Z';
+      const untilStr = toStr + 'T23:59:59.999Z';
 
       // Fetch visit logs + game activity in parallel to build complete visitor picture
       const [{ data: visits }, { data: minigameData }, { data: wordleData }, { data: guessData }] = await Promise.all([
@@ -62,8 +63,8 @@ export function UsageAnalytics() {
         supabase
           .from('minigame_scores')
           .select('game_id, player_name, date')
-          .gte('date', sinceDateStr)
-          .lte('date', untilStr.slice(0, 10)),
+          .gte('date', fromStr)
+          .lte('date', toStr),
         supabase
           .from('wordle_scores')
           .select('player_name, created_at')
@@ -111,7 +112,7 @@ export function UsageAnalytics() {
       setTotalUniqueDevices(allUsers.size);
       setTotalVisitsCount(allVisits);
 
-      const dayCount = Math.max(1, Math.round((untilDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const dayCount = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
       for (let i = 0; i < dayCount; i++) {
         const d = new Date(fromDate);
@@ -277,10 +278,7 @@ export function UsageAnalytics() {
                 {dayStats.map((d) => (
                   <div key={d.date} className="flex-1 text-center">
                     <span className="text-[8px] text-muted-foreground">
-                      {dayStats.length <= 14
-                        ? new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' })
-                        : new Date(d.date + 'T12:00:00').getDate()
-                      }
+                      {new Date(d.date + 'T12:00:00').getDate()}/{new Date(d.date + 'T12:00:00').getMonth() + 1}
                     </span>
                   </div>
                 ))}
