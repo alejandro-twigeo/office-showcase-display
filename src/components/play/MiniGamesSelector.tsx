@@ -30,6 +30,7 @@ const MINI_GAMES: MiniGame[] = [
 interface MiniGamesSelectorProps {
   playerName: string;
   onGameChange?: (gameId: string | null) => void;
+  roundId?: string;
 }
 
 export interface MiniGamesSelectorHandle {
