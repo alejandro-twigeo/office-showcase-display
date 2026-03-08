@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
 
-type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes';
+type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
 
 export default function PlayPage() {
   const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
