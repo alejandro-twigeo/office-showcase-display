@@ -22,6 +22,8 @@ interface GameStat {
 export function UsageAnalytics() {
   const [dayStats, setDayStats] = useState<DayStat[]>([]);
   const [gameStats, setGameStats] = useState<GameStat[]>([]);
+  const [totalUniqueDevices, setTotalUniqueDevices] = useState(0);
+  const [totalVisitsCount, setTotalVisitsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [fromDate, setFromDate] = useState<Date>(() => {
@@ -58,12 +60,19 @@ export function UsageAnalytics() {
 
       const byDate = new Map<string, Set<string>>();
       const countByDate = new Map<string, number>();
+      const allDevices = new Set<string>();
+      let allVisits = 0;
       for (const v of (visits || [])) {
         const d = v.visited_at.slice(0, 10);
         if (!byDate.has(d)) byDate.set(d, new Set());
         byDate.get(d)!.add(v.device_id);
         countByDate.set(d, (countByDate.get(d) || 0) + 1);
+        allDevices.add(v.device_id);
+        allVisits++;
       }
+
+      setTotalUniqueDevices(allDevices.size);
+      setTotalVisitsCount(allVisits);
 
       const dayCount = Math.max(1, Math.round((untilDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
@@ -152,17 +161,10 @@ export function UsageAnalytics() {
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const totalUniqueVisitors = (() => {
-    const allDevices = new Set<string>();
-    // We need to re-aggregate from dayStats which only has counts, not device sets
-    // Use the total across the range
-    return dayStats.reduce((s, d) => s + d.uniqueVisitors, 0);
-  })();
   const daysWithData = dayStats.filter(d => d.uniqueVisitors > 0).length || 1;
-  const avgVisitorsPerDay = Math.round(totalUniqueVisitors / daysWithData * 10) / 10;
-  const totalVisits = dayStats.reduce((s, d) => s + d.totalVisits, 0);
-  const avgVisitsPerPerson = totalUniqueVisitors > 0
-    ? Math.round((totalVisits / totalUniqueVisitors) * 10) / 10
+  const avgVisitorsPerDay = Math.round(totalUniqueDevices / daysWithData * 10) / 10;
+  const avgVisitsPerPerson = totalUniqueDevices > 0
+    ? Math.round((totalVisitsCount / totalUniqueDevices) * 10) / 10
     : 0;
 
   return (
@@ -218,7 +220,7 @@ export function UsageAnalytics() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border bg-secondary/30 p-2 text-center">
                 <Users className="h-4 w-4 mx-auto mb-1 text-primary" />
-                <p className="text-lg font-bold">{totalUniqueVisitors}</p>
+                <p className="text-lg font-bold">{totalUniqueDevices}</p>
                 <p className="text-[10px] text-muted-foreground">Total visitors</p>
               </div>
               <div className="rounded-lg border bg-secondary/30 p-2 text-center">
