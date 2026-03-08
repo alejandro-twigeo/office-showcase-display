@@ -199,5 +199,18 @@ export function useVotes(pollId: string | undefined) {
     },
   });
 
-  return { votes, isLoading, submitVote };
+  const updateVote = useMutation({
+    mutationFn: async ({ voteId, option_index }: { voteId: string; option_index: number }) => {
+      const { error } = await supabase
+        .from('votes')
+        .update({ option_index })
+        .eq('id', voteId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['votes', pollId] });
+    },
+  });
+
+  return { votes, isLoading, submitVote, updateVote };
 }
