@@ -3,16 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
+import { usePrivateQueue } from "@/hooks/usePrivateQueue";
 import { PlaylistsPanel } from "@/components/play/PlaylistsPanel";
+import { PrivatePlayer } from "@/components/play/PrivatePlayer";
 import {
   Youtube, Play, ListMusic, Search, Trash2, Clock, User,
   GripVertical, Heart, ChevronLeft, ChevronRight, ListPlus,
-  CheckSquare, Square, X, BookMarked,
+  CheckSquare, Square, X, BookMarked, Headphones, Radio,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
 type YTTab = "queue" | "history" | "playlists";
+type MusicMode = "private" | "live";
 
 interface YouTubeSectionProps {
   playerName: string;
@@ -30,11 +33,22 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
+function getModeFromStorage(): MusicMode {
+  return (localStorage.getItem("music-mode") as MusicMode) || "private";
+}
+
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
+  const [mode, setMode] = useState<MusicMode>(getModeFromStorage);
+
+  const liveQueue = useYoutubeQueue();
+  const privateQueue = usePrivateQueue();
+
+  const q = mode === "live" ? liveQueue : privateQueue;
+
   const {
     currentVideo, queue, recentVideos,
     playNow, addToQueue, removeFromQueue, reorderQueue, toggleFavorite,
-  } = useYoutubeQueue();
+  } = q;
 
   const [videoUrl, setVideoUrl] = useState("");
   const [localQueue, setLocalQueue] = useState<typeof queue | null>(null);
@@ -53,6 +67,15 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
   const totalPages = Math.ceil(recentVideos.length / PAGE_SIZE);
   const pageVideos = recentVideos.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE);
+
+  const switchMode = (m: MusicMode) => {
+    setMode(m);
+    localStorage.setItem("music-mode", m);
+    setLocalQueue(null);
+    setActiveTab("queue");
+    setHistoryPage(0);
+    setSelected(new Set());
+  };
 
   /* ── URL submit ─────────────────────────────────── */
   const handlePlayNow = () => {
@@ -78,10 +101,8 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const handleDragEnd = () => {
     setDraggingIdx(null); setOverIdx(null);
     if (localQueue) {
-      reorderQueue.mutate(localQueue.map((v) => v.id), {
-        onSuccess: () => setLocalQueue(null),
-        onError: () => setLocalQueue(null),
-      });
+      reorderQueue.mutate(localQueue.map((v) => v.id));
+      setLocalQueue(null);
     }
     dragIndex.current = null;
   };
@@ -107,6 +128,14 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const handleFavourite = (id: string, current: boolean) =>
     toggleFavorite.mutate({ id, is_favorite: !current });
 
+  /* ── Playlist callbacks for routing to active queue ── */
+  const handlePlaylistPlayNow = (vid: string) => {
+    playNow.mutate({ video_id: vid, queued_by: playerName });
+  };
+  const handlePlaylistAddToQueue = (vid: string) => {
+    addToQueue.mutate({ video_id: vid, queued_by: playerName });
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -117,12 +146,53 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Now Playing */}
-        {currentVideo && (
+        {/* Mode toggle */}
+        <div className="flex gap-1 p-1 rounded-lg bg-muted">
+          <button
+            onClick={() => switchMode("private")}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+              mode === "private"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Headphones className="h-4 w-4" />
+            My Music
+          </button>
+          <button
+            onClick={() => switchMode("live")}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+              mode === "live"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Radio className="h-4 w-4" />
+            Live Share
+          </button>
+        </div>
+
+        {/* Mode description */}
+        <p className="text-xs text-muted-foreground text-center">
+          {mode === "private"
+            ? "🎧 Playing on this device only — won't affect others"
+            : "📡 Shared queue — syncs with the TV dashboard and other users"}
+        </p>
+
+        {/* Private player */}
+        {mode === "private" && (
+          <PrivatePlayer
+            videoId={currentVideo?.video_id}
+            onEnded={() => privateQueue.advanceQueue.mutate(currentVideo?.id)}
+          />
+        )}
+
+        {/* Now Playing (live mode) */}
+        {mode === "live" && currentVideo && (
           <div className="bg-secondary/30 rounded-lg p-3 border border-border">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Play className="h-3 w-3 fill-current text-primary" />
-              <span className="text-primary font-medium">Now Playing</span>
+              <span className="text-primary font-medium">Now Playing on TV</span>
               <button
                 onClick={() => handleFavourite(currentVideo.id, currentVideo.is_favorite)}
                 className="ml-auto"
@@ -137,6 +207,24 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
             </div>
             <p className="font-medium line-clamp-1 text-sm">{currentVideo.title}</p>
             <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
+          </div>
+        )}
+
+        {/* Now Playing info (private mode) */}
+        {mode === "private" && currentVideo && (
+          <div className="flex items-center gap-2">
+            <Play className="h-3 w-3 fill-current text-primary shrink-0" />
+            <p className="font-medium line-clamp-1 text-sm flex-1">{currentVideo.title}</p>
+            <button
+              onClick={() => handleFavourite(currentVideo.id, currentVideo.is_favorite)}
+              aria-label="Toggle favourite"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${
+                  currentVideo.is_favorite ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"
+                }`}
+              />
+            </button>
           </div>
         )}
 
@@ -235,17 +323,15 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                         }`}
                       />
                     </button>
-                    {video.queued_by === playerName && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
-                        onClick={() => removeFromQueue.mutate(video.id)}
-                        aria-label="Remove from queue"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                      onClick={() => removeFromQueue.mutate(video.id)}
+                      aria-label="Remove from queue"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -399,7 +485,12 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
         {/* Playlists tab */}
         {activeTab === "playlists" && (
-          <PlaylistsPanel playerName={playerName} recentVideos={recentVideos} />
+          <PlaylistsPanel
+            playerName={playerName}
+            recentVideos={recentVideos}
+            onPlayNow={handlePlaylistPlayNow}
+            onAddToQueue={handlePlaylistAddToQueue}
+          />
         )}
       </CardContent>
     </Card>
