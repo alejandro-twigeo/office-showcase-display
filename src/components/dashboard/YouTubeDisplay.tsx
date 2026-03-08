@@ -17,8 +17,10 @@ declare global {
 }
 
 type YTPlayer = {
-  loadVideoById: (videoId: string) => void;
+  loadVideoById: (videoId: string, startSeconds?: number) => void;
   playVideo: () => void;
+  getCurrentTime: () => number;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   setSize: (width: number, height: number) => void;
   destroy: () => void;
 };
