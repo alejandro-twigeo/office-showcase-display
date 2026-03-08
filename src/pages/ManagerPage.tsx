@@ -13,6 +13,7 @@ import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceCount } from '@/hooks/usePresenceCount';
 import { useGameIcons } from '@/hooks/useGameIcons';
 import { fetchMapillaryRound } from '@/lib/mapillary';
+import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
 
 const MINI_GAMES = [
   { id: 'wordle', name: 'Wordle', emoji: '🟩' },
@@ -390,6 +391,9 @@ export default function ManagerPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Usage Analytics */}
+        <UsageAnalytics />
 
         {/* Info */}
         <p className="text-xs text-muted-foreground text-center">

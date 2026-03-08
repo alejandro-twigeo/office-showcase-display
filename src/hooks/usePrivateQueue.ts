@@ -43,6 +43,7 @@ function makeVideo(
     queued_at: new Date().toISOString(),
     status,
     channel_title: null,
+    current_time_seconds: null,
   };
 }
 

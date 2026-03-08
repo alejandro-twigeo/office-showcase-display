@@ -573,6 +573,24 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_logs: {
+        Row: {
+          device_id: string
+          id: string
+          visited_at: string
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          visited_at?: string
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          visited_at?: string
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           created_at: string | null
