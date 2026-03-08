@@ -152,16 +152,17 @@ export function UsageAnalytics() {
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayStat = dayStats.find(d => d.date === todayStr);
-  const daysWithVisitors = dayStats.filter(d => d.uniqueVisitors > 0);
-  const avgVisitorsPerDay = daysWithVisitors.length > 0
-    ? Math.round(daysWithVisitors.reduce((s, d) => s + d.uniqueVisitors, 0) / daysWithVisitors.length * 10) / 10
-    : 0;
-  const avgVisitsPerPerson = daysWithVisitors.length > 0
-    ? Math.round(
-        daysWithVisitors.reduce((s, d) => s + (d.uniqueVisitors > 0 ? d.totalVisits / d.uniqueVisitors : 0), 0)
-        / daysWithVisitors.length * 10
-      ) / 10
+  const totalUniqueVisitors = (() => {
+    const allDevices = new Set<string>();
+    // We need to re-aggregate from dayStats which only has counts, not device sets
+    // Use the total across the range
+    return dayStats.reduce((s, d) => s + d.uniqueVisitors, 0);
+  })();
+  const totalDays = dayStats.length || 1;
+  const avgVisitorsPerDay = Math.round(totalUniqueVisitors / totalDays * 10) / 10;
+  const totalVisits = dayStats.reduce((s, d) => s + d.totalVisits, 0);
+  const avgVisitsPerPerson = totalUniqueVisitors > 0
+    ? Math.round((totalVisits / totalUniqueVisitors) * 10) / 10
     : 0;
 
   return (
