@@ -115,7 +115,7 @@ export function useMinigameTodayScore(gameId: string, playerName: string) {
         .eq('date', todayDate())
         .eq('player_name', playerName)
         .maybeSingle();
-      return data as MinigameScoreRow | null;
+      return data as unknown as MinigameScoreRow | null;
     },
     enabled: !!playerName,
   });
