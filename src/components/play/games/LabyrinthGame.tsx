@@ -6,11 +6,31 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
-const MAZE_SIZE = 15; // odd number for walls + paths
+const MAZE_SIZE = 19; // odd number for walls + paths
 
 type Cell = 'wall' | 'path' | 'start' | 'end';
 
-/** Generate maze using recursive backtracker, then open extra walls for multiple paths */
+/** BFS shortest path length between two cells */
+function bfsDistance(grid: Cell[][], sr: number, sc: number, er: number, ec: number): number {
+  const size = grid.length;
+  const visited = Array.from({ length: size }, () => Array(size).fill(false));
+  const queue: [number, number, number][] = [[sr, sc, 0]];
+  visited[sr][sc] = true;
+  while (queue.length > 0) {
+    const [r, c, d] = queue.shift()!;
+    if (r === er && c === ec) return d;
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc] && grid[nr][nc] !== 'wall') {
+        visited[nr][nc] = true;
+        queue.push([nr, nc, d + 1]);
+      }
+    }
+  }
+  return -1;
+}
+
+/** Generate maze using recursive backtracker, add dead-end extensions and branching */
 function generateMaze(size: number, rng: () => number): Cell[][] {
   const grid: Cell[][] = Array.from({ length: size }, () => Array(size).fill('wall'));
 
@@ -29,23 +49,53 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
 
   carve(1, 1);
 
-  // Open extra walls to create multiple possible paths (≈15% of interior walls)
+  // Open ~8% of interior walls to create branching / misleading forks
   const interiorWalls: [number, number][] = [];
   for (let r = 2; r < size - 2; r++) {
     for (let c = 2; c < size - 2; c++) {
       if (grid[r][c] === 'wall') {
-        // Only open walls that connect two path cells (horizontally or vertically)
-        const hConnect = r > 0 && r < size - 1 && grid[r - 1][c] !== 'wall' && grid[r + 1][c] !== 'wall';
-        const vConnect = c > 0 && c < size - 1 && grid[r][c - 1] !== 'wall' && grid[r][c + 1] !== 'wall';
+        const hConnect = grid[r - 1]?.[c] !== 'wall' && grid[r + 1]?.[c] !== 'wall';
+        const vConnect = grid[r]?.[c - 1] !== 'wall' && grid[r]?.[c + 1] !== 'wall';
         if (hConnect || vConnect) interiorWalls.push([r, c]);
       }
     }
   }
   interiorWalls.sort(() => rng() - 0.5);
-  const toOpen = Math.floor(interiorWalls.length * 0.05);
+  const toOpen = Math.floor(interiorWalls.length * 0.08);
   for (let i = 0; i < toOpen; i++) {
     const [r, c] = interiorWalls[i];
     grid[r][c] = 'path';
+  }
+
+  // Extend some dead-ends by 1 cell to create misleading turns
+  for (let r = 2; r < size - 2; r++) {
+    for (let c = 2; c < size - 2; c++) {
+      if (grid[r][c] !== 'wall') {
+        // Count path neighbours
+        let neighbours = 0;
+        for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+          if (grid[r+dr]?.[c+dc] !== 'wall') neighbours++;
+        }
+        // Dead-end: only 1 neighbour — try to extend into an adjacent wall
+        if (neighbours === 1 && rng() < 0.4) {
+          const dirs = [[-1,0],[1,0],[0,-1],[0,1]].sort(() => rng() - 0.5);
+          for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr > 0 && nr < size - 1 && nc > 0 && nc < size - 1 && grid[nr][nc] === 'wall') {
+              // Only extend if it stays a dead-end (doesn't connect to other paths)
+              let adjPaths = 0;
+              for (const [dr2, dc2] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                if (grid[nr+dr2]?.[nc+dc2] !== 'wall') adjPaths++;
+              }
+              if (adjPaths <= 1) {
+                grid[nr][nc] = 'path';
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
   }
 
   grid[1][1] = 'start';
