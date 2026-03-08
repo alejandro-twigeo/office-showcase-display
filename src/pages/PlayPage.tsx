@@ -5,6 +5,7 @@ import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
+import { NewsSection } from '../components/play/NewsSection';
 import { Leaderboard } from '../components/dashboard/Leaderboard';
 import { WordleLeaderboard } from '../components/play/WordleLeaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
