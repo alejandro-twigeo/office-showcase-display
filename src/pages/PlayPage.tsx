@@ -12,7 +12,7 @@ import { MinigameLeaderboard } from '../components/play/MinigameLeaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper } from 'lucide-react';
+import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
@@ -96,6 +96,13 @@ export default function PlayPage() {
                 >
                   <UserCog className="h-4 w-4" />
                   Edit Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => navigate('/manager')}
+                >
+                  <Shield className="h-4 w-4" />
+                  Manager Mode
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive gap-2"

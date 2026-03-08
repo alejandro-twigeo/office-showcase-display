@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { PollRotationProvider } from "./contexts/pollRotation";
 import Dashboard from "./pages/Dashboard";
 import PlayPage from "./pages/PlayPage";
+import ManagerPage from "./pages/ManagerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/tv" element={<Dashboard />} />
           <Route path="/play" element={<PlayPage />} />
+          <Route path="/manager" element={<ManagerPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </HashRouter>

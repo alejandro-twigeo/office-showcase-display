@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, Trophy, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
+import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoundSchedule } from "@/hooks/useRoundSchedule";
@@ -14,7 +14,7 @@ import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { fetchMapillaryRound } from "@/lib/mapillary";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useScoring, calculateScore, formatScoreDisplay, type DifficultyWeights, type ScoringSettings } from "@/hooks/useScoring";
+import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
 import { MiniGamesSelector } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
@@ -301,8 +301,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
 export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
   const deviceId = useDeviceId();
-  const onlineUsers = usePresenceCount("app", { deviceId });
-  const { settings, updateSettings } = useScoring();
+  const { settings } = useScoring();
   const { schedule, updateSchedule } = useRoundSchedule();
   const creatingRef = useRef(false);
   const [isCreatingRound, setIsCreatingRound] = useState(false);
@@ -310,110 +309,6 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
   const [actionPassword, setActionPassword] = useState('');
   const [actionError, setActionError] = useState('');
 
-  // Scoring popup state
-  const [scoringOpen, setScoringOpen] = useState(false);
-  const [scoringPassword, setScoringPassword] = useState('');
-  const [scoringUnlocked, setScoringUnlocked] = useState(false);
-  const [scoringError, setScoringError] = useState('');
-  const [editDistParam, setEditDistParam] = useState(String(settings.distance_parameter));
-  const [editMultipliers, setEditMultipliers] = useState(settings.attempt_multipliers.map(String));
-  const [editWeights, setEditWeights] = useState<DifficultyWeights>(settings.difficulty_weights);
-  const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
-  const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState(settings.wordle_attempt_points.map(String));
-
-  // Mini game settings edit state
-  const [editCityDistParam, setEditCityDistParam] = useState('200');
-  const [editCityMaxAttempts, setEditCityMaxAttempts] = useState('3');
-  const [editTotPtsPerQ, setEditTotPtsPerQ] = useState('5');
-  const [editTotStreak, setEditTotStreak] = useState('0.2');
-  const [editSudokuMax, setEditSudokuMax] = useState('100');
-  const [editSudokuTime, setEditSudokuTime] = useState('300');
-  const [editPairsMax, setEditPairsMax] = useState('100');
-  const [editPairsTime, setEditPairsTime] = useState('120');
-  const [editPairsMovePen, setEditPairsMovePen] = useState('2');
-  const [editLabMax, setEditLabMax] = useState('100');
-  const [editLabTime, setEditLabTime] = useState('60');
-  const [editLabResetPen, setEditLabResetPen] = useState('5');
-
-  const [plantDays, setPlantDays] = useState<number | null>(null);
-  const [plantDaysLoading, setPlantDaysLoading] = useState(false);
-
-  useEffect(() => {
-    setEditDistParam(String(settings.distance_parameter));
-    setEditMultipliers(settings.attempt_multipliers.map(String));
-    setEditWeights(settings.difficulty_weights);
-    setEditWordlePoints(String(settings.wordle_points));
-    setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
-  }, [settings]);
-
-  // Fetch mini game settings for edit
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('scoring_settings' as never)
-        .select('city_guess_distance_param, city_guess_max_attempts, thisorthat_points_per_q, thisorthat_streak_bonus, sudoku_max_points, sudoku_time_param, pairs_max_points, pairs_time_param, pairs_move_penalty, labyrinth_max_points, labyrinth_time_param, labyrinth_reset_penalty')
-        .eq('id', 1).single();
-      if (data) {
-        const d = data as any;
-        setEditCityDistParam(String(d.city_guess_distance_param ?? 200));
-        setEditCityMaxAttempts(String(d.city_guess_max_attempts ?? 3));
-        setEditTotPtsPerQ(String(d.thisorthat_points_per_q ?? 5));
-        setEditTotStreak(String(d.thisorthat_streak_bonus ?? 0.2));
-        setEditSudokuMax(String(d.sudoku_max_points ?? 100));
-        setEditSudokuTime(String(d.sudoku_time_param ?? 300));
-        setEditPairsMax(String(d.pairs_max_points ?? 100));
-        setEditPairsTime(String(d.pairs_time_param ?? 120));
-        setEditPairsMovePen(String(d.pairs_move_penalty ?? 2));
-        setEditLabMax(String(d.labyrinth_max_points ?? 100));
-        setEditLabTime(String(d.labyrinth_time_param ?? 60));
-        setEditLabResetPen(String(d.labyrinth_reset_penalty ?? 5));
-      }
-    })();
-  }, [scoringOpen]);
-
-  useEffect(() => {
-    if (!scoringOpen) return;
-    let active = true;
-
-    const fetchPlantDays = async () => {
-      setPlantDaysLoading(true);
-      const { data, error } = await (supabase as any)
-        .from("plants")
-        .select("last_watered_at")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      setPlantDaysLoading(false);
-      if (error) {
-        console.error("Failed to fetch plant for scoring popup:", error);
-        return;
-      }
-
-      const last = data?.last_watered_at ? new Date(data.last_watered_at) : null;
-      if (!active) return;
-      setPlantDays(last ? Math.floor((Date.now() - last.getTime()) / (1000 * 60 * 60 * 24)) : null);
-    };
-
-    fetchPlantDays();
-
-    // subscribe to plant updates so the days counter refreshes when watered
-    try {
-      const ch = (supabase as any)
-        .channel('public:plants:scoring')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'plants' }, () => {
-          void fetchPlantDays();
-        })
-        .subscribe();
-
-      return () => {
-        active = false;
-        try { ch.unsubscribe(); } catch (_) { /* noop */ }
-      };
-    } catch (e) {
-      // if realtime subscription isn't available, just rely on the single fetch
-      return () => { active = false; };
-    }
-  }, [scoringOpen]);
 
   const { createNewLocation: createEasy } = useActiveLocation(1);
   const { createNewLocation: createHard } = useActiveLocation(3);
@@ -474,41 +369,8 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
     setActionError('');
   };
 
-  const handleScoringPasswordConfirm = () => {
-    if (scoringPassword !== '5678') { setScoringError('Wrong password'); return; }
-    setScoringUnlocked(true);
-    setScoringError('');
-  };
 
-  const handleSaveScoringSettings = async () => {
-    const distParam = parseFloat(editDistParam);
-    const multipliers = editMultipliers.map(Number);
-    const wp = parseInt(editWordlePoints);
-    const wap = editWordleAttemptPoints.map(Number);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
-    updateSettings.mutate({
-      distance_parameter: distParam,
-      attempt_multipliers: multipliers,
-      difficulty_weights: editWeights,
-      wordle_points: wp,
-      wordle_attempt_points: wap,
-    });
-    // Save mini game settings separately
-    await supabase.from('scoring_settings' as never).update({
-      city_guess_distance_param: parseFloat(editCityDistParam),
-      city_guess_max_attempts: parseInt(editCityMaxAttempts),
-      thisorthat_points_per_q: parseInt(editTotPtsPerQ),
-      thisorthat_streak_bonus: parseFloat(editTotStreak),
-      sudoku_max_points: parseInt(editSudokuMax),
-      sudoku_time_param: parseInt(editSudokuTime),
-      pairs_max_points: parseInt(editPairsMax),
-      pairs_time_param: parseInt(editPairsTime),
-      pairs_move_penalty: parseInt(editPairsMovePen),
-      labyrinth_max_points: parseInt(editLabMax),
-      labyrinth_time_param: parseInt(editLabTime),
-      labyrinth_reset_penalty: parseInt(editLabResetPen),
-    } as never).eq('id', 1);
-  };
+
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
@@ -523,174 +385,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
           <Target className="h-5 w-5 text-primary" />
           Make Your Guess
         </CardTitle>
-        <div className="flex items-center gap-2 mt-2">
-          {/* Scoring settings */}
-          <Popover open={scoringOpen} onOpenChange={(open) => {
-            setScoringOpen(open);
-            if (!open) { setScoringPassword(''); setScoringError(''); setScoringUnlocked(false); }
-          }}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" title="Scoring settings">
-                <Trophy className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[32rem] max-h-[80vh] overflow-y-auto p-3" align="end">
-              {!scoringUnlocked ? (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
-                  <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Input type="password" placeholder="Password" value={scoringPassword}
-                      onChange={(e) => { setScoringPassword(e.target.value); setScoringError(''); }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleScoringPasswordConfirm()}
-                      className="flex-1 h-8 text-sm" />
-                    <Button size="sm" onClick={handleScoringPasswordConfirm} className="h-8">Unlock</Button>
-                  </div>
-                  {scoringError && <p className="text-xs text-destructive">{scoringError}</p>}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    {/* Left col: GeoGuessr */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground">GeoGuessr</p>
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium">Distance parameter</p>
-                        <Input type="number" value={editDistParam} min={1}
-                          onChange={(e) => setEditDistParam(e.target.value)} className="h-7 text-sm" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">Attempt multipliers</p>
-                        {editMultipliers.map((val, i) => (
-                          <div key={i} className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground w-10">#{i + 1}</span>
-                            <Input type="number" value={val} min={0} max={1} step={0.01}
-                              onChange={(e) => { const next = [...editMultipliers]; next[i] = e.target.value; setEditMultipliers(next); }}
-                              className="h-6 text-xs flex-1" />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">Difficulty weights</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs w-10">Easy</span>
-                          <Input type="number" value={editWeights.easy} min={0} step={0.1}
-                            onChange={(e) => setEditWeights(w => ({ ...w, easy: parseFloat(e.target.value) || 0 }))}
-                            className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs w-10">Hard</span>
-                          <Input type="number" value={editWeights.hard} min={0} step={0.1}
-                            onChange={(e) => setEditWeights(w => ({ ...w, hard: parseFloat(e.target.value) || 0 }))}
-                            className="h-6 text-xs flex-1" />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Right col: Wordle */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground">Wordle</p>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">Points per attempt</p>
-                        {editWordleAttemptPoints.map((val, i) => (
-                          <div key={i} className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground w-10">#{i + 1}</span>
-                            <Input type="number" value={val} min={0}
-                              onChange={(e) => { const next = [...editWordleAttemptPoints]; next[i] = e.target.value; setEditWordleAttemptPoints(next); }}
-                              className="h-6 text-xs flex-1" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  {/* Mini Game Settings */}
-                  <div className="border-t pt-3 space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mini Game Settings</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">🏙️ City Guess</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Dist param</span>
-                          <Input type="number" value={editCityDistParam} onChange={(e) => setEditCityDistParam(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Max tries</span>
-                          <Input type="number" value={editCityMaxAttempts} onChange={(e) => setEditCityMaxAttempts(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">⚖️ This or That</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Pts/Q</span>
-                          <Input type="number" value={editTotPtsPerQ} onChange={(e) => setEditTotPtsPerQ(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Streak %</span>
-                          <Input type="number" value={editTotStreak} step={0.05} onChange={(e) => setEditTotStreak(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">🔢 Sudoku</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Max pts</span>
-                          <Input type="number" value={editSudokuMax} onChange={(e) => setEditSudokuMax(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Time par</span>
-                          <Input type="number" value={editSudokuTime} onChange={(e) => setEditSudokuTime(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium">🃏 Pairs</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Max pts</span>
-                          <Input type="number" value={editPairsMax} onChange={(e) => setEditPairsMax(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Time par</span>
-                          <Input type="number" value={editPairsTime} onChange={(e) => setEditPairsTime(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground w-16">Move pen</span>
-                          <Input type="number" value={editPairsMovePen} onChange={(e) => setEditPairsMovePen(e.target.value)} className="h-6 text-xs flex-1" />
-                        </div>
-                      </div>
-                      <div className="space-y-1 col-span-2">
-                        <p className="text-xs font-medium">🌀 Labyrinth</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">Max</span>
-                            <Input type="number" value={editLabMax} onChange={(e) => setEditLabMax(e.target.value)} className="h-6 text-xs flex-1" />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">Time</span>
-                            <Input type="number" value={editLabTime} onChange={(e) => setEditLabTime(e.target.value)} className="h-6 text-xs flex-1" />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">Reset</span>
-                            <Input type="number" value={editLabResetPen} onChange={(e) => setEditLabResetPen(e.target.value)} className="h-6 text-xs flex-1" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <Button size="sm" className="w-full h-8" onClick={handleSaveScoringSettings}
-                    disabled={updateSettings.isPending}>
-                    {updateSettings.isPending ? 'Saving…' : 'Save changes'}
-                  </Button>
-                  {updateSettings.isSuccess && (
-                    <p className="text-xs text-center text-primary">Saved!</p>
-                  )}
-                  <div className="border-t pt-2">
-                    <p className="text-xs text-muted-foreground text-center">
-                      Days since last watered: {plantDaysLoading ? '…' : (plantDays == null ? 'unknown' : String(plantDays))}
-                      <span className="ml-1 text-muted-foreground/40">({onlineUsers})</span>
-                    </p>
-                  </div>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center gap-2 mt-2 ml-auto">
 
           {/* Round settings */}
           <Popover>
