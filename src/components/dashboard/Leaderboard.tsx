@@ -24,7 +24,7 @@ interface LeaderboardProps {
   progressBar?: React.ReactNode;
 }
 
-export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses }: LeaderboardProps) {
+export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses, progressBar }: LeaderboardProps) {
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
   const { rounds } = useRounds();
