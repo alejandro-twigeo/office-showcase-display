@@ -127,6 +127,7 @@ export function YouTubeDisplay() {
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          start: resumeAt,
         },
         events: {
           onReady: () => {
