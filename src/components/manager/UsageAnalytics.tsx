@@ -45,11 +45,12 @@ export function UsageAnalytics() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const sinceStr = fromDate.toISOString();
-      const untilDate = new Date(toDate);
-      untilDate.setHours(23, 59, 59, 999);
-      const untilStr = untilDate.toISOString();
-      const sinceDateStr = sinceStr.slice(0, 10);
+      // Use date strings for date-column queries, and wide UTC range for timestamp queries
+      const fromStr = format(fromDate, 'yyyy-MM-dd');
+      const toStr = format(toDate, 'yyyy-MM-dd');
+      // For timestamp columns, use a wide range to cover all timezones
+      const sinceStr = fromStr + 'T00:00:00.000Z';
+      const untilStr = toStr + 'T23:59:59.999Z';
 
       // Fetch visit logs + game activity in parallel to build complete visitor picture
       const [{ data: visits }, { data: minigameData }, { data: wordleData }, { data: guessData }] = await Promise.all([
