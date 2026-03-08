@@ -277,10 +277,7 @@ export function UsageAnalytics() {
                 {dayStats.map((d) => (
                   <div key={d.date} className="flex-1 text-center">
                     <span className="text-[8px] text-muted-foreground">
-                      {dayStats.length <= 14
-                        ? new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'narrow' })
-                        : new Date(d.date + 'T12:00:00').getDate()
-                      }
+                      {new Date(d.date + 'T12:00:00').getDate()}/{new Date(d.date + 'T12:00:00').getMonth() + 1}
                     </span>
                   </div>
                 ))}
