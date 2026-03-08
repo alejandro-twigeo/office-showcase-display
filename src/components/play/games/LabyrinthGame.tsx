@@ -261,9 +261,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }, [done, getCellFromTouch, playerPos, movePlayer]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!started || done) return;
     e.preventDefault();
-    if (!startTime && !done) setStartTime(Date.now());
-    // Also process the initial touch position
     const t = e.touches[0];
     const cell = getCellFromTouch(t.clientX, t.clientY);
     if (!cell) return;
@@ -273,7 +272,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     if (Math.abs(dr) + Math.abs(dc) === 1) {
       movePlayer(dr, dc);
     }
-  }, [done, startTime, getCellFromTouch, playerPos, movePlayer]);
+  }, [done, started, getCellFromTouch, playerPos, movePlayer]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
