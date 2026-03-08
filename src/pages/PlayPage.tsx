@@ -120,7 +120,7 @@ export default function PlayPage() {
       {/* Content */}
       <main className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto px-2 sm:px-4 py-4">
         {/* Tab buttons */}
-        <div className="grid grid-cols-5 gap-1 bg-muted p-1 rounded-lg mb-4 lg:max-w-4xl">
+        <div className="grid grid-cols-5 gap-1 bg-muted/70 p-1 rounded-lg mb-4 lg:max-w-4xl">
           {([
             { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
@@ -134,7 +134,7 @@ export default function PlayPage() {
               className={`flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium transition-all ${
                 activeTab === value
                   ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
               }`}
             >
               <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary text-primary' : ''}`} />

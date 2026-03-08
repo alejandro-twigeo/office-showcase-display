@@ -392,7 +392,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
             <Button
               variant={activeTab === 'other' ? 'default' : 'outline'}
               size="sm"
-              className="h-7 text-xs gap-1.5"
+              className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
               onClick={() => {
                 if (activeTab === 'other') {
                   setActiveTab('easy');
