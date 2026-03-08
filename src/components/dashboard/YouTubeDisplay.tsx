@@ -4,6 +4,7 @@ import { Youtube, ListMusic } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
