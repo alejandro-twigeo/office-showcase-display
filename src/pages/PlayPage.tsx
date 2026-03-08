@@ -8,6 +8,7 @@ import { PositiveMessagesSection } from '../components/play/PositiveMessagesSect
 import { NewsSection } from '../components/play/NewsSection';
 import { Leaderboard } from '../components/dashboard/Leaderboard';
 import { WordleLeaderboard } from '../components/play/WordleLeaderboard';
+import { MinigameLeaderboard } from '../components/play/MinigameLeaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
@@ -24,6 +25,7 @@ export default function PlayPage() {
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
   const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [activeMinigame, setActiveMinigame] = useState<string | null>(null);
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -34,6 +36,34 @@ export default function PlayPage() {
   if (!player) {
     return <PlayerAuth onLogin={login} onSignup={signup} />;
   }
+
+  // Determine which leaderboard to show
+  const renderLeaderboard = () => {
+    if (gamesSubTab !== 'other') return <Leaderboard />;
+    if (!activeMinigame || activeMinigame === 'wordle') return <WordleLeaderboard />;
+    const GAME_LABELS: Record<string, { title: string; emoji: string }> = {
+      city_guess: { title: 'City Guess', emoji: '🏙️' },
+      this_or_that: { title: 'This or That', emoji: '⚖️' },
+      sudoku: { title: 'Sudoku', emoji: '🔢' },
+      pairs: { title: 'Pairs', emoji: '🃏' },
+      labyrinth: { title: 'Labyrinth', emoji: '🌀' },
+    };
+    const info = GAME_LABELS[activeMinigame];
+    if (!info) return <WordleLeaderboard />;
+    return (
+      <MinigameLeaderboard
+        gameId={activeMinigame}
+        title={info.title}
+        emoji={info.emoji}
+        formatMeta={(meta) => {
+          if (meta.time_seconds != null) return `${Math.floor(meta.time_seconds / 60)}:${String(meta.time_seconds % 60).padStart(2, '0')}`;
+          if (meta.moves != null) return `${meta.moves} moves`;
+          if (meta.attempts != null) return `${meta.attempts} attempts`;
+          return '';
+        }}
+      />
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,8 +139,11 @@ export default function PlayPage() {
         {/* Tab content */}
         {activeTab === 'guess' && (
           <div className="space-y-4">
-            <GuessMap playerName={player.name} onActiveTabChange={setGamesSubTab} />
-            {gamesSubTab === 'other' ? <WordleLeaderboard /> : <Leaderboard />}
+            <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
+              setGamesSubTab(tab);
+              if (tab !== 'other') setActiveMinigame(null);
+            }} onMinigameChange={setActiveMinigame} />
+            {renderLeaderboard()}
           </div>
         )}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}

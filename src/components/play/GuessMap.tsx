@@ -32,6 +32,7 @@ L.Icon.Default.mergeOptions({
 interface GuessMapProps {
   playerName: string;
   onActiveTabChange?: (tab: 'easy' | 'hard' | 'other') => void;
+  onMinigameChange?: (gameId: string | null) => void;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -298,7 +299,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
   const deviceId = useDeviceId();
   const onlineUsers = usePresenceCount("app", { deviceId });
   const { settings, updateSettings } = useScoring();
@@ -320,6 +321,20 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
   const [editWordlePoints, setEditWordlePoints] = useState(String(settings.wordle_points));
   const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState(settings.wordle_attempt_points.map(String));
 
+  // Mini game settings edit state
+  const [editCityDistParam, setEditCityDistParam] = useState('200');
+  const [editCityMaxAttempts, setEditCityMaxAttempts] = useState('3');
+  const [editTotPtsPerQ, setEditTotPtsPerQ] = useState('5');
+  const [editTotStreak, setEditTotStreak] = useState('0.2');
+  const [editSudokuMax, setEditSudokuMax] = useState('100');
+  const [editSudokuTime, setEditSudokuTime] = useState('300');
+  const [editPairsMax, setEditPairsMax] = useState('100');
+  const [editPairsTime, setEditPairsTime] = useState('120');
+  const [editPairsMovePen, setEditPairsMovePen] = useState('2');
+  const [editLabMax, setEditLabMax] = useState('100');
+  const [editLabTime, setEditLabTime] = useState('60');
+  const [editLabResetPen, setEditLabResetPen] = useState('5');
+
   const [plantDays, setPlantDays] = useState<number | null>(null);
   const [plantDaysLoading, setPlantDaysLoading] = useState(false);
 
@@ -330,6 +345,30 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
     setEditWordlePoints(String(settings.wordle_points));
     setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
   }, [settings]);
+
+  // Fetch mini game settings for edit
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('scoring_settings' as never)
+        .select('city_guess_distance_param, city_guess_max_attempts, thisorthat_points_per_q, thisorthat_streak_bonus, sudoku_max_points, sudoku_time_param, pairs_max_points, pairs_time_param, pairs_move_penalty, labyrinth_max_points, labyrinth_time_param, labyrinth_reset_penalty')
+        .eq('id', 1).single();
+      if (data) {
+        const d = data as any;
+        setEditCityDistParam(String(d.city_guess_distance_param ?? 200));
+        setEditCityMaxAttempts(String(d.city_guess_max_attempts ?? 3));
+        setEditTotPtsPerQ(String(d.thisorthat_points_per_q ?? 5));
+        setEditTotStreak(String(d.thisorthat_streak_bonus ?? 0.2));
+        setEditSudokuMax(String(d.sudoku_max_points ?? 100));
+        setEditSudokuTime(String(d.sudoku_time_param ?? 300));
+        setEditPairsMax(String(d.pairs_max_points ?? 100));
+        setEditPairsTime(String(d.pairs_time_param ?? 120));
+        setEditPairsMovePen(String(d.pairs_move_penalty ?? 2));
+        setEditLabMax(String(d.labyrinth_max_points ?? 100));
+        setEditLabTime(String(d.labyrinth_time_param ?? 60));
+        setEditLabResetPen(String(d.labyrinth_reset_penalty ?? 5));
+      }
+    })();
+  }, [scoringOpen]);
 
   useEffect(() => {
     if (!scoringOpen) return;
@@ -441,7 +480,7 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
     setScoringError('');
   };
 
-  const handleSaveScoringSettings = () => {
+  const handleSaveScoringSettings = async () => {
     const distParam = parseFloat(editDistParam);
     const multipliers = editMultipliers.map(Number);
     const wp = parseInt(editWordlePoints);
@@ -454,6 +493,21 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
       wordle_points: wp,
       wordle_attempt_points: wap,
     });
+    // Save mini game settings separately
+    await supabase.from('scoring_settings' as never).update({
+      city_guess_distance_param: parseFloat(editCityDistParam),
+      city_guess_max_attempts: parseInt(editCityMaxAttempts),
+      thisorthat_points_per_q: parseInt(editTotPtsPerQ),
+      thisorthat_streak_bonus: parseFloat(editTotStreak),
+      sudoku_max_points: parseInt(editSudokuMax),
+      sudoku_time_param: parseInt(editSudokuTime),
+      pairs_max_points: parseInt(editPairsMax),
+      pairs_time_param: parseInt(editPairsTime),
+      pairs_move_penalty: parseInt(editPairsMovePen),
+      labyrinth_max_points: parseInt(editLabMax),
+      labyrinth_time_param: parseInt(editLabTime),
+      labyrinth_reset_penalty: parseInt(editLabResetPen),
+    } as never).eq('id', 1);
   };
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
@@ -480,7 +534,7 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
                 <Trophy className="h-4 w-4 text-muted-foreground" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-3" align="end">
+            <PopoverContent className="w-[32rem] max-h-[80vh] overflow-y-auto p-3" align="end">
               {!scoringUnlocked ? (
                 <div className="space-y-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
@@ -497,60 +551,127 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
               ) : (
                 <div className="space-y-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Scoring Settings</p>
-                  {/* Distance parameter */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium">Distance parameter</p>
-                    <Input type="number" value={editDistParam} min={1}
-                      onChange={(e) => setEditDistParam(e.target.value)} className="h-8 text-sm" />
-                  </div>
-                  {/* Attempt multipliers */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium">Attempt multipliers</p>
-                    <div className="space-y-1">
-                      {editMultipliers.map((val, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-16">Attempt {i + 1}</span>
-                          <Input type="number" value={val} min={0} max={1} step={0.01}
-                            onChange={(e) => { const next = [...editMultipliers]; next[i] = e.target.value; setEditMultipliers(next); }}
-                            className="h-7 text-sm flex-1" />
-                          <span className="text-xs text-muted-foreground w-10 text-right">{Math.round(Number(val) * 100)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Difficulty weights */}
-                  <div className="space-y-1.5 border-t pt-3">
-                    <p className="text-xs font-medium">Difficulty weights</p>
-                    <p className="text-xs text-muted-foreground">Multiplier for combined leaderboard</p>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs w-12">Easy</span>
-                        <Input type="number" value={editWeights.easy} min={0} step={0.1}
-                          onChange={(e) => setEditWeights(w => ({ ...w, easy: parseFloat(e.target.value) || 0 }))}
-                          className="h-7 text-sm flex-1" />
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    {/* Left col: GeoGuessr */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground">GeoGuessr</p>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium">Distance parameter</p>
+                        <Input type="number" value={editDistParam} min={1}
+                          onChange={(e) => setEditDistParam(e.target.value)} className="h-7 text-sm" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs w-12">Hard</span>
-                        <Input type="number" value={editWeights.hard} min={0} step={0.1}
-                          onChange={(e) => setEditWeights(w => ({ ...w, hard: parseFloat(e.target.value) || 0 }))}
-                          className="h-7 text-sm flex-1" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Attempt multipliers</p>
+                        {editMultipliers.map((val, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground w-10">#{i + 1}</span>
+                            <Input type="number" value={val} min={0} max={1} step={0.01}
+                              onChange={(e) => { const next = [...editMultipliers]; next[i] = e.target.value; setEditMultipliers(next); }}
+                              className="h-6 text-xs flex-1" />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Difficulty weights</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs w-10">Easy</span>
+                          <Input type="number" value={editWeights.easy} min={0} step={0.1}
+                            onChange={(e) => setEditWeights(w => ({ ...w, easy: parseFloat(e.target.value) || 0 }))}
+                            className="h-6 text-xs flex-1" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs w-10">Hard</span>
+                          <Input type="number" value={editWeights.hard} min={0} step={0.1}
+                            onChange={(e) => setEditWeights(w => ({ ...w, hard: parseFloat(e.target.value) || 0 }))}
+                            className="h-6 text-xs flex-1" />
+                        </div>
                       </div>
                     </div>
+                    {/* Right col: Wordle */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground">Wordle</p>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Points per attempt</p>
+                        {editWordleAttemptPoints.map((val, i) => (
+                          <div key={i} className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground w-10">#{i + 1}</span>
+                            <Input type="number" value={val} min={0}
+                              onChange={(e) => { const next = [...editWordleAttemptPoints]; next[i] = e.target.value; setEditWordleAttemptPoints(next); }}
+                              className="h-6 text-xs flex-1" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  {/* Wordle scoring */}
-                  <div className="space-y-1.5 border-t pt-3">
-                    <p className="text-xs font-medium">Wordle — Points per attempt</p>
-                    <p className="text-xs text-muted-foreground">More points for fewer attempts</p>
-                    <div className="space-y-1">
-                      {editWordleAttemptPoints.map((val, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-16">Attempt {i + 1}</span>
-                          <Input type="number" value={val} min={0}
-                            onChange={(e) => { const next = [...editWordleAttemptPoints]; next[i] = e.target.value; setEditWordleAttemptPoints(next); }}
-                            className="h-7 text-sm flex-1" />
-                          <span className="text-xs text-muted-foreground w-8 text-right">{val} pts</span>
+                  {/* Mini Game Settings */}
+                  <div className="border-t pt-3 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mini Game Settings</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">🏙️ City Guess</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Dist param</span>
+                          <Input type="number" value={editCityDistParam} onChange={(e) => setEditCityDistParam(e.target.value)} className="h-6 text-xs flex-1" />
                         </div>
-                      ))}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Max tries</span>
+                          <Input type="number" value={editCityMaxAttempts} onChange={(e) => setEditCityMaxAttempts(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">⚖️ This or That</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Pts/Q</span>
+                          <Input type="number" value={editTotPtsPerQ} onChange={(e) => setEditTotPtsPerQ(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Streak %</span>
+                          <Input type="number" value={editTotStreak} step={0.05} onChange={(e) => setEditTotStreak(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">🔢 Sudoku</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Max pts</span>
+                          <Input type="number" value={editSudokuMax} onChange={(e) => setEditSudokuMax(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Time par</span>
+                          <Input type="number" value={editSudokuTime} onChange={(e) => setEditSudokuTime(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">🃏 Pairs</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Max pts</span>
+                          <Input type="number" value={editPairsMax} onChange={(e) => setEditPairsMax(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Time par</span>
+                          <Input type="number" value={editPairsTime} onChange={(e) => setEditPairsTime(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground w-16">Move pen</span>
+                          <Input type="number" value={editPairsMovePen} onChange={(e) => setEditPairsMovePen(e.target.value)} className="h-6 text-xs flex-1" />
+                        </div>
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <p className="text-xs font-medium">🌀 Labyrinth</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Max</span>
+                            <Input type="number" value={editLabMax} onChange={(e) => setEditLabMax(e.target.value)} className="h-6 text-xs flex-1" />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Time</span>
+                            <Input type="number" value={editLabTime} onChange={(e) => setEditLabTime(e.target.value)} className="h-6 text-xs flex-1" />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Reset</span>
+                            <Input type="number" value={editLabResetPen} onChange={(e) => setEditLabResetPen(e.target.value)} className="h-6 text-xs flex-1" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <Button size="sm" className="w-full h-8" onClick={handleSaveScoringSettings}
@@ -563,7 +684,7 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
                   <div className="border-t pt-2">
                     <p className="text-xs text-muted-foreground text-center">
                       Days since last watered: {plantDaysLoading ? '…' : (plantDays == null ? 'unknown' : String(plantDays))}
-                      <span className="ml-1 text-white/40">({onlineUsers})</span>
+                      <span className="ml-1 text-muted-foreground/40">({onlineUsers})</span>
                     </p>
                   </div>
                 </div>
@@ -680,7 +801,7 @@ export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
             isCreating={isCreatingRound}
           />
         ) : (
-          <MiniGamesSelector playerName={playerName} />
+          <MiniGamesSelector playerName={playerName} onGameChange={onMinigameChange} />
         )}
       </CardContent>
     </Card>
