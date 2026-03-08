@@ -35,7 +35,7 @@ function PlaylistItemsView({
   onAddToQueue?: (videoId: string) => void;
 }) {
   const { items, addItem, removeItem } = usePlaylistItems(playlist.id);
-  const { addToQueue } = useYoutubeQueue();
+  const { addToQueue: liveAddToQueue } = useYoutubeQueue();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [search, setSearch] = useState("");
   const [mixUrl, setMixUrl] = useState("");
