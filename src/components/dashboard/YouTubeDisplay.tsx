@@ -204,9 +204,16 @@ export function YouTubeDisplay() {
                     className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
                   />
                 </div>
-                <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
-                  {currentVideo.title}
-                </h4>
+                <div className="space-y-0.5">
+                  <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
+                    {currentVideo.title}
+                  </h4>
+                  {currentVideo.channel_title && (
+                    <p className="text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
+                      {currentVideo.channel_title}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>

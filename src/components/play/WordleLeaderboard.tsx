@@ -7,7 +7,7 @@ import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
-export function WordleLeaderboard({ dashboard = false }: { dashboard?: boolean }) {
+export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboard?: boolean; progressBar?: React.ReactNode }) {
   const { rounds } = useRounds();
   const { settings } = useScoring();
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
@@ -82,6 +82,7 @@ export function WordleLeaderboard({ dashboard = false }: { dashboard?: boolean }
           </div>
         )}
       </CardHeader>
+      {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
         {sorted.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">
