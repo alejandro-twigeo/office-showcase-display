@@ -375,9 +375,14 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
 
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [insideMiniGame, setInsideMiniGame] = useState(false);
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
     setActiveTabInternal(tab);
     onActiveTabChange?.(tab);
+  };
+  const handleMinigameChange = (gameId: string | null) => {
+    setInsideMiniGame(!!gameId);
+    onMinigameChange?.(gameId);
   };
 
   return (
