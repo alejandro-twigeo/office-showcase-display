@@ -392,6 +392,9 @@ export default function ManagerPage() {
           </CardContent>
         </Card>
 
+        {/* Usage Analytics */}
+        <UsageAnalytics />
+
         {/* Info */}
         <p className="text-xs text-muted-foreground text-center">
           Days since last watered: {plantDays == null ? 'unknown' : plantDays} · {onlineUsers} online
