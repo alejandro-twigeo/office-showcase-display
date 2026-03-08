@@ -34,10 +34,10 @@ export function NewsDisplay() {
 
   return (
     <Card className="h-full min-h-0 flex flex-col overflow-hidden">
-      <CardHeader className="pb-1 pt-3 px-3 md:pb-2 md:pt-6 md:px-6">
+      <CardHeader className="pb-1 pt-3 px-3 lg:pb-2 lg:pt-6 lg:px-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,28px)]">
-            <Newspaper className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,26px)] text-primary" />
+          <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(20px,1.5vw,28px)]">
+            <Newspaper className="h-4 w-4 lg:h-[clamp(18px,1.2vw,26px)] lg:w-[clamp(18px,1.2vw,26px)] text-primary" />
             Daily News
           </CardTitle>
           {items.length > 1 && (
