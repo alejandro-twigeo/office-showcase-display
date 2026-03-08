@@ -158,13 +158,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
-  const maze = useMemo(() => {
+  const { grid: maze, start: mazeStart } = useMemo(() => {
     const seed = dateSeed(todayDate());
     return generateMaze(MAZE_SIZE, seededRandom(seed + 4));
   }, []);
 
-  const [playerPos, setPlayerPos] = useState<{ r: number; c: number }>({ r: 1, c: 1 });
-  const [path, setPath] = useState<Set<string>>(new Set(['1-1']));
+  const [playerPos, setPlayerPos] = useState<{ r: number; c: number }>(mazeStart);
+  const [path, setPath] = useState<Set<string>>(new Set([`${mazeStart.r}-${mazeStart.c}`]));
   const [resets, setResets] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
