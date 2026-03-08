@@ -237,17 +237,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           </div>
         </div>
 
-        {/* D-pad for mobile */}
-        <div className="flex justify-center mt-4">
-          <div className="grid grid-cols-3 gap-1 w-32">
-            <div />
-            <button onClick={() => movePlayer(-1, 0)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">↑</button>
-            <div />
-            <button onClick={() => movePlayer(0, -1)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">←</button>
-            <button onClick={() => movePlayer(1, 0)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">↓</button>
-            <button onClick={() => movePlayer(0, 1)} className="h-10 rounded bg-secondary text-foreground font-bold text-lg hover:bg-secondary/80">→</button>
-          </div>
-        </div>
 
         {done && (
           <p className="text-center font-semibold text-primary mt-3">🎉 You escaped!</p>
