@@ -82,6 +82,7 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
           </div>
         )}
       </CardHeader>
+      {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
         {sorted.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">
