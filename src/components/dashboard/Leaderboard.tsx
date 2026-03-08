@@ -20,6 +20,8 @@ interface LeaderboardProps {
   /** If provided, uses these guesses directly (legacy/external usage) */
   easyGuesses?: Guess[];
   hardGuesses?: Guess[];
+  /** Optional progress bar element rendered below header */
+  progressBar?: React.ReactNode;
 }
 
 export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: externalHardGuesses }: LeaderboardProps) {
