@@ -78,7 +78,7 @@ export function useMinigameLeaderboard(gameId: string, date: string) {
         .eq('game_id', gameId)
         .eq('date', date)
         .order('score', { ascending: false });
-      return (data ?? []) as MinigameScoreRow[];
+      return (data ?? []) as unknown as MinigameScoreRow[];
     },
     enabled: !!date,
   });
