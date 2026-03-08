@@ -166,6 +166,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const [playerPos, setPlayerPos] = useState<{ r: number; c: number }>(mazeStart);
   const [path, setPath] = useState<Set<string>>(new Set([`${mazeStart.r}-${mazeStart.c}`]));
   const [resets, setResets] = useState(0);
+  const [started, setStarted] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
@@ -178,6 +179,11 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [startTime, done]);
 
+  const handleStart = useCallback(() => {
+    setStarted(true);
+    setStartTime(Date.now());
+  }, []);
+
   const resetPosition = useCallback(() => {
     setPlayerPos(mazeStart);
     setPath(new Set([`${mazeStart.r}-${mazeStart.c}`]));
@@ -185,7 +191,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }, [mazeStart]);
 
   const movePlayer = useCallback(async (dr: number, dc: number) => {
-    if (done) return;
+    if (done || !started) return;
     const nr = playerPos.r + dr;
     const nc = playerPos.c + dc;
     if (nr < 0 || nr >= MAZE_SIZE || nc < 0 || nc >= MAZE_SIZE) return;
@@ -193,7 +199,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       resetPosition();
       return;
     }
-    if (!startTime) setStartTime(Date.now());
     setPlayerPos({ r: nr, c: nc });
     setPath(prev => new Set(prev).add(`${nr}-${nc}`));
 
@@ -212,7 +217,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         meta: { time_seconds: time, resets },
       });
     }
-  }, [playerPos, done, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
+  }, [playerPos, done, started, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
 
   // Keyboard controls — prevent page scroll on arrow keys
   useEffect(() => {
