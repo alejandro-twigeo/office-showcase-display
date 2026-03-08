@@ -162,8 +162,8 @@ export function CityGuessGame({ playerName }: CityGuessGameProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {image && (
-          <div className="h-40 rounded-lg overflow-hidden border bg-black">
-            <img src={image.thumb_url} alt="mystery location" className="w-full h-full object-contain" />
+          <div className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black">
+            <img src={image.thumb_url} alt="mystery location" className="w-full h-full object-cover" />
           </div>
         )}
 
