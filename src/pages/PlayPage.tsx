@@ -116,6 +116,7 @@ export default function PlayPage() {
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
+        {activeTab === 'news' && <NewsSection />}
       </main>
 
       {/* Profile editor dialog */}
