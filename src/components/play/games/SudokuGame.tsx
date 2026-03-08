@@ -74,8 +74,8 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
     const seed = dateSeed(todayDate());
     const rng = seededRandom(seed + 2);
     const s = generateSolved(rng);
-    // Hard: remove 24 of 36 cells
-    const p = createPuzzle(s, rng, 24);
+    // Medium: remove 18 of 36 cells
+    const p = createPuzzle(s, rng, 18);
     return { solved: s, puzzle: p };
   }, []);
 
