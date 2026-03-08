@@ -175,29 +175,29 @@ export function YouTubeDisplay() {
 
   return (
     <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="pb-1 pt-3 px-3 md:pb-2 md:pt-6 md:px-6">
-        <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,28px)]">
-          <Youtube className="h-4 w-4 md:h-[clamp(18px,1.2vw,26px)] md:w-[clamp(18px,1.2vw,26px)] text-destructive" />
+      <CardHeader className="pb-1 pt-3 px-3 lg:pb-2 lg:pt-6 lg:px-6">
+        <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(20px,1.5vw,28px)]">
+          <Youtube className="h-4 w-4 lg:h-[clamp(18px,1.2vw,26px)] lg:w-[clamp(18px,1.2vw,26px)] text-destructive" />
           Now Playing
         </CardTitle>
       </CardHeader>
 
       <CardContent className="flex-1 min-h-0">
-        <div className="h-full flex flex-col md:grid md:grid-cols-[3fr_1fr] gap-2 md:gap-[clamp(8px,0.8vw,16px)]">
+        <div className="h-full flex flex-col lg:grid lg:grid-cols-[3fr_1fr] gap-2 lg:gap-[clamp(8px,0.8vw,16px)]">
           {/* Left — video + info */}
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
               <div className="text-center flex-1 flex flex-col items-center justify-center">
-                <video src={partitureVideo} autoPlay loop muted playsInline className="h-16 md:h-[clamp(128px,12vw,256px)] w-auto mb-2 md:mb-3" />
-                <p className="text-muted-foreground text-xs md:text-[clamp(14px,1vw,20px)]">
+                <video src={partitureVideo} autoPlay loop muted playsInline className="h-16 lg:h-[clamp(128px,12vw,256px)] w-auto mb-2 lg:mb-3" />
+                <p className="text-muted-foreground text-xs lg:text-[clamp(14px,1vw,20px)]">
                   No video playing
                 </p>
-                <p className="text-muted-foreground text-[10px] md:text-[clamp(12px,0.8vw,16px)] mt-0.5 md:mt-1">
+                <p className="text-muted-foreground text-[10px] lg:text-[clamp(12px,0.8vw,16px)] mt-0.5 lg:mt-1">
                   Queue one from the Play page!
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col flex-1 min-h-0 gap-1 md:gap-[clamp(8px,0.6vw,16px)]">
+              <div className="flex flex-col flex-1 min-h-0 gap-1 lg:gap-[clamp(8px,0.6vw,16px)]">
                 <div className="flex-1 min-h-0 relative">
                   <div
                     ref={containerRef}
@@ -205,11 +205,11 @@ export function YouTubeDisplay() {
                   />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="font-medium line-clamp-1 text-sm md:text-[clamp(16px,1.2vw,24px)]">
+                  <h4 className="font-medium line-clamp-1 text-sm lg:text-[clamp(16px,1.2vw,24px)]">
                     {currentVideo.title}
                   </h4>
                   {currentVideo.channel_title && (
-                    <p className="text-xs md:text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
+                    <p className="text-xs lg:text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
                       {currentVideo.channel_title}
                     </p>
                   )}
@@ -218,15 +218,15 @@ export function YouTubeDisplay() {
             )}
           </div>
 
-          {/* Right — queue sidebar (compact on mobile, full on desktop) */}
+          {/* Right — queue sidebar (compact on mobile/tablet, full on desktop) */}
           {queue.length > 0 && (
-            <div className="flex md:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
+            <div className="flex lg:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
               <ListMusic className="h-3.5 w-3.5" />
               <span>{queue.length} in queue</span>
               <span className="truncate">— Next: {queue[0]?.title}</span>
             </div>
           )}
-          <div className="hidden md:flex min-h-0 flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
+          <div className="hidden lg:flex min-h-0 flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
             <h4 className="flex items-center gap-1.5 text-[clamp(14px,1vw,20px)] font-medium mb-2 shrink-0">
               <ListMusic className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
               Queue
