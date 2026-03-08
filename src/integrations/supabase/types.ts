@@ -123,6 +123,39 @@ export type Database = {
           },
         ]
       }
+      minigame_scores: {
+        Row: {
+          created_at: string
+          date: string
+          device_id: string
+          game_id: string
+          id: string
+          meta: Json
+          player_name: string
+          score: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          device_id: string
+          game_id: string
+          id?: string
+          meta?: Json
+          player_name: string
+          score?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          device_id?: string
+          game_id?: string
+          id?: string
+          meta?: Json
+          player_name?: string
+          score?: number
+        }
+        Relationships: []
+      }
       plant_watering_logs: {
         Row: {
           id: string
@@ -457,30 +490,69 @@ export type Database = {
       scoring_settings: {
         Row: {
           attempt_multipliers: Json
+          city_guess_attempt_multipliers: Json
+          city_guess_distance_param: number
+          city_guess_max_attempts: number
           difficulty_weights: Json
           distance_parameter: number
           id: number
+          labyrinth_max_points: number
+          labyrinth_reset_penalty: number
+          labyrinth_time_param: number
           max_guesses_per_challenge: number | null
+          pairs_max_points: number
+          pairs_move_penalty: number
+          pairs_time_param: number
+          sudoku_max_points: number
+          sudoku_time_param: number
+          thisorthat_points_per_q: number
+          thisorthat_streak_bonus: number
           updated_at: string
           wordle_attempt_points: Json
           wordle_points: number
         }
         Insert: {
           attempt_multipliers?: Json
+          city_guess_attempt_multipliers?: Json
+          city_guess_distance_param?: number
+          city_guess_max_attempts?: number
           difficulty_weights?: Json
           distance_parameter?: number
           id?: number
+          labyrinth_max_points?: number
+          labyrinth_reset_penalty?: number
+          labyrinth_time_param?: number
           max_guesses_per_challenge?: number | null
+          pairs_max_points?: number
+          pairs_move_penalty?: number
+          pairs_time_param?: number
+          sudoku_max_points?: number
+          sudoku_time_param?: number
+          thisorthat_points_per_q?: number
+          thisorthat_streak_bonus?: number
           updated_at?: string
           wordle_attempt_points?: Json
           wordle_points?: number
         }
         Update: {
           attempt_multipliers?: Json
+          city_guess_attempt_multipliers?: Json
+          city_guess_distance_param?: number
+          city_guess_max_attempts?: number
           difficulty_weights?: Json
           distance_parameter?: number
           id?: number
+          labyrinth_max_points?: number
+          labyrinth_reset_penalty?: number
+          labyrinth_time_param?: number
           max_guesses_per_challenge?: number | null
+          pairs_max_points?: number
+          pairs_move_penalty?: number
+          pairs_time_param?: number
+          sudoku_max_points?: number
+          sudoku_time_param?: number
+          thisorthat_points_per_q?: number
+          thisorthat_streak_bonus?: number
           updated_at?: string
           wordle_attempt_points?: Json
           wordle_points?: number
