@@ -299,7 +299,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
   const deviceId = useDeviceId();
   const onlineUsers = usePresenceCount("app", { deviceId });
   const { settings, updateSettings } = useScoring();
