@@ -130,6 +130,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
         player_name: playerName,
         device_id: deviceId,
         score,
+        round_id: roundId,
         meta: { time_seconds: time },
       });
     }

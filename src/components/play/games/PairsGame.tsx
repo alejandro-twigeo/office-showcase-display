@@ -74,6 +74,7 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
             player_name: playerName,
             device_id: deviceId,
             score,
+            round_id: roundId,
             meta: { time_seconds: time, moves: totalMoves },
           });
         }

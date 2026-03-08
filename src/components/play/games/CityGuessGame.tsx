@@ -102,6 +102,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       player_name: playerName,
       device_id: deviceId,
       score: newBest,
+      round_id: roundId,
       meta: { city: selectedCity?.name, attempts: newGuesses.length, best_distance: Math.min(dist, ...(guesses.map(g => g.distance))) },
     });
   }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore]);

@@ -101,6 +101,7 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
           player_name: playerName,
           device_id: deviceId,
           score: totalScore,
+          round_id: roundId,
           meta: { correct: correctCount, total: 5 },
         });
         setDone(true);
