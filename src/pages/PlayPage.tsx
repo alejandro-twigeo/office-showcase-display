@@ -11,7 +11,7 @@ import { WordleLeaderboard } from '../components/play/WordleLeaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2 } from 'lucide-react';
+import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
