@@ -575,18 +575,21 @@ export type Database = {
       }
       visit_logs: {
         Row: {
-          device_id: string
+          device_id: string | null
           id: string
+          player_name: string | null
           visited_at: string
         }
         Insert: {
-          device_id: string
+          device_id?: string | null
           id?: string
+          player_name?: string | null
           visited_at?: string
         }
         Update: {
-          device_id?: string
+          device_id?: string | null
           id?: string
+          player_name?: string | null
           visited_at?: string
         }
         Relationships: []

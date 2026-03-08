@@ -53,25 +53,28 @@ export function UsageAnalytics() {
 
       const { data: visits } = await (supabase as any)
         .from('visit_logs')
-        .select('device_id, visited_at')
+        .select('player_name, visited_at')
+        .not('player_name', 'is', null)
         .gte('visited_at', sinceStr)
         .lte('visited_at', untilStr)
         .order('visited_at', { ascending: false });
 
       const byDate = new Map<string, Set<string>>();
       const countByDate = new Map<string, number>();
-      const allDevices = new Set<string>();
+      const allUsers = new Set<string>();
       let allVisits = 0;
       for (const v of (visits || [])) {
+        const name = v.player_name;
+        if (!name) continue;
         const d = v.visited_at.slice(0, 10);
         if (!byDate.has(d)) byDate.set(d, new Set());
-        byDate.get(d)!.add(v.device_id);
+        byDate.get(d)!.add(name);
         countByDate.set(d, (countByDate.get(d) || 0) + 1);
-        allDevices.add(v.device_id);
+        allUsers.add(name);
         allVisits++;
       }
 
-      setTotalUniqueDevices(allDevices.size);
+      setTotalUniqueDevices(allUsers.size);
       setTotalVisitsCount(allVisits);
 
       const dayCount = Math.max(1, Math.round((untilDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
