@@ -210,7 +210,7 @@ function PlaylistItemsView({
           size="sm"
           className="h-7 px-2 text-xs shrink-0"
           onClick={handlePlayList}
-          disabled={items.length === 0 || addToQueue.isPending}
+          disabled={items.length === 0 || liveAddToQueue.isPending}
         >
           <Play className="h-3.5 w-3.5 mr-1" />
           Play list
