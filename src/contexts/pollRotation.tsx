@@ -28,7 +28,7 @@ export function PollRotationProvider({ children }: { children: ReactNode }) {
 export function usePollRotations() {
   const ctx = useContext(PollRotationContext);
   if (!ctx) {
-    throw new Error("usePollRotations must be used within PollRotationProvider");
+    return { rotations: 0, pollTimeLeft: ROTATE_SECONDS, setPollTimeLeft: () => {}, increment: () => {} };
   }
   return ctx;
 }
