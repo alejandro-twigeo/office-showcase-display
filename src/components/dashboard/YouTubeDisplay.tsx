@@ -188,16 +188,16 @@ export function YouTubeDisplay() {
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
               <div className="text-center flex-1 flex flex-col items-center justify-center">
-                <video src={partitureVideo} autoPlay loop muted playsInline className="h-[clamp(128px,12vw,256px)] w-auto mb-3" />
-                <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">
+                <video src={partitureVideo} autoPlay loop muted playsInline className="h-16 md:h-[clamp(128px,12vw,256px)] w-auto mb-2 md:mb-3" />
+                <p className="text-muted-foreground text-xs md:text-[clamp(14px,1vw,20px)]">
                   No video playing
                 </p>
-                <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] mt-1">
+                <p className="text-muted-foreground text-[10px] md:text-[clamp(12px,0.8vw,16px)] mt-0.5 md:mt-1">
                   Queue one from the Play page!
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col flex-1 min-h-0 gap-[clamp(8px,0.6vw,16px)]">
+              <div className="flex flex-col flex-1 min-h-0 gap-1 md:gap-[clamp(8px,0.6vw,16px)]">
                 <div className="flex-1 min-h-0 relative">
                   <div
                     ref={containerRef}
@@ -205,11 +205,11 @@ export function YouTubeDisplay() {
                   />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="font-medium line-clamp-1 text-[clamp(16px,1.2vw,24px)]">
+                  <h4 className="font-medium line-clamp-1 text-sm md:text-[clamp(16px,1.2vw,24px)]">
                     {currentVideo.title}
                   </h4>
                   {currentVideo.channel_title && (
-                    <p className="text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
+                    <p className="text-xs md:text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
                       {currentVideo.channel_title}
                     </p>
                   )}
