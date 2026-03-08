@@ -375,9 +375,14 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
 
 
   const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [insideMiniGame, setInsideMiniGame] = useState(false);
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
     setActiveTabInternal(tab);
     onActiveTabChange?.(tab);
+  };
+  const handleMinigameChange = (gameId: string | null) => {
+    setInsideMiniGame(!!gameId);
+    onMinigameChange?.(gameId);
   };
 
   return (
@@ -394,7 +399,9 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
               size="sm"
               className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
               onClick={() => {
-                if (activeTab === 'other') {
+                if (activeTab === 'other' && insideMiniGame) {
+                  miniGameRef.current?.reset();
+                } else if (activeTab === 'other') {
                   setActiveTab('easy');
                 } else {
                   setActiveTab('other');
@@ -403,7 +410,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
               }}
             >
               <Gamepad2 className="h-3.5 w-3.5" />
-              {activeTab === 'other' ? '← Geo Guess' : 'Other Games'}
+              {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
             </Button>
 
             {/* Round settings */}
@@ -509,7 +516,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
             />
           </>
         ) : (
-          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={onMinigameChange} roundId={activeRound?.id} />
+          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={handleMinigameChange} roundId={activeRound?.id} />
         )}
       </CardContent>
     </Card>
