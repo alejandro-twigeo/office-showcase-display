@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePositiveMessages } from "@/hooks/usePositiveMessages";
 import { usePollRotations } from "@/contexts/pollRotation";
 import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
