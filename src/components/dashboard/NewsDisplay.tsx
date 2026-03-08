@@ -1,32 +1,29 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Newspaper, ExternalLink } from "lucide-react";
 import { useDailyNews, NewsItem } from "@/hooks/useDailyNews";
-
-const CYCLE_MS = 10_000;
+import { usePollRotations } from "@/contexts/pollRotation";
+import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
 
 export function NewsDisplay() {
   const { news, isLoading } = useDailyNews();
+  const { rotations, pollTimeLeft } = usePollRotations();
   const [index, setIndex] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
 
   const items: NewsItem[] = news?.items ?? [];
 
+  // Advance news item every poll rotation
   useEffect(() => {
     if (items.length <= 1) return;
-    const t = setInterval(() => {
-      setElapsed((e) => {
-        if (e + 1000 >= CYCLE_MS) {
-          setIndex((i) => (i + 1) % items.length);
-          return 0;
-        }
-        return e + 1000;
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [items.length]);
+    setIndex((i) => (i + 1) % items.length);
+  }, [rotations, items.length]);
+
+  // Reset index if items change
+  useEffect(() => {
+    setIndex(0);
+  }, [news?.run_date]);
 
   // Reset index if items change
   useEffect(() => {
