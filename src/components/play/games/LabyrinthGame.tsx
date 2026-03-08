@@ -6,7 +6,7 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
-const MAZE_SIZE = 25; // odd number for walls + paths
+const MAZE_SIZE = 31; // odd number for walls + paths
 
 type Cell = 'wall' | 'path' | 'start' | 'end';
 
@@ -61,7 +61,7 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
     }
   }
   interiorWalls.sort(() => rng() - 0.5);
-  const toOpen = Math.floor(interiorWalls.length * 0.04);
+  const toOpen = Math.floor(interiorWalls.length * 0.02);
   for (let i = 0; i < toOpen; i++) {
     const [r, c] = interiorWalls[i];
     grid[r][c] = 'path';
@@ -77,7 +77,7 @@ function generateMaze(size: number, rng: () => number): Cell[][] {
           if (grid[r+dr]?.[c+dc] !== 'wall') neighbours++;
         }
         // Dead-end: only 1 neighbour — try to extend into an adjacent wall
-        if (neighbours === 1 && rng() < 0.6) {
+        if (neighbours === 1 && rng() < 0.75) {
           const dirs = [[-1,0],[1,0],[0,-1],[0,1]].sort(() => rng() - 0.5);
           for (const [dr, dc] of dirs) {
             const nr = r + dr, nc = c + dc;
