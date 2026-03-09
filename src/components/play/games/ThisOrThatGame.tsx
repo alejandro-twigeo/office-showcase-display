@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
-import { CheckCircle, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { CheckCircle, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const GAME_ID = 'this_or_that';
 
@@ -16,46 +18,36 @@ interface Question {
   category: string;
 }
 
-const QUESTION_POOL: Question[] = [
+// Fallback pool in case AI generation fails
+const FALLBACK_QUESTIONS: Question[] = [
   { prompt: 'Which country has more people?', a: 'Indonesia', b: 'Brazil', correct: 'a', category: 'Geography' },
   { prompt: 'Which planet is larger?', a: 'Neptune', b: 'Uranus', correct: 'a', category: 'Space' },
   { prompt: 'Which city is further north?', a: 'London', b: 'Berlin', correct: 'a', category: 'Geography' },
-  { prompt: 'Which element has a higher atomic number?', a: 'Gold (Au)', b: 'Silver (Ag)', correct: 'a', category: 'Science' },
   { prompt: 'Which river is longer?', a: 'Nile', b: 'Amazon', correct: 'a', category: 'Geography' },
   { prompt: 'Which animal lives longer on average?', a: 'Elephant', b: 'Horse', correct: 'a', category: 'Nature' },
-  { prompt: 'Which country has more islands?', a: 'Sweden', b: 'Philippines', correct: 'a', category: 'Geography' },
   { prompt: 'Which ocean is deeper?', a: 'Pacific', b: 'Atlantic', correct: 'a', category: 'Geography' },
   { prompt: 'Which was invented first?', a: 'Telephone', b: 'Light bulb', correct: 'a', category: 'History' },
   { prompt: 'Which building is taller?', a: 'Burj Khalifa', b: 'Shanghai Tower', correct: 'a', category: 'Architecture' },
   { prompt: 'Which language has more native speakers?', a: 'Spanish', b: 'English', correct: 'a', category: 'Language' },
-  { prompt: 'Which metal is heavier per cm³?', a: 'Lead', b: 'Iron', correct: 'a', category: 'Science' },
   { prompt: 'Which country is larger by area?', a: 'Australia', b: 'India', correct: 'a', category: 'Geography' },
-  { prompt: 'Which mountain is taller?', a: 'K2', b: 'Kangchenjunga', correct: 'a', category: 'Geography' },
-  { prompt: 'Which fruit has more vitamin C per 100g?', a: 'Kiwi', b: 'Orange', correct: 'a', category: 'Food' },
-  { prompt: 'Which came first?', a: 'Roman Empire fall', b: 'Viking Age', correct: 'a', category: 'History' },
-  { prompt: 'Which planet has more moons?', a: 'Saturn', b: 'Jupiter', correct: 'a', category: 'Space' },
-  { prompt: 'Which desert is larger?', a: 'Sahara', b: 'Arabian', correct: 'a', category: 'Geography' },
-  { prompt: 'Which has a higher boiling point?', a: 'Water', b: 'Ethanol', correct: 'a', category: 'Science' },
-  { prompt: 'Which city is older?', a: 'Athens', b: 'Rome', correct: 'a', category: 'History' },
-  { prompt: 'Which animal is faster?', a: 'Cheetah', b: 'Pronghorn', correct: 'a', category: 'Nature' },
-  { prompt: 'Which country produces more coffee?', a: 'Brazil', b: 'Vietnam', correct: 'a', category: 'Food' },
-  { prompt: 'Which lake is deeper?', a: 'Lake Baikal', b: 'Lake Tanganyika', correct: 'a', category: 'Geography' },
-  { prompt: 'Which bone is longer?', a: 'Femur', b: 'Tibia', correct: 'a', category: 'Science' },
-  { prompt: 'Who was born first?', a: 'Mozart', b: 'Beethoven', correct: 'a', category: 'History' },
-  { prompt: 'Which is further from the Sun?', a: 'Mars', b: 'Venus', correct: 'a', category: 'Space' },
-  { prompt: 'Which has more calories per 100g?', a: 'Avocado', b: 'Banana', correct: 'a', category: 'Food' },
-  { prompt: 'Which runs at a higher voltage?', a: 'European power outlets (230V)', b: 'US power outlets (120V)', correct: 'a', category: 'Tech' },
-  { prompt: 'Which country won more FIFA World Cups?', a: 'Brazil', b: 'Germany', correct: 'a', category: 'Sport' },
-  { prompt: 'Which star is closer to Earth?', a: 'Proxima Centauri', b: 'Sirius', correct: 'a', category: 'Space' },
 ];
 
-function generateDailyQuestions(dateStr: string): Question[] {
-  const seed = dateSeed(dateStr);
+function pickFallbackQuestions(): Question[] {
+  const seed = dateSeed(todayDate());
   const rng = seededRandom(seed);
-
-  const shuffled = [...QUESTION_POOL].sort(() => rng() - 0.5);
-  // For each question, randomly swap a/b so the correct answer isn't always 'a'
+  const shuffled = [...FALLBACK_QUESTIONS].sort(() => rng() - 0.5);
   return shuffled.slice(0, 5).map(q => {
+    if (rng() > 0.5) {
+      return { ...q, a: q.b, b: q.a, correct: (q.correct === 'a' ? 'b' : 'a') as 'a' | 'b' };
+    }
+    return q;
+  });
+}
+
+function swapAnswerPositions(questions: Question[]): Question[] {
+  const seed = dateSeed(todayDate());
+  const rng = seededRandom(seed);
+  return questions.map(q => {
     if (rng() > 0.5) {
       return { ...q, a: q.b, b: q.a, correct: (q.correct === 'a' ? 'b' : 'a') as 'a' | 'b' };
     }
@@ -74,13 +66,64 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
-  const questions = useMemo(() => generateDailyQuestions(todayDate()), []);
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<{ choice: 'a' | 'b'; correct: boolean }[]>([]);
   const [showResult, setShowResult] = useState<{ correct: boolean; correctAnswer: string } | null>(null);
   const [done, setDone] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchQuestions() {
+      try {
+        const today = todayDate();
+
+        // Try fetching from DB first
+        const { data: cached } = await supabase
+          .from('daily_thisorthat')
+          .select('questions')
+          .eq('run_date', today)
+          .single();
+
+        if (cached?.questions && (cached.questions as any[]).length >= 5) {
+          if (!cancelled) {
+            setQuestions(swapAnswerPositions(cached.questions as Question[]));
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Generate via edge function
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('generate-thisorthat');
+
+        if (fnError) throw fnError;
+
+        if (fnData?.questions && fnData.questions.length >= 5) {
+          if (!cancelled) {
+            setQuestions(swapAnswerPositions(fnData.questions as Question[]));
+            setLoading(false);
+          }
+          return;
+        }
+
+        throw new Error('No questions returned');
+      } catch (err) {
+        console.error('Failed to fetch This or That questions, using fallback:', err);
+        if (!cancelled) {
+          setQuestions(pickFallbackQuestions());
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchQuestions();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleAnswer = async (choice: 'a' | 'b') => {
+    if (!questions) return;
     const q = questions[currentQ];
     const isCorrect = choice === q.correct;
     const correctAnswer = q.correct === 'a' ? q.a : q.b;
@@ -89,7 +132,6 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
     setAnswers(newAnswers);
     setShowResult({ correct: isCorrect, correctAnswer });
 
-    // Brief delay to show result
     setTimeout(async () => {
       setShowResult(null);
       if (newAnswers.length >= 5) {
@@ -123,6 +165,20 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
           <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
           <p className="font-medium">You scored {score} pts today!</p>
           <p className="text-xs text-muted-foreground">{correct}/5 correct answers</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading || !questions) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">⚖️ This or That</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8 gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Generating today's questions...</span>
         </CardContent>
       </Card>
     );
