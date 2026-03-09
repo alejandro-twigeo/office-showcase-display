@@ -38,6 +38,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_thisorthat: {
+        Row: {
+          created_at: string
+          id: string
+          questions: Json
+          run_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          questions?: Json
+          run_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          questions?: Json
+          run_date?: string
+        }
+        Relationships: []
+      }
       guesses: {
         Row: {
           created_at: string | null
