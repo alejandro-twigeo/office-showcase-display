@@ -87,9 +87,9 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
           .eq('run_date', today)
           .single();
 
-        if (cached?.questions && (cached.questions as any[]).length >= 5) {
+        if (cached?.questions && (cached.questions as unknown as any[]).length >= 5) {
           if (!cancelled) {
-            setQuestions(swapAnswerPositions(cached.questions as Question[]));
+            setQuestions(swapAnswerPositions(cached.questions as unknown as Question[]));
             setLoading(false);
           }
           return;
