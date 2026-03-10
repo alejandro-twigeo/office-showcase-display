@@ -77,17 +77,31 @@ export function YouTubeDisplay() {
     hasAdvancedRef.current = false;
   }, [currentVideo?.id]);
 
+  // Track the video id that is actually loaded in the player to avoid
+  // re-initialising when a realtime refetch briefly nulls and restores the
+  // same currentVideo object.
+  const activeVideoIdRef = useRef<string | undefined>(undefined);
+
   // Bootstrap / manage the YT.Player instance
   useEffect(() => {
-    if (!currentVideo?.video_id) {
-      playerRef.current?.destroy();
-      playerRef.current = null;
-      playerReadyRef.current = false;
+    const videoId = currentVideo?.video_id;
+
+    // Nothing to play — tear down only if we had something before
+    if (!videoId) {
+      if (activeVideoIdRef.current) {
+        playerRef.current?.destroy();
+        playerRef.current = null;
+        playerReadyRef.current = false;
+        activeVideoIdRef.current = undefined;
+      }
       return;
     }
 
-    const videoId = currentVideo.video_id;
-    const resumeAt = currentVideo.current_time_seconds ?? 0;
+    // Same video already loaded — skip (prevents restart on refetch)
+    if (videoId === activeVideoIdRef.current && playerRef.current) return;
+
+    activeVideoIdRef.current = videoId;
+    const resumeAt = currentVideo!.current_time_seconds ?? 0;
 
     const initPlayer = () => {
       if (!containerRef.current) return;

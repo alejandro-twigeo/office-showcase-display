@@ -264,13 +264,16 @@ export function UsageAnalytics() {
               <div className="flex items-end gap-[3px] h-16">
                 {dayStats.map((d) => {
                   const maxV = Math.max(...dayStats.map(s => s.uniqueVisitors), 1);
-                  const h = d.uniqueVisitors > 0 ? Math.max((d.uniqueVisitors / maxV) * 100, 8) : 0;
+                  const barPx = d.uniqueVisitors > 0 ? Math.max(Math.round((d.uniqueVisitors / maxV) * 64), 4) : 0;
                   const isToday = d.date === todayStr;
                   return (
-                    <div key={d.date} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.date}: ${d.uniqueVisitors} visitors, ${d.totalVisits} visits`}>
+                    <div key={d.date} className="flex-1 flex flex-col items-end justify-end" title={`${d.date}: ${d.uniqueVisitors} visitors, ${d.totalVisits} visits`}>
+                      {d.uniqueVisitors > 0 && (
+                        <span className="text-[7px] text-muted-foreground text-center w-full leading-none mb-0.5">{d.uniqueVisitors}</span>
+                      )}
                       <div
                         className={`w-full rounded-sm ${isToday ? 'bg-primary' : 'bg-primary/40'}`}
-                        style={{ height: `${h}%`, minHeight: d.uniqueVisitors > 0 ? 4 : 0 }}
+                        style={{ height: `${barPx}px` }}
                       />
                     </div>
                   );
