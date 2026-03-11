@@ -79,38 +79,20 @@ export function UsageAnalytics() {
 
       // Build visitor map from visit_logs
       const byDate = new Map<string, Set<string>>();
-      const countByDate = new Map<string, number>();
       const allUsers = new Set<string>();
-      let allVisits = 0;
-      for (const v of (visits || [])) {
-        const name = v.player_name;
-        if (!name) continue;
-        const d = v.visited_at.slice(0, 10);
-        if (!byDate.has(d)) byDate.set(d, new Set());
-        byDate.get(d)!.add(name);
-        countByDate.set(d, (countByDate.get(d) || 0) + 1);
-        allUsers.add(name);
-        allVisits++;
-      }
-
-      // Also count anyone who played a game as a visitor for that day
       const addVisitor = (name: string, date: string) => {
         if (!name || !date) return;
         if (!byDate.has(date)) byDate.set(date, new Set());
-        if (!byDate.get(date)!.has(name)) {
-          byDate.get(date)!.add(name);
-          countByDate.set(date, (countByDate.get(date) || 0) + 1);
-          allVisits++;
-        }
+        byDate.get(date)!.add(name);
         allUsers.add(name);
       };
 
+      for (const v of (visits || [])) {
+        if (v.player_name) addVisitor(v.player_name, v.visited_at.slice(0, 10));
+      }
       for (const s of (minigameData || [])) addVisitor(s.player_name, s.date);
       for (const w of (wordleData || [])) addVisitor(w.player_name, (w.created_at || '').slice(0, 10));
       for (const g of (guessData || [])) addVisitor(g.player_name, (g.created_at || '').slice(0, 10));
-
-      setTotalUniqueDevices(allUsers.size);
-      setTotalVisitsCount(allVisits);
 
       const dayCount = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
