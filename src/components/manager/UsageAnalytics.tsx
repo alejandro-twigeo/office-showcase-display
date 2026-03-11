@@ -109,10 +109,9 @@ export function UsageAnalytics() {
       }
       setDayStats(stats);
 
-      // Compute totals after building dayStats
-      const totalDailyUniques = stats.reduce((sum, d) => sum + d.uniqueVisitors, 0);
-      setTotalUniqueDevices(totalDailyUniques);
-      setTotalVisitsCount(totalDailyUniques);
+      const sumDailyUniques = stats.reduce((sum, d) => sum + d.uniqueVisitors, 0);
+      setTotalDailyUniques(sumDailyUniques);
+      setDistinctPersons(allUsers.size);
 
       // Build game stats from already-fetched data using player_name
       const gameByDay = new Map<string, Map<string, Set<string>>>();
