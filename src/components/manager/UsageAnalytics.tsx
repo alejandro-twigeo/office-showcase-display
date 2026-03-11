@@ -100,13 +100,19 @@ export function UsageAnalytics() {
         const d = new Date(fromDate);
         d.setDate(d.getDate() + i);
         const key = d.toISOString().slice(0, 10);
+        const uniqueCount = byDate.get(key)?.size || 0;
         stats.push({
           date: key,
-          uniqueVisitors: byDate.get(key)?.size || 0,
-          totalVisits: countByDate.get(key) || 0,
+          uniqueVisitors: uniqueCount,
+          totalVisits: uniqueCount,
         });
       }
       setDayStats(stats);
+
+      // Compute totals after building dayStats
+      const totalDailyUniques = stats.reduce((sum, d) => sum + d.uniqueVisitors, 0);
+      setTotalUniqueDevices(totalDailyUniques);
+      setTotalVisitsCount(totalDailyUniques);
 
       // Build game stats from already-fetched data using player_name
       const gameByDay = new Map<string, Map<string, Set<string>>>();
