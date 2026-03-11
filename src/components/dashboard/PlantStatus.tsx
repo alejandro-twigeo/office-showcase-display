@@ -1,6 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function PlantStatus({ playerName }: { playerName?: string }) {
   const [plantId, setPlantId] = useState<string | null>(null);
@@ -8,6 +18,7 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
   const [lastWateredBy, setLastWateredBy] = useState<string | null>(null);
   const [plantLoading, setPlantLoading] = useState(false);
   const [watering, setWatering] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const fetchPlant = async () => {
     setPlantLoading(true);
@@ -29,7 +40,6 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
 
   useEffect(() => { fetchPlant(); }, []);
 
-  // Realtime: re-fetch when plant row changes
   useEffect(() => {
     const channel = supabase
       .channel("plant_status_rt")
@@ -64,7 +74,6 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
     }
   };
 
-  // Calculate days since last watered
   const daysSinceWatered = lastWatered
     ? Math.floor((Date.now() - lastWatered.getTime()) / (1000 * 60 * 60 * 24))
     : null;
@@ -114,7 +123,7 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={handleWaterPlant}
+                  onClick={() => setConfirmOpen(true)}
                   className={`h-[clamp(24px,1.7vw,40px)] w-auto transition-transform duration-200 ease-out active:scale-90 ${
                     watering ? "scale-110" : ""
                   }`}
@@ -129,6 +138,28 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
           )}
         </div>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Water the plant? 🌱</AlertDialogTitle>
+            <AlertDialogDescription>
+              Did you actually water Bianca? This will reset the watering timer for everyone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Oops, no!</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleWaterPlant();
+                setConfirmOpen(false);
+              }}
+            >
+              Yes, I watered her! 💧
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }
