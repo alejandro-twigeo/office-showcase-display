@@ -170,9 +170,9 @@ export function UsageAnalytics() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const daysWithData = dayStats.filter(d => d.uniqueVisitors > 0).length || 1;
-  const avgVisitorsPerDay = Math.round(totalUniqueDevices / daysWithData * 10) / 10;
-  const avgVisitsPerPerson = totalUniqueDevices > 0
-    ? Math.round((totalVisitsCount / totalUniqueDevices) * 10) / 10
+  const avgVisitorsPerDay = Math.round(totalDailyUniques / daysWithData * 10) / 10;
+  const avgVisitsPerPerson = distinctPersons > 0
+    ? Math.round((totalDailyUniques / distinctPersons) * 10) / 10
     : 0;
 
   return (
