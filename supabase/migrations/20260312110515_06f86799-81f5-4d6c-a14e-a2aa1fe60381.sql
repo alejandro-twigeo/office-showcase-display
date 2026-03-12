@@ -1,0 +1,1 @@
+DELETE FROM daily_thisorthat WHERE run_date = CURRENT_DATE;
