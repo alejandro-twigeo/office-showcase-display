@@ -6,3 +6,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.ingest-news]
 verify_jwt = false
+[functions.auto-reset-round]
+verify_jwt = false
+[functions.generate-thisorthat]
+verify_jwt = false
