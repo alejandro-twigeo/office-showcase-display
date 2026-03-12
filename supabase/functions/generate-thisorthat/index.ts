@@ -32,6 +32,29 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch recent questions to avoid repetition
+    const { data: recentRows } = await supabase
+      .from("daily_thisorthat")
+      .select("questions, run_date")
+      .order("run_date", { ascending: false })
+      .limit(7);
+
+    const recentPrompts: string[] = [];
+    if (recentRows) {
+      for (const row of recentRows) {
+        const qs = row.questions as any[];
+        if (qs) {
+          for (const q of qs) {
+            if (q.prompt) recentPrompts.push(`${q.prompt} (${q.a} vs ${q.b})`);
+          }
+        }
+      }
+    }
+
+    const avoidSection = recentPrompts.length > 0
+      ? `\n\nCRITICAL: Do NOT reuse or rephrase any of these recently used questions or comparisons:\n${recentPrompts.map(p => `- ${p}`).join('\n')}\n\nAll 5 questions must be completely different topics and comparisons from the above list.`
+      : '';
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -46,11 +69,11 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a trivia question generator. Generate fun, interesting binary comparison questions where one answer is clearly factually correct. Questions should be diverse across categories."
+            content: "You are a trivia question generator. Generate fun, interesting binary comparison questions where one answer is clearly factually correct. Every day must have COMPLETELY FRESH questions — never repeat topics, subjects, or comparisons from previous days. Be creative and surprising."
           },
           {
             role: "user",
-            content: `Generate 5 unique "This or That" trivia questions for today (${today}). Each question should ask the player to pick between two options where one is factually correct (e.g. "Which is bigger?", "Which came first?", "Which has more?"). Cover diverse categories: geography, science, history, nature, food, sport, tech, space, language, music. Make sure the facts are accurate and verifiable.`
+            content: `Generate 5 unique "This or That" trivia questions for ${today}. Each question should ask the player to pick between two options where one is factually correct (e.g. "Which is bigger?", "Which came first?", "Which has more?"). Cover diverse categories — pick 5 DIFFERENT categories from: geography, science, history, nature, food, sport, tech, space, language, music, movies, art, architecture, economics, biology, chemistry, literature, mythology, math, transportation, fashion, medicine. Make sure the facts are accurate and verifiable. Be creative with the comparisons — avoid cliché geography/space comparisons.${avoidSection}`
           }
         ],
         tools: [
