@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal } from 'lucide-react';
 import { todayDate } from '@/hooks/useMinigameScore';
-import { MINI_GAMES } from './MiniGamesSelector';
+import { MINI_GAMES } from './miniGamesList';
 
 interface TopPlayer {
   player_name: string;
