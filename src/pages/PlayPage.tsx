@@ -25,7 +25,6 @@ export default function PlayPage() {
   const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
   const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
