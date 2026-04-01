@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
+import { useIsMobile } from '../hooks/use-mobile';
 import { PlayerAuth } from '../components/play/PlayerAuth';
+import { MobilePlayLayout } from '../components/play/MobilePlayLayout';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
@@ -21,6 +23,7 @@ type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
 
 export default function PlayPage() {
   const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
@@ -35,6 +38,10 @@ export default function PlayPage() {
 
   if (!player) {
     return <PlayerAuth onLogin={login} onSignup={signup} />;
+  }
+
+  if (isMobile) {
+    return <MobilePlayLayout player={player} logout={logout} updateProfile={updateProfile} />;
   }
 
   // Determine which leaderboard to show

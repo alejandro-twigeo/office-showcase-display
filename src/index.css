@@ -184,3 +184,11 @@
 .animate-marquee-if-needed {
   animation: marquee-scroll 12s linear infinite;
 }
+
+/* Safe area insets for mobile notch/home-indicator */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
