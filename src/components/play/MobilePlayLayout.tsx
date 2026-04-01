@@ -17,9 +17,9 @@ import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
 
 interface MobilePlayLayoutProps {
-  player: { name: string; avatar: string; office: string };
+  player: Player;
   logout: () => void;
-  updateProfile: (data: any) => void;
+  updateProfile: (updates: { name?: string; office?: string; avatar?: string }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLayoutProps) {
