@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { MapPin, BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
 import { PollSection } from './PollSection';
 import { YouTubeSection } from './YouTubeSection';
