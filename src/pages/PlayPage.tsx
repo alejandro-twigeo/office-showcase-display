@@ -23,6 +23,8 @@ type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
 
 export default function PlayPage() {
   const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
