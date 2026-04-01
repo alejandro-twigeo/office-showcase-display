@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
+import { useIsMobile } from '../hooks/use-mobile';
 import { PlayerAuth } from '../components/play/PlayerAuth';
+import { MobilePlayLayout } from '../components/play/MobilePlayLayout';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
