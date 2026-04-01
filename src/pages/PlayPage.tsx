@@ -47,7 +47,8 @@ export default function PlayPage() {
   // Determine which leaderboard to show
   const renderLeaderboard = () => {
     if (gamesSubTab !== 'other') return <Leaderboard />;
-    if (!activeMinigame || activeMinigame === 'wordle') return <WordleLeaderboard />;
+    if (!activeMinigame) return null;
+    if (activeMinigame === 'wordle') return <WordleLeaderboard />;
     const GAME_LABELS: Record<string, { title: string; emoji: string }> = {
       city_guess: { title: 'City Guess', emoji: '🏙️' },
       this_or_that: { title: 'This or That', emoji: '⚖️' },
