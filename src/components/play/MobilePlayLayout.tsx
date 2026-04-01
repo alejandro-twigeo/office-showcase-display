@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
@@ -7,14 +7,22 @@ import { PollSection } from './PollSection';
 import { YouTubeSection } from './YouTubeSection';
 import { PositiveMessagesSection } from './PositiveMessagesSection';
 import { NewsSection } from './NewsSection';
-import { Leaderboard } from '@/components/dashboard/Leaderboard';
-import { WordleLeaderboard } from './WordleLeaderboard';
-import { MinigameLeaderboard } from './MinigameLeaderboard';
 import { PlantStatus } from '@/components/dashboard/PlantStatus';
 import { ProfileEditor } from './ProfileEditor';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
+import { WordleGame } from './WordleGame';
+import { CityGuessGame } from './games/CityGuessGame';
+import { ThisOrThatGame } from './games/ThisOrThatGame';
+import { SudokuGame } from './games/SudokuGame';
+import { PairsGame } from './games/PairsGame';
+import { LabyrinthGame } from './games/LabyrinthGame';
+import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
+import { MINI_GAMES } from './miniGamesList';
+import { useGameIcons } from '@/hooks/useGameIcons';
+import { useRounds } from '@/hooks/useRounds';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
+type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news';
 
 interface MobilePlayLayoutProps {
   player: Player;
@@ -24,46 +32,99 @@ interface MobilePlayLayoutProps {
 
 export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLayoutProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabValue>('guess');
+  const [activeTab, setActiveTab] = useState<TabValue>('games');
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
-  const [activeMinigame, setActiveMinigame] = useState<string | null>(null);
-
-  const renderLeaderboard = () => {
-    if (gamesSubTab !== 'other') return <Leaderboard />;
-    if (!activeMinigame || activeMinigame === 'wordle') return <WordleLeaderboard />;
-    const GAME_LABELS: Record<string, { title: string; emoji: string }> = {
-      city_guess: { title: 'City Guess', emoji: '🏙️' },
-      this_or_that: { title: 'This or That', emoji: '⚖️' },
-      sudoku: { title: 'Sudoku', emoji: '🔢' },
-      pairs: { title: 'Pairs', emoji: '🃏' },
-      labyrinth: { title: 'Labyrinth', emoji: '🌀' },
-    };
-    const info = GAME_LABELS[activeMinigame];
-    if (!info) return <WordleLeaderboard />;
-    return (
-      <MinigameLeaderboard
-        gameId={activeMinigame}
-        title={info.title}
-        emoji={info.emoji}
-        formatMeta={(meta) => {
-          if (meta.time_seconds != null) return `${Math.floor(meta.time_seconds / 60)}:${String(meta.time_seconds % 60).padStart(2, '0')}`;
-          if (meta.moves != null) return `${meta.moves} moves`;
-          if (meta.attempts != null) return `${meta.attempts} attempts`;
-          return '';
-        }}
-      />
-    );
-  };
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const { icons } = useGameIcons();
+  const { activeRound } = useRounds();
 
   const tabs: { value: TabValue; icon: typeof Gamepad2; label: string }[] = [
-    { value: 'guess', icon: Gamepad2, label: 'Games' },
+    { value: 'games', icon: Gamepad2, label: 'Games' },
     { value: 'polls', icon: BarChart3, label: 'Polls' },
     { value: 'youtube', icon: Youtube, label: 'Music' },
     { value: 'news', icon: Newspaper, label: 'News' },
     { value: 'vibes', icon: Heart, label: 'Vibes' },
   ];
+
+  const renderGameContent = () => {
+    if (!selectedGame) {
+      // Show unified game grid with GeoGuessr first
+      return (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5 text-primary" />
+              Games
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Pick a game to play</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2">
+              {/* GeoGuessr - spans full first row (3 cols) */}
+              <button
+                onClick={() => setSelectedGame('geoguessr')}
+                className="col-span-3 flex items-center gap-3 p-3 rounded-xl border bg-primary/10 active:bg-primary/20 transition-all text-left"
+              >
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-background/50 shrink-0">
+                  {icons['geoguessr'] ? (
+                    <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                  ) : (
+                    <Target className="h-6 w-6 text-primary" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">GeoGuessr</p>
+                  <p className="text-xs text-muted-foreground">Guess the location from a photo</p>
+                </div>
+              </button>
+
+              {/* Mini games */}
+              {MINI_GAMES.map((game) => (
+                <button
+                  key={game.id}
+                  onClick={() => setSelectedGame(game.id)}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-secondary/30 active:bg-secondary/60 transition-all text-center"
+                >
+                  <div className="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
+                    {icons[game.id] ? (
+                      <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">{game.emoji}</span>
+                    )}
+                  </div>
+                  <p className="font-medium text-xs leading-tight">{game.name}</p>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Render selected game with back button
+    return (
+      <div className="space-y-3">
+        <button
+          onClick={() => setSelectedGame(null)}
+          className="flex items-center gap-1.5 text-sm font-medium text-primary active:text-primary/70 transition-colors py-1"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to games
+        </button>
+
+        {selectedGame === 'geoguessr' && (
+          <GuessMap playerName={player.name} />
+        )}
+        {selectedGame === 'wordle' && <WordleGame playerName={player.name} />}
+        {selectedGame === 'city_guess' && <CityGuessGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'sudoku' && <SudokuGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'pairs' && <PairsGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'labyrinth' && <LabyrinthGame playerName={player.name} roundId={activeRound?.id} />}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col">
@@ -124,15 +185,12 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         )}
       </header>
 
-      {/* Scrollable content area - takes remaining space above bottom nav */}
+      {/* Scrollable content area */}
       <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 pb-20 space-y-3">
-        {activeTab === 'guess' && (
+        {activeTab === 'games' && (
           <div className="space-y-3">
-            <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
-              setGamesSubTab(tab);
-              if (tab !== 'other') setActiveMinigame(null);
-            }} onMinigameChange={setActiveMinigame} />
-            {renderLeaderboard()}
+            {renderGameContent()}
+            {!selectedGame && <MiniGamesLeaderboardGrid />}
           </div>
         )}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
@@ -149,7 +207,10 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             return (
               <button
                 key={value}
-                onClick={() => setActiveTab(value)}
+                onClick={() => {
+                  setActiveTab(value);
+                  if (value === 'games') setSelectedGame(null);
+                }}
                 className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
                   isActive
                     ? 'text-primary'
