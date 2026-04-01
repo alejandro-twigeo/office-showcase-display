@@ -40,6 +40,10 @@ export default function PlayPage() {
     return <PlayerAuth onLogin={login} onSignup={signup} />;
   }
 
+  if (isMobile) {
+    return <MobilePlayLayout player={player} logout={logout} updateProfile={updateProfile} />;
+  }
+
   // Determine which leaderboard to show
   const renderLeaderboard = () => {
     if (gamesSubTab !== 'other') return <Leaderboard />;
