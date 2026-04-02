@@ -3,150 +3,172 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
-import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, Undo2 } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
-const MAZE_SIZE = 31; // odd number for walls + paths
 
-type Cell = 'wall' | 'path' | 'start' | 'end';
+// ---------- Puzzle types ----------
+interface ZipPuzzle {
+  size: number;
+  /** checkpoints[r][c] = number (1-based) or 0 if not a checkpoint */
+  checkpoints: number[][];
+  /** walls: Set of "r1,c1-r2,c2" (sorted) indicating blocked edges */
+  walls: Set<string>;
+  /** The solution path as [r,c][] */
+  solution: [number, number][];
+}
 
-/** BFS shortest path length between two cells */
-function bfsDistance(grid: Cell[][], sr: number, sc: number, er: number, ec: number): number {
-  const size = grid.length;
+function wallKey(r1: number, c1: number, r2: number, c2: number): string {
+  if (r1 < r2 || (r1 === r2 && c1 < c2)) return `${r1},${c1}-${r2},${c2}`;
+  return `${r2},${c2}-${r1},${c1}`;
+}
+
+// ---------- Puzzle generation ----------
+function generateZipPuzzle(rng: () => number): ZipPuzzle {
+  const size = 6; // 6x6 grid = 36 cells
+  const total = size * size;
+
+  // Generate a Hamiltonian path using randomized Warnsdorf's heuristic + backtracking
   const visited = Array.from({ length: size }, () => Array(size).fill(false));
-  const queue: [number, number, number][] = [[sr, sc, 0]];
-  visited[sr][sc] = true;
-  while (queue.length > 0) {
-    const [r, c, d] = queue.shift()!;
-    if (r === er && c === ec) return d;
-    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-      const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc] && grid[nr][nc] !== 'wall') {
-        visited[nr][nc] = true;
-        queue.push([nr, nc, d + 1]);
-      }
-    }
-  }
-  return -1;
-}
+  const path: [number, number][] = [];
 
-/** Generate maze using recursive backtracker, add dead-end extensions and branching */
-function generateMaze(size: number, rng: () => number): { grid: Cell[][]; start: { r: number; c: number }; end: { r: number; c: number } } {
-  const grid: Cell[][] = Array.from({ length: size }, () => Array(size).fill('wall'));
+  // Start from a random cell
+  const startR = Math.floor(rng() * size);
+  const startC = Math.floor(rng() * size);
 
-  function carve(r: number, c: number) {
-    grid[r][c] = 'path';
-    const dirs = [[-2, 0], [2, 0], [0, -2], [0, 2]].sort(() => rng() - 0.5);
+  function neighbors(r: number, c: number): [number, number][] {
+    const dirs: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    const result: [number, number][] = [];
     for (const [dr, dc] of dirs) {
-      const nr = r + dr;
-      const nc = c + dc;
-      if (nr > 0 && nr < size - 1 && nc > 0 && nc < size - 1 && grid[nr][nc] === 'wall') {
-        grid[r + dr / 2][c + dc / 2] = 'path';
-        carve(nr, nc);
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc]) {
+        result.push([nr, nc]);
+      }
+    }
+    return result;
+  }
+
+  function degree(r: number, c: number): number {
+    return neighbors(r, c).length;
+  }
+
+  function solve(r: number, c: number, depth: number): boolean {
+    visited[r][c] = true;
+    path.push([r, c]);
+    if (depth === total) return true;
+
+    // Sort neighbors by Warnsdorf (fewest onward moves), with random tiebreak
+    const nbrs = neighbors(r, c);
+    nbrs.sort((a, b) => {
+      const da = degree(a[0], a[1]);
+      const db = degree(b[0], b[1]);
+      return da !== db ? da - db : rng() - 0.5;
+    });
+
+    for (const [nr, nc] of nbrs) {
+      if (solve(nr, nc, depth + 1)) return true;
+    }
+
+    visited[r][c] = false;
+    path.pop();
+    return false;
+  }
+
+  // Try a few starting positions if needed
+  let found = false;
+  const starts: [number, number][] = [[startR, startC]];
+  // Add more random starts as fallback
+  for (let i = 0; i < 10; i++) {
+    starts.push([Math.floor(rng() * size), Math.floor(rng() * size)]);
+  }
+  for (const [sr, sc] of starts) {
+    // Reset
+    for (let r = 0; r < size; r++) visited[r].fill(false);
+    path.length = 0;
+    if (solve(sr, sc, 1)) { found = true; break; }
+  }
+
+  if (!found) {
+    // Fallback: snake path
+    path.length = 0;
+    for (let r = 0; r < size; r++) {
+      if (r % 2 === 0) {
+        for (let c = 0; c < size; c++) path.push([r, c]);
+      } else {
+        for (let c = size - 1; c >= 0; c--) path.push([r, c]);
       }
     }
   }
 
-  carve(1, 1);
+  // Place checkpoints along the path
+  const checkpoints = Array.from({ length: size }, () => Array(size).fill(0));
+  // Always mark first and last
+  checkpoints[path[0][0]][path[0][1]] = 1;
+  checkpoints[path[total - 1][0]][path[total - 1][1]] = total;
 
-  // Open ~8% of interior walls to create branching / misleading forks
-  const interiorWalls: [number, number][] = [];
-  for (let r = 2; r < size - 2; r++) {
-    for (let c = 2; c < size - 2; c++) {
-      if (grid[r][c] === 'wall') {
-        const hConnect = grid[r - 1]?.[c] !== 'wall' && grid[r + 1]?.[c] !== 'wall';
-        const vConnect = grid[r]?.[c - 1] !== 'wall' && grid[r]?.[c + 1] !== 'wall';
-        if (hConnect || vConnect) interiorWalls.push([r, c]);
-      }
-    }
-  }
-  interiorWalls.sort(() => rng() - 0.5);
-  const toOpen = Math.floor(interiorWalls.length * 0.02);
-  for (let i = 0; i < toOpen; i++) {
-    const [r, c] = interiorWalls[i];
-    grid[r][c] = 'path';
-  }
-
-  // Extend some dead-ends by 1 cell to create misleading turns
-  for (let r = 2; r < size - 2; r++) {
-    for (let c = 2; c < size - 2; c++) {
-      if (grid[r][c] !== 'wall') {
-        // Count path neighbours
-        let neighbours = 0;
-        for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-          if (grid[r+dr]?.[c+dc] !== 'wall') neighbours++;
-        }
-        // Dead-end: only 1 neighbour — try to extend into an adjacent wall
-        if (neighbours === 1 && rng() < 0.75) {
-          const dirs = [[-1,0],[1,0],[0,-1],[0,1]].sort(() => rng() - 0.5);
-          for (const [dr, dc] of dirs) {
-            const nr = r + dr, nc = c + dc;
-            if (nr > 0 && nr < size - 1 && nc > 0 && nc < size - 1 && grid[nr][nc] === 'wall') {
-              // Only extend if it stays a dead-end (doesn't connect to other paths)
-              let adjPaths = 0;
-              for (const [dr2, dc2] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-                if (grid[nr+dr2]?.[nc+dc2] !== 'wall') adjPaths++;
-              }
-              if (adjPaths <= 1) {
-                grid[nr][nc] = 'path';
-              }
-              break;
-            }
-          }
-        }
+  // Place ~6-8 intermediate checkpoints spread along the path
+  const numCheckpoints = 6 + Math.floor(rng() * 3); // 6-8 intermediate
+  const step = total / (numCheckpoints + 2);
+  let cpNum = 2;
+  for (let i = 1; i < numCheckpoints + 1; i++) {
+    const idx = Math.round(step * i);
+    if (idx > 0 && idx < total - 1) {
+      const [cr, cc] = path[idx];
+      if (checkpoints[cr][cc] === 0) {
+        checkpoints[cr][cc] = idx + 1; // 1-based position in path
+        cpNum++;
       }
     }
   }
 
-  // Find the two path cells with the longest BFS distance to maximise challenge
-  let bestStart = { r: 1, c: 1 };
-  let bestEnd = { r: size - 2, c: size - 2 };
-  let bestDist = 0;
-
-  // Collect all path cells
-  const pathCells: { r: number; c: number }[] = [];
-  for (let r = 1; r < size - 1; r++) {
-    for (let c = 1; c < size - 1; c++) {
-      if (grid[r][c] !== 'wall') pathCells.push({ r, c });
-    }
-  }
-
-  // Sample ~30 random pairs to find a long path (full search too expensive)
-  const samples = Math.min(pathCells.length, 30);
-  for (let i = 0; i < samples; i++) {
-    const a = pathCells[Math.floor(rng() * pathCells.length)];
-    const b = pathCells[Math.floor(rng() * pathCells.length)];
-    if (a.r === b.r && a.c === b.c) continue;
-    const d = bfsDistance(grid, a.r, a.c, b.r, b.c);
-    if (d > bestDist) {
-      bestDist = d;
-      bestStart = a;
-      bestEnd = b;
-    }
-  }
-
-  // Also check corners / edges for potentially longer paths
-  const corners = [
-    { r: 1, c: 1 }, { r: 1, c: size - 2 },
-    { r: size - 2, c: 1 }, { r: size - 2, c: size - 2 },
-  ].filter(p => grid[p.r][p.c] !== 'wall');
-  for (const a of corners) {
-    for (const b of corners) {
-      if (a === b) continue;
-      const d = bfsDistance(grid, a.r, a.c, b.r, b.c);
-      if (d > bestDist) {
-        bestDist = d;
-        bestStart = a;
-        bestEnd = b;
+  // Renumber checkpoints sequentially
+  const cpEntries: { r: number; c: number; pathIdx: number }[] = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (checkpoints[r][c] > 0) {
+        cpEntries.push({ r, c, pathIdx: checkpoints[r][c] - 1 });
       }
     }
   }
+  cpEntries.sort((a, b) => a.pathIdx - b.pathIdx);
+  // Clear and renumber
+  for (let r = 0; r < size; r++) checkpoints[r].fill(0);
+  cpEntries.forEach((e, i) => {
+    checkpoints[e.r][e.c] = i + 1;
+  });
 
-  grid[bestStart.r][bestStart.c] = 'start';
-  grid[bestEnd.r][bestEnd.c] = 'end';
-  return { grid, start: bestStart, end: bestEnd };
+  // Add a few walls (edges that the path does NOT use) to increase difficulty
+  const pathEdges = new Set<string>();
+  for (let i = 0; i < path.length - 1; i++) {
+    pathEdges.add(wallKey(path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]));
+  }
+
+  const walls = new Set<string>();
+  // Collect all grid edges not on the path
+  const nonPathEdges: string[] = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (r + 1 < size) {
+        const k = wallKey(r, c, r + 1, c);
+        if (!pathEdges.has(k)) nonPathEdges.push(k);
+      }
+      if (c + 1 < size) {
+        const k = wallKey(r, c, r, c + 1);
+        if (!pathEdges.has(k)) nonPathEdges.push(k);
+      }
+    }
+  }
+  // Shuffle and pick ~3-5 walls
+  nonPathEdges.sort(() => rng() - 0.5);
+  const numWalls = 3 + Math.floor(rng() * 3);
+  for (let i = 0; i < Math.min(numWalls, nonPathEdges.length); i++) {
+    walls.add(nonPathEdges[i]);
+  }
+
+  return { size, checkpoints, walls, solution: path };
 }
 
+// ---------- Component ----------
 interface LabyrinthGameProps {
   playerName: string;
   roundId?: string;
@@ -158,19 +180,20 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
   const submitScore = useSubmitMinigameScore();
 
-  const { grid: maze, start: mazeStart } = useMemo(() => {
+  const puzzle = useMemo(() => {
     const seed = dateSeed(todayDate());
-    return generateMaze(MAZE_SIZE, seededRandom(seed + 4));
+    return generateZipPuzzle(seededRandom(seed + 4));
   }, []);
 
-  const [playerPos, setPlayerPos] = useState<{ r: number; c: number }>(mazeStart);
-  const [path, setPath] = useState<Set<string>>(new Set([`${mazeStart.r}-${mazeStart.c}`]));
-  const [resets, setResets] = useState(0);
+  const [path, setPath] = useState<[number, number][]>([]);
   const [started, setStarted] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
 
   useEffect(() => {
     if (startTime && !done) {
@@ -179,173 +202,344 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [startTime, done]);
 
-  const handleStart = useCallback(() => {
-    setStarted(true);
-    setStartTime(Date.now());
+  const isAdjacent = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+    return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
   }, []);
 
-  const resetPosition = useCallback(() => {
-    setPlayerPos(mazeStart);
-    setPath(new Set([`${mazeStart.r}-${mazeStart.c}`]));
-    setResets(r => r + 1);
-  }, [mazeStart]);
+  const isWallBetween = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+    return puzzle.walls.has(wallKey(r1, c1, r2, c2));
+  }, [puzzle]);
 
-  const movePlayer = useCallback(async (dr: number, dc: number) => {
-    if (done || !started) return;
-    const nr = playerPos.r + dr;
-    const nc = playerPos.c + dc;
-    if (nr < 0 || nr >= MAZE_SIZE || nc < 0 || nc >= MAZE_SIZE) return;
-    if (maze[nr][nc] === 'wall') {
-      return;
+  const isInPath = useCallback((r: number, c: number, currentPath: [number, number][]) => {
+    return currentPath.some(([pr, pc]) => pr === r && pc === c);
+  }, []);
+
+  const getNextRequiredCheckpoint = useCallback((currentPath: [number, number][]) => {
+    // Find checkpoints already visited in order
+    let nextCpValue = 1;
+    for (const [pr, pc] of currentPath) {
+      if (puzzle.checkpoints[pr][pc] === nextCpValue) {
+        nextCpValue++;
+      }
     }
-    setPlayerPos({ r: nr, c: nc });
-    setPath(prev => new Set(prev).add(`${nr}-${nc}`));
+    return nextCpValue;
+  }, [puzzle]);
 
-    if (maze[nr][nc] === 'end') {
+  const tryAddCell = useCallback((r: number, c: number, currentPath: [number, number][]) => {
+    if (done) return currentPath;
+    const { size, checkpoints } = puzzle;
+    if (r < 0 || r >= size || c < 0 || c >= size) return currentPath;
+
+    // If path is empty, must start at checkpoint 1
+    if (currentPath.length === 0) {
+      // Find the cell with checkpoint 1
+      for (let cr = 0; cr < size; cr++) {
+        for (let cc = 0; cc < size; cc++) {
+          if (checkpoints[cr][cc] === 1 && cr === r && cc === c) {
+            if (!started) {
+              setStarted(true);
+              setStartTime(Date.now());
+            }
+            return [[r, c] as [number, number]];
+          }
+        }
+      }
+      return currentPath;
+    }
+
+    // Already in path?
+    if (isInPath(r, c, currentPath)) return currentPath;
+
+    const last = currentPath[currentPath.length - 1];
+    if (!isAdjacent(last[0], last[1], r, c)) return currentPath;
+    if (isWallBetween(last[0], last[1], r, c)) {
+      setError(true);
+      setTimeout(() => setError(false), 300);
+      return currentPath;
+    }
+
+    // Check if this cell has a checkpoint that shouldn't be visited yet
+    const nextCp = getNextRequiredCheckpoint(currentPath);
+    const cellCp = checkpoints[r][c];
+    if (cellCp > 0 && cellCp !== nextCp) {
+      // Skipping a checkpoint or visiting out of order
+      setError(true);
+      setTimeout(() => setError(false), 300);
+      return currentPath;
+    }
+
+    return [...currentPath, [r, c] as [number, number]];
+  }, [done, puzzle, started, isInPath, isAdjacent, isWallBetween, getNextRequiredCheckpoint]);
+
+  const checkWin = useCallback(async (currentPath: [number, number][]) => {
+    if (currentPath.length === puzzle.size * puzzle.size) {
+      // Verify all checkpoints are hit in order
       setDone(true);
+      clearInterval(timerRef.current);
       const time = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
-      const timeScore = Math.round(settings.labyrinth_max_points / (1 + time / settings.labyrinth_time_param));
-      const penalty = resets * settings.labyrinth_reset_penalty;
-      const score = Math.max(1, timeScore - penalty);
+      const score = Math.max(1, Math.round(settings.labyrinth_max_points / (1 + time / settings.labyrinth_time_param)));
       await submitScore.mutateAsync({
         game_id: GAME_ID,
         player_name: playerName,
         device_id: deviceId,
         score,
         round_id: roundId,
-        meta: { time_seconds: time, resets },
+        meta: { time_seconds: time },
       });
     }
-  }, [playerPos, done, started, maze, startTime, settings, resets, playerName, deviceId, submitScore, resetPosition]);
+  }, [puzzle, startTime, settings, playerName, deviceId, submitScore, roundId]);
 
-  // Keyboard controls — prevent page scroll on arrow keys
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'w') { e.preventDefault(); movePlayer(-1, 0); }
-      else if (e.key === 'ArrowDown' || e.key === 's') { e.preventDefault(); movePlayer(1, 0); }
-      else if (e.key === 'ArrowLeft' || e.key === 'a') { e.preventDefault(); movePlayer(0, -1); }
-      else if (e.key === 'ArrowRight' || e.key === 'd') { e.preventDefault(); movePlayer(0, 1); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [movePlayer]);
+  const handleCellClick = useCallback((r: number, c: number) => {
+    if (done) return;
+    // If tapping the last cell in path, undo
+    if (path.length > 0) {
+      const last = path[path.length - 1];
+      if (last[0] === r && last[1] === c && path.length > 1) {
+        setPath(prev => prev.slice(0, -1));
+        return;
+      }
+    }
+    const newPath = tryAddCell(r, c, path);
+    if (newPath !== path) {
+      setPath(newPath);
+      checkWin(newPath);
+    }
+  }, [done, path, tryAddCell, checkWin]);
 
-  // Continuous touch-drag: trace your finger across the maze grid
-  const mazeGridRef = useRef<HTMLDivElement>(null);
+  const undoLast = useCallback(() => {
+    if (path.length > 1) {
+      setPath(prev => prev.slice(0, -1));
+    } else if (path.length === 1) {
+      setPath([]);
+    }
+  }, [path]);
 
-  const getCellFromTouch = useCallback((clientX: number, clientY: number): { r: number; c: number } | null => {
-    if (!mazeGridRef.current) return null;
-    const rect = mazeGridRef.current.getBoundingClientRect();
-    const cellW = rect.width / MAZE_SIZE;
-    const cellH = rect.height / MAZE_SIZE;
+  // Touch drag support
+  const getCellFromTouch = useCallback((clientX: number, clientY: number): [number, number] | null => {
+    if (!gridRef.current) return null;
+    const rect = gridRef.current.getBoundingClientRect();
+    const cellW = rect.width / puzzle.size;
+    const cellH = rect.height / puzzle.size;
     const c = Math.floor((clientX - rect.left) / cellW);
     const r = Math.floor((clientY - rect.top) / cellH);
-    if (r < 0 || r >= MAZE_SIZE || c < 0 || c >= MAZE_SIZE) return null;
-    return { r, c };
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (done) return;
-    e.preventDefault(); // prevent page scroll while dragging on maze
-    const t = e.touches[0];
-    const cell = getCellFromTouch(t.clientX, t.clientY);
-    if (!cell) return;
-    const { r, c } = cell;
-    // Only move if adjacent to current position (1 step away, no diagonal)
-    const dr = r - playerPos.r;
-    const dc = c - playerPos.c;
-    if (Math.abs(dr) + Math.abs(dc) === 1) {
-      movePlayer(dr, dc);
-    }
-  }, [done, getCellFromTouch, playerPos, movePlayer]);
+    if (r < 0 || r >= puzzle.size || c < 0 || c >= puzzle.size) return null;
+    return [r, c];
+  }, [puzzle.size]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!started || done) return;
     e.preventDefault();
+    isDragging.current = true;
     const t = e.touches[0];
     const cell = getCellFromTouch(t.clientX, t.clientY);
     if (!cell) return;
-    const { r, c } = cell;
-    const dr = r - playerPos.r;
-    const dc = c - playerPos.c;
-    if (Math.abs(dr) + Math.abs(dc) === 1) {
-      movePlayer(dr, dc);
+    const newPath = tryAddCell(cell[0], cell[1], path);
+    if (newPath !== path) {
+      setPath(newPath);
+      checkWin(newPath);
     }
-  }, [done, started, getCellFromTouch, playerPos, movePlayer]);
+  }, [getCellFromTouch, tryAddCell, path, checkWin]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!isDragging.current) return;
+    const t = e.touches[0];
+    const cell = getCellFromTouch(t.clientX, t.clientY);
+    if (!cell) return;
+    setPath(prev => {
+      // Allow undo by dragging back to previous cell
+      if (prev.length >= 2) {
+        const secondLast = prev[prev.length - 2];
+        if (secondLast[0] === cell[0] && secondLast[1] === cell[1]) {
+          return prev.slice(0, -1);
+        }
+      }
+      const newPath = tryAddCell(cell[0], cell[1], prev);
+      if (newPath !== prev) {
+        checkWin(newPath);
+        return newPath;
+      }
+      return prev;
+    });
+  }, [getCellFromTouch, tryAddCell, checkWin]);
+
+  const handleTouchEnd = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
+  // Mouse drag support for desktop
+  const handleMouseDown = useCallback((r: number, c: number) => {
+    isDragging.current = true;
+    handleCellClick(r, c);
+  }, [handleCellClick]);
+
+  const handleMouseEnter = useCallback((r: number, c: number) => {
+    if (!isDragging.current || done) return;
+    setPath(prev => {
+      // Allow undo by dragging back
+      if (prev.length >= 2) {
+        const secondLast = prev[prev.length - 2];
+        if (secondLast[0] === r && secondLast[1] === c) {
+          return prev.slice(0, -1);
+        }
+      }
+      const newPath = tryAddCell(r, c, prev);
+      if (newPath !== prev) {
+        checkWin(newPath);
+        return newPath;
+      }
+      return prev;
+    });
+  }, [done, tryAddCell, checkWin]);
+
+  useEffect(() => {
+    const handleMouseUp = () => { isDragging.current = false; };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  // Build path index for quick lookup
+  const pathIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    path.forEach(([r, c], i) => map.set(`${r}-${c}`, i));
+    return map;
+  }, [path]);
 
   if (todayScore) {
     return (
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-lg">🌀 Labyrinth</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-lg">🌀 Zip</CardTitle></CardHeader>
         <CardContent className="text-center py-6 space-y-2">
           <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
           <p className="font-medium">{todayScore.score} pts</p>
           <p className="text-xs text-muted-foreground">
-            {formatTime((todayScore.meta as any)?.time_seconds ?? 0)} · {(todayScore.meta as any)?.resets ?? 0} resets
+            {formatTime((todayScore.meta as any)?.time_seconds ?? 0)}
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const cellSize = `min(calc((100vw - 3rem) / ${MAZE_SIZE}), calc((100vh - 16rem) / ${MAZE_SIZE}), 1.5rem)`;
+  const cellSize = `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 18rem) / ${puzzle.size}), 3.5rem)`;
+
+  // Determine wall borders per cell
+  const getWallStyle = (r: number, c: number): React.CSSProperties => {
+    const style: React.CSSProperties = {};
+    const w = 3;
+    if (r > 0 && puzzle.walls.has(wallKey(r - 1, c, r, c))) style.borderTopWidth = `${w}px`;
+    if (r < puzzle.size - 1 && puzzle.walls.has(wallKey(r, c, r + 1, c))) style.borderBottomWidth = `${w}px`;
+    if (c > 0 && puzzle.walls.has(wallKey(r, c - 1, r, c))) style.borderLeftWidth = `${w}px`;
+    if (c < puzzle.size - 1 && puzzle.walls.has(wallKey(r, c, r, c + 1))) style.borderRightWidth = `${w}px`;
+    return style;
+  };
+
+  // Determine path connection lines
+  const getPathConnections = (r: number, c: number) => {
+    const idx = pathIndex.get(`${r}-${c}`);
+    if (idx === undefined) return { top: false, bottom: false, left: false, right: false };
+    const connections = { top: false, bottom: false, left: false, right: false };
+    const check = (di: number, dr: number, dc: number, dir: 'top' | 'bottom' | 'left' | 'right') => {
+      const ni = idx + di;
+      if (ni >= 0 && ni < path.length) {
+        const [nr, nc] = path[ni];
+        if (nr === r + dr && nc === c + dc) connections[dir] = true;
+      }
+    };
+    check(-1, -1, 0, 'top'); check(1, -1, 0, 'top');
+    check(-1, 1, 0, 'bottom'); check(1, 1, 0, 'bottom');
+    check(-1, 0, -1, 'left'); check(1, 0, -1, 'left');
+    check(-1, 0, 1, 'right'); check(1, 0, 1, 'right');
+    return connections;
+  };
+
+  const progress = path.length;
+  const total = puzzle.size * puzzle.size;
 
   return (
-    <Card>
+    <Card className={error ? 'ring-2 ring-destructive/50 transition-all' : 'transition-all'}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">🌀 Labyrinth</CardTitle>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
-          <span className="flex items-center gap-1"><RotateCcw className="h-3 w-3" /> {resets} resets</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Use arrow keys or drag your finger across the maze.</p>
-      </CardHeader>
-      <CardContent className="px-1 sm:px-4">
-        <div className="flex flex-col items-center gap-3">
-          {!started && !done && (
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">🌀 Zip</CardTitle>
+          {started && (
             <button
-              onClick={handleStart}
-              className="px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-md hover:opacity-90 transition-opacity my-8"
+              onClick={undoLast}
+              className="flex items-center gap-1 text-xs text-muted-foreground active:text-foreground transition-colors p-1.5 rounded-lg"
+              disabled={path.length === 0}
             >
-              ▶ Start
+              <Undo2 className="h-3.5 w-3.5" />
+              Undo
             </button>
           )}
-          {started && (
-            <div
-              ref={mazeGridRef}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              className="inline-grid gap-0 border border-border rounded-xl overflow-hidden touch-none w-fit"
-              style={{ gridTemplateColumns: `repeat(${MAZE_SIZE}, ${cellSize})` }}>
-              {maze.map((row, ri) => row.map((cell, ci) => {
-                const isPlayer = ri === playerPos.r && ci === playerPos.c;
-                const isPath = path.has(`${ri}-${ci}`);
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
+          <span>{progress}/{total} cells</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Draw a path from ① to ⑧ through every cell. Tap or drag to draw.
+        </p>
+      </CardHeader>
+      <CardContent className="px-2 sm:px-4">
+        <div className="flex flex-col items-center gap-3">
+          <div
+            ref={gridRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="inline-grid gap-0 rounded-xl overflow-hidden touch-none w-fit select-none border-2 border-border"
+            style={{ gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})` }}
+          >
+            {Array.from({ length: puzzle.size }, (_, ri) =>
+              Array.from({ length: puzzle.size }, (_, ci) => {
+                const cp = puzzle.checkpoints[ri][ci];
+                const pathIdx = pathIndex.get(`${ri}-${ci}`);
+                const isOnPath = pathIdx !== undefined;
+                const isHead = isOnPath && pathIdx === path.length - 1;
+                const isStart = cp === 1;
+                const conns = getPathConnections(ri, ci);
+
                 return (
                   <div
                     key={`${ri}-${ci}`}
-                    style={{ width: cellSize, height: cellSize }}
-                    className={`flex items-center justify-center text-[0.5rem] transition-colors
-                      ${cell === 'wall' ? 'bg-muted-foreground/40' : ''}
-                      ${cell === 'start' ? 'bg-green-500/20' : ''}
-                      ${cell === 'end' ? 'bg-primary/20' : ''}
-                      ${cell === 'path' && isPath && !isPlayer ? 'bg-primary/10' : ''}
-                      ${cell === 'path' && !isPath ? 'bg-background' : ''}
-                      ${isPlayer ? 'bg-primary rounded-sm' : ''}`}
+                    onMouseDown={() => handleMouseDown(ri, ci)}
+                    onMouseEnter={() => handleMouseEnter(ri, ci)}
+                    style={{ width: cellSize, height: cellSize, ...getWallStyle(ri, ci) }}
+                    className={`relative flex items-center justify-center cursor-pointer transition-colors duration-100
+                      border border-border/30
+                      ${isOnPath ? 'bg-primary/80' : 'bg-card'}
+                      ${isHead ? 'bg-primary ring-2 ring-primary/50' : ''}
+                      ${!isOnPath && cp > 0 ? 'bg-muted/50' : ''}
+                    `}
                   >
-                    {cell === 'start' && !isPlayer && '🏁'}
-                    {cell === 'end' && '⭐'}
-                    {isPlayer && '●'}
+                    {/* Path connection lines */}
+                    {isOnPath && conns.top && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-1/2 bg-primary/80 rounded-none" />}
+                    {isOnPath && conns.bottom && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1/2 bg-primary/80 rounded-none" />}
+                    {isOnPath && conns.left && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-2/3 bg-primary/80 rounded-none" />}
+                    {isOnPath && conns.right && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-2/3 bg-primary/80 rounded-none" />}
+
+                    {/* Checkpoint number */}
+                    {cp > 0 && (
+                      <span className={`relative z-10 font-bold text-sm rounded-full w-7 h-7 flex items-center justify-center
+                        ${isOnPath ? 'bg-primary-foreground text-primary' : 'bg-muted-foreground/20 text-foreground'}
+                      `}>
+                        {cp}
+                      </span>
+                    )}
+
+                    {/* Head indicator for non-checkpoint cells */}
+                    {isHead && cp === 0 && (
+                      <span className="relative z-10 w-3 h-3 rounded-full bg-primary-foreground" />
+                    )}
                   </div>
                 );
-              }))}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </div>
 
         {done && (
-          <p className="text-center font-semibold text-primary mt-3">🎉 You escaped!</p>
+          <p className="text-center font-semibold text-primary mt-3">🎉 Puzzle complete!</p>
         )}
       </CardContent>
     </Card>
