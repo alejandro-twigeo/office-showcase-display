@@ -53,6 +53,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const imgContainerRef = useRef<HTMLDivElement>(null);
 
   const MAX_ZOOM = 5;
+  const lastPinchDist = useRef<number | null>(null);
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 1, MAX_ZOOM));
   const handleZoomOut = () => {
@@ -62,6 +63,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       return nz;
     });
   };
+  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
   const onPointerDown = (e: React.PointerEvent) => {
     setDragging(true);
@@ -76,6 +78,34 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     });
   };
   const onPointerUp = () => { setDragging(false); dragStart.current = null; };
+
+  // Pinch-to-zoom
+  useEffect(() => {
+    const el = imgContainerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (lastPinchDist.current !== null) {
+          const delta = (dist - lastPinchDist.current) * 0.01;
+          setZoom(z => Math.min(Math.max(z + delta, 1), MAX_ZOOM));
+        }
+        lastPinchDist.current = dist;
+      }
+    };
+    const onTouchEnd = () => { lastPinchDist.current = null; };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [image]);
 
   const handleSelectCity = async (city: typeof CITIES[0]) => {
     setSelectedCity(city);
