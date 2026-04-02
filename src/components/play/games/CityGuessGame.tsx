@@ -5,7 +5,7 @@ import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
-import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -53,6 +53,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const imgContainerRef = useRef<HTMLDivElement>(null);
 
   const MAX_ZOOM = 5;
+  const lastPinchDist = useRef<number | null>(null);
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 1, MAX_ZOOM));
   const handleZoomOut = () => {
@@ -62,6 +63,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       return nz;
     });
   };
+  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
   const onPointerDown = (e: React.PointerEvent) => {
     setDragging(true);
@@ -76,6 +78,34 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     });
   };
   const onPointerUp = () => { setDragging(false); dragStart.current = null; };
+
+  // Pinch-to-zoom
+  useEffect(() => {
+    const el = imgContainerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (lastPinchDist.current !== null) {
+          const delta = (dist - lastPinchDist.current) * 0.01;
+          setZoom(z => Math.min(Math.max(z + delta, 1), MAX_ZOOM));
+        }
+        lastPinchDist.current = dist;
+      }
+    };
+    const onTouchEnd = () => { lastPinchDist.current = null; };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [image]);
 
   const handleSelectCity = async (city: typeof CITIES[0]) => {
     setSelectedCity(city);
@@ -217,11 +247,14 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
               />
             </div>
             <div className="absolute top-2 right-2 flex gap-1">
-              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
-                <ZoomIn className="h-4 w-4" />
-              </Button>
               <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomOut} disabled={zoom <= 1}>
                 <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleReset} disabled={zoom <= 1}>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
+                <ZoomIn className="h-4 w-4" />
               </Button>
             </div>
             <span className="absolute top-2 left-2 text-xs bg-secondary/80 px-1.5 py-0.5 rounded font-mono">{zoom}x</span>
