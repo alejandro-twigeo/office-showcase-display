@@ -247,11 +247,14 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
               />
             </div>
             <div className="absolute top-2 right-2 flex gap-1">
-              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
-                <ZoomIn className="h-4 w-4" />
-              </Button>
               <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomOut} disabled={zoom <= 1}>
                 <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleReset} disabled={zoom <= 1}>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full opacity-80" onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM}>
+                <ZoomIn className="h-4 w-4" />
               </Button>
             </div>
             <span className="absolute top-2 left-2 text-xs bg-secondary/80 px-1.5 py-0.5 rounded font-mono">{zoom}x</span>

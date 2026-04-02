@@ -16,6 +16,7 @@ import { fetchMapillaryRound } from '@/lib/mapillary';
 import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
 
 const MINI_GAMES = [
+  { id: 'geoguessr', name: 'GeoGuessr', emoji: '🎯' },
   { id: 'wordle', name: 'Wordle', emoji: '🟩' },
   { id: 'city_guess', name: 'City Guess', emoji: '🏙️' },
   { id: 'this_or_that', name: 'This or That', emoji: '⚖️' },

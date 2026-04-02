@@ -91,13 +91,14 @@ function LeafletMap({
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
-/** Zoomable image with pan support */
+/** Zoomable image with pan + pinch-to-zoom support */
 function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef<number | null>(null);
 
   const zoomIn = () => setScale(s => Math.min(s + 0.5, 5));
   const zoomOut = () => setScale(s => Math.max(s - 0.5, 1));
@@ -121,6 +122,34 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     dragging.current = false;
     containerRef.current?.releasePointerCapture(e.pointerId);
   };
+
+  // Pinch-to-zoom via touch events
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (lastPinchDist.current !== null) {
+          const delta = (dist - lastPinchDist.current) * 0.01;
+          setScale(s => Math.min(Math.max(s + delta, 1), 5));
+        }
+        lastPinchDist.current = dist;
+      }
+    };
+    const onTouchEnd = () => { lastPinchDist.current = null; };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, []);
 
   return (
     <div className="relative w-full h-full">
