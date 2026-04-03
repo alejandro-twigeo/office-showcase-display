@@ -33,6 +33,7 @@ interface GuessMapProps {
   playerName: string;
   onActiveTabChange?: (tab: 'easy' | 'hard' | 'other') => void;
   onMinigameChange?: (gameId: string | null) => void;
+  hideOtherGames?: boolean;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -328,7 +329,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames }: GuessMapProps) {
   const deviceId = useDeviceId();
   const { settings } = useScoring();
   const { activeRound } = useRounds();
@@ -423,24 +424,26 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange }: Gu
             {activeTab === 'other' ? 'Other Games' : 'Make Your Guess'}
           </CardTitle>
           <div className="flex items-center gap-1">
-            <Button
-              variant={activeTab === 'other' ? 'default' : 'outline'}
-              size="sm"
-              className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
-              onClick={() => {
-                if (activeTab === 'other' && insideMiniGame) {
-                  miniGameRef.current?.reset();
-                } else if (activeTab === 'other') {
-                  setActiveTab('easy');
-                } else {
-                  setActiveTab('other');
-                  miniGameRef.current?.reset();
-                }
-              }}
-            >
-              <Gamepad2 className="h-3.5 w-3.5" />
-              {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
-            </Button>
+            {!hideOtherGames && (
+              <Button
+                variant={activeTab === 'other' ? 'default' : 'outline'}
+                size="sm"
+                className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
+                onClick={() => {
+                  if (activeTab === 'other' && insideMiniGame) {
+                    miniGameRef.current?.reset();
+                  } else if (activeTab === 'other') {
+                    setActiveTab('easy');
+                  } else {
+                    setActiveTab('other');
+                    miniGameRef.current?.reset();
+                  }
+                }}
+              >
+                <Gamepad2 className="h-3.5 w-3.5" />
+                {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
+              </Button>
+            )}
 
             {/* Round settings */}
             <Popover>
