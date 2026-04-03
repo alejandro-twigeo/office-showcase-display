@@ -49,53 +49,51 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
   const renderGameContent = () => {
     if (!selectedGame) {
-      // Show unified game grid with GeoGuessr first
       return (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Gamepad2 className="h-5 w-5 text-primary" />
-              Games
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">Pick a game to play</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-3">
-              {/* GeoGuessr */}
+        <div className="space-y-4">
+          <div className="px-1">
+            <h2 className="text-xl font-bold">Games</h2>
+            <p className="text-sm text-muted-foreground">Pick a game to play</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {/* GeoGuessr */}
+            <button
+              onClick={() => setSelectedGame('geoguessr')}
+              className="flex flex-col items-center gap-1.5 rounded-2xl bg-primary/10 active:scale-95 transition-transform text-center overflow-hidden"
+            >
+              <div className="w-full aspect-square rounded-2xl overflow-hidden">
+                {icons['geoguessr'] ? (
+                  <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                    <Target className="h-10 w-10 text-primary" />
+                  </div>
+                )}
+              </div>
+              <p className="font-semibold text-xs pb-2">GeoGuessr</p>
+            </button>
+
+            {/* Mini games */}
+            {MINI_GAMES.map((game) => (
               <button
-                onClick={() => setSelectedGame('geoguessr')}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl border bg-primary/10 active:bg-primary/20 transition-all text-center aspect-square justify-center"
+                key={game.id}
+                onClick={() => setSelectedGame(game.id)}
+                className="flex flex-col items-center gap-1.5 rounded-2xl bg-secondary/30 active:scale-95 transition-transform text-center overflow-hidden"
               >
-                <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center bg-background/50">
-                  {icons['geoguessr'] ? (
-                    <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                <div className="w-full aspect-square rounded-2xl overflow-hidden">
+                  {icons[game.id] ? (
+                    <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Target className="h-8 w-8 text-primary" />
+                    <div className="w-full h-full flex items-center justify-center bg-secondary/30">
+                      <span className="text-4xl">{game.emoji}</span>
+                    </div>
                   )}
                 </div>
-                <p className="font-semibold text-sm leading-tight">GeoGuessr</p>
+                <p className="font-semibold text-xs pb-2">{game.name}</p>
               </button>
-
-              {/* Mini games */}
-              {MINI_GAMES.map((game) => (
-                <button
-                  key={game.id}
-                  onClick={() => setSelectedGame(game.id)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl border bg-secondary/30 active:bg-secondary/60 transition-all text-center aspect-square justify-center"
-                >
-                  <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center bg-background/50">
-                    {icons[game.id] ? (
-                      <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">{game.emoji}</span>
-                    )}
-                  </div>
-                  <p className="font-semibold text-sm leading-tight">{game.name}</p>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        </div>
       );
     }
 
@@ -183,7 +181,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 pb-20 space-y-3">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-24 space-y-4">
         {activeTab === 'games' && (
           <div className="space-y-3">
             {renderGameContent()}
@@ -198,7 +196,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-5 h-[4.5rem]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -208,14 +206,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                className={`flex flex-col items-center justify-center gap-1.5 transition-colors active:scale-95 ${
                   isActive
                     ? 'text-primary'
-                    : 'text-muted-foreground active:text-foreground'
+                    : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-6 w-6 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-xs font-medium leading-none">{label}</span>
+                <Icon className={`h-7 w-7 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.7rem] font-semibold leading-none">{label}</span>
               </button>
             );
           })}
