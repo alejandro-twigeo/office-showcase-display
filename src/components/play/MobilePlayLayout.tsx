@@ -60,20 +60,20 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <p className="text-xs text-muted-foreground">Pick a game to play</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-2">
-              {/* GeoGuessr - same square style as other games */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* GeoGuessr */}
               <button
                 onClick={() => setSelectedGame('geoguessr')}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-primary/10 active:bg-primary/20 transition-all text-center"
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl border bg-primary/10 active:bg-primary/20 transition-all text-center aspect-square justify-center"
               >
-                <div className="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
+                <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center bg-background/50">
                   {icons['geoguessr'] ? (
                     <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
                   ) : (
-                    <Target className="h-6 w-6 text-primary" />
+                    <Target className="h-8 w-8 text-primary" />
                   )}
                 </div>
-                <p className="font-medium text-xs leading-tight">GeoGuessr</p>
+                <p className="font-semibold text-sm leading-tight">GeoGuessr</p>
               </button>
 
               {/* Mini games */}
@@ -81,16 +81,16 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                 <button
                   key={game.id}
                   onClick={() => setSelectedGame(game.id)}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-secondary/30 active:bg-secondary/60 transition-all text-center"
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl border bg-secondary/30 active:bg-secondary/60 transition-all text-center aspect-square justify-center"
                 >
-                  <div className="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center bg-background/50">
                     {icons[game.id] ? (
                       <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl">{game.emoji}</span>
+                      <span className="text-3xl">{game.emoji}</span>
                     )}
                   </div>
-                  <p className="font-medium text-xs leading-tight">{game.name}</p>
+                  <p className="font-semibold text-sm leading-tight">{game.name}</p>
                 </button>
               ))}
             </div>
