@@ -198,7 +198,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-5 h-14">
+        <div className="grid grid-cols-5 h-16">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -208,14 +208,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
+                className={`flex flex-col items-center justify-center gap-1 transition-colors ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground active:text-foreground'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[10px] font-medium leading-none">{label}</span>
+                <Icon className={`h-6 w-6 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-xs font-medium leading-none">{label}</span>
               </button>
             );
           })}
