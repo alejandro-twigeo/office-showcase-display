@@ -61,22 +61,19 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {/* GeoGuessr - spans full first row (3 cols) */}
+              {/* GeoGuessr - same square style as other games */}
               <button
                 onClick={() => setSelectedGame('geoguessr')}
-                className="col-span-3 flex items-center gap-3 p-3 rounded-xl border bg-primary/10 active:bg-primary/20 transition-all text-left"
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-primary/10 active:bg-primary/20 transition-all text-center"
               >
-                <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-background/50 shrink-0">
+                <div className="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
                   {icons['geoguessr'] ? (
                     <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
                   ) : (
                     <Target className="h-6 w-6 text-primary" />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-sm">GeoGuessr</p>
-                  <p className="text-xs text-muted-foreground">Guess the location from a photo</p>
-                </div>
+                <p className="font-medium text-xs leading-tight">GeoGuessr</p>
               </button>
 
               {/* Mini games */}
