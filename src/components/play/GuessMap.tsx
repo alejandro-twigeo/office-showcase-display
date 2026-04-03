@@ -424,24 +424,26 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
             {activeTab === 'other' ? 'Other Games' : 'Make Your Guess'}
           </CardTitle>
           <div className="flex items-center gap-1">
-            <Button
-              variant={activeTab === 'other' ? 'default' : 'outline'}
-              size="sm"
-              className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
-              onClick={() => {
-                if (activeTab === 'other' && insideMiniGame) {
-                  miniGameRef.current?.reset();
-                } else if (activeTab === 'other') {
-                  setActiveTab('easy');
-                } else {
-                  setActiveTab('other');
-                  miniGameRef.current?.reset();
-                }
-              }}
-            >
-              <Gamepad2 className="h-3.5 w-3.5" />
-              {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
-            </Button>
+            {!hideOtherGames && (
+              <Button
+                variant={activeTab === 'other' ? 'default' : 'outline'}
+                size="sm"
+                className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
+                onClick={() => {
+                  if (activeTab === 'other' && insideMiniGame) {
+                    miniGameRef.current?.reset();
+                  } else if (activeTab === 'other') {
+                    setActiveTab('easy');
+                  } else {
+                    setActiveTab('other');
+                    miniGameRef.current?.reset();
+                  }
+                }}
+              >
+                <Gamepad2 className="h-3.5 w-3.5" />
+                {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
+              </Button>
+            )}
 
             {/* Round settings */}
             <Popover>

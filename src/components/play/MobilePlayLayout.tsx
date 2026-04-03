@@ -111,7 +111,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         </button>
 
         {selectedGame === 'geoguessr' && (
-          <GuessMap playerName={player.name} />
+          <GuessMap playerName={player.name} hideOtherGames />
         )}
         {selectedGame === 'wordle' && <WordleGame playerName={player.name} />}
         {selectedGame === 'city_guess' && <CityGuessGame playerName={player.name} roundId={activeRound?.id} />}
