@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, ArrowLeft } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
@@ -22,7 +22,7 @@ import { useGameIcons } from '@/hooks/useGameIcons';
 import { useRounds } from '@/hooks/useRounds';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news';
+type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards';
 
 interface MobilePlayLayoutProps {
   player: Player;
@@ -41,6 +41,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
   const tabs: { value: TabValue; icon: typeof Gamepad2; label: string }[] = [
     { value: 'games', icon: Gamepad2, label: 'Games' },
+    { value: 'leaderboards', icon: Trophy, label: 'Ranks' },
     { value: 'polls', icon: BarChart3, label: 'Polls' },
     { value: 'youtube', icon: Youtube, label: 'Music' },
     { value: 'news', icon: Newspaper, label: 'News' },
@@ -97,17 +98,9 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       );
     }
 
-    // Render selected game with back button
+    // Render selected game directly (no back button — use bottom nav "Games" to go back)
     return (
-      <div className="space-y-3">
-        <button
-          onClick={() => setSelectedGame(null)}
-          className="flex items-center gap-1.5 text-sm font-medium text-primary active:text-primary/70 transition-colors py-1"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to games
-        </button>
-
+      <div className="space-y-2">
         {selectedGame === 'geoguessr' && (
           <GuessMap playerName={player.name} hideOtherGames />
         )}
@@ -182,12 +175,8 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Scrollable content area */}
       <main className="flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 pb-20 space-y-3">
-        {activeTab === 'games' && (
-          <div className="space-y-3">
-            {renderGameContent()}
-            {!selectedGame && <MiniGamesLeaderboardGrid />}
-          </div>
-        )}
+        {activeTab === 'games' && renderGameContent()}
+        {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
@@ -196,7 +185,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-5 h-[4.5rem]">
+        <div className="grid grid-cols-6 h-[4.5rem]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
