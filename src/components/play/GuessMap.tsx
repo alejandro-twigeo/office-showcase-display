@@ -262,7 +262,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
         {/* Map */}
         {canGuess && (
-          <div className="h-[42vh] lg:h-[50vh] overflow-hidden rounded-lg border">
+          <div className="h-[28vh] lg:h-[50vh] overflow-hidden rounded-lg border">
             <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
           </div>
         )}
