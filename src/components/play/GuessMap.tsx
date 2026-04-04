@@ -156,7 +156,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     <div className="relative w-full h-full">
       <div
         ref={containerRef}
-        className="w-full h-[42vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
+        className="w-full h-[30vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
         style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -262,7 +262,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
         {/* Map */}
         {canGuess && (
-          <div className="h-[42vh] lg:h-[50vh] overflow-hidden rounded-lg border">
+          <div className="h-[28vh] lg:h-[50vh] overflow-hidden rounded-lg border">
             <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
           </div>
         )}
@@ -280,10 +280,6 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
               <span className="text-sm text-muted-foreground">Tap the map to place your marker</span>
             )}
           </div>
-
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Look at the image and place your guess on the map. The closer you are, the more points you get. You can keep trying to improve your score. Only your best score counts. The hard challenge gives extra points.
-          </p>
 
           <Button
             onClick={handleSubmitGuess}
