@@ -421,7 +421,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
-  const cellSize = `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 18rem) / ${puzzle.size}), 3.5rem)`;
+  const cellSize = `min(calc((100vw - 2rem) / ${puzzle.size}), calc((100vh - 16rem) / ${puzzle.size}), 4rem)`;
 
   // Determine wall borders per cell
   const getWallStyle = (r: number, c: number): React.CSSProperties => {
@@ -453,6 +453,16 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     return connections;
   };
 
+  // Color gradient along path progress
+  const getPathColor = (idx: number) => {
+    const t = path.length <= 1 ? 0 : idx / (path.length - 1);
+    // Orange → Coral → Pink gradient
+    const h = Math.round(25 - t * 30); // 25 (orange) → -5 (pink/rose)
+    const s = Math.round(85 + t * 10);
+    const l = Math.round(60 + t * 5);
+    return `hsl(${h < 0 ? h + 360 : h}, ${s}%, ${l}%)`;
+  };
+
   const progress = path.length;
   const total = puzzle.size * puzzle.size;
 
@@ -477,18 +487,22 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           <span>{progress}/{total} cells</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Draw a path from ① to ⑧ through every cell. Tap or drag to draw.
+          Draw a path from ① through every cell. Tap or drag to draw.
         </p>
       </CardHeader>
-      <CardContent className="px-2 sm:px-4">
+      <CardContent className="px-1 sm:px-4">
         <div className="flex flex-col items-center gap-3">
           <div
             ref={gridRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className="inline-grid gap-0 rounded-xl overflow-hidden touch-none w-fit select-none border-2 border-border"
-            style={{ gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})` }}
+            className="inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none"
+            style={{
+              gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})`,
+              backgroundColor: 'hsl(var(--primary) / 0.15)',
+              padding: '2px',
+            }}
           >
             {Array.from({ length: puzzle.size }, (_, ri) =>
               Array.from({ length: puzzle.size }, (_, ci) => {
@@ -496,40 +510,68 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                 const pathIdx = pathIndex.get(`${ri}-${ci}`);
                 const isOnPath = pathIdx !== undefined;
                 const isHead = isOnPath && pathIdx === path.length - 1;
-                const isStart = cp === 1;
                 const conns = getPathConnections(ri, ci);
+                const cellColor = isOnPath ? getPathColor(pathIdx!) : undefined;
+
+                // Rounded corners: round outer corners of path ends/turns
+                const roundTL = isOnPath && !conns.top && !conns.left;
+                const roundTR = isOnPath && !conns.top && !conns.right;
+                const roundBL = isOnPath && !conns.bottom && !conns.left;
+                const roundBR = isOnPath && !conns.bottom && !conns.right;
+                const borderRadius = `${roundTL ? '40%' : '0'} ${roundTR ? '40%' : '0'} ${roundBR ? '40%' : '0'} ${roundBL ? '40%' : '0'}`;
 
                 return (
                   <div
                     key={`${ri}-${ci}`}
                     onMouseDown={() => handleMouseDown(ri, ci)}
                     onMouseEnter={() => handleMouseEnter(ri, ci)}
-                    style={{ width: cellSize, height: cellSize, ...getWallStyle(ri, ci) }}
-                    className={`relative flex items-center justify-center cursor-pointer transition-colors duration-100
-                      border border-border/30
-                      ${isOnPath ? 'bg-primary/80' : 'bg-card'}
-                      ${isHead ? 'bg-primary ring-2 ring-primary/50' : ''}
-                      ${!isOnPath && cp > 0 ? 'bg-muted/50' : ''}
-                    `}
+                    style={{ width: cellSize, height: cellSize, ...getWallStyle(ri, ci), position: 'relative' }}
+                    className="flex items-center justify-center cursor-pointer border-border/40"
                   >
-                    {/* Path connection lines */}
-                    {isOnPath && conns.top && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-1/2 bg-primary/80 rounded-none" />}
-                    {isOnPath && conns.bottom && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1/2 bg-primary/80 rounded-none" />}
-                    {isOnPath && conns.left && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-2/3 bg-primary/80 rounded-none" />}
-                    {isOnPath && conns.right && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-2/3 bg-primary/80 rounded-none" />}
+                    {/* Path fill with organic rounding */}
+                    {isOnPath && (
+                      <div
+                        className="absolute inset-[1px] transition-all duration-100"
+                        style={{
+                          backgroundColor: cellColor,
+                          borderRadius,
+                        }}
+                      />
+                    )}
+                    {/* Connection fills to blend cells */}
+                    {isOnPath && conns.top && (
+                      <div className="absolute -top-[1px] left-[1px] right-[1px] h-[calc(50%+2px)]" style={{ backgroundColor: cellColor }} />
+                    )}
+                    {isOnPath && conns.bottom && (
+                      <div className="absolute -bottom-[1px] left-[1px] right-[1px] h-[calc(50%+2px)]" style={{ backgroundColor: cellColor }} />
+                    )}
+                    {isOnPath && conns.left && (
+                      <div className="absolute top-[1px] -left-[1px] bottom-[1px] w-[calc(50%+2px)]" style={{ backgroundColor: cellColor }} />
+                    )}
+                    {isOnPath && conns.right && (
+                      <div className="absolute top-[1px] -right-[1px] bottom-[1px] w-[calc(50%+2px)]" style={{ backgroundColor: cellColor }} />
+                    )}
 
-                    {/* Checkpoint number */}
+                    {/* Wall indicators */}
+                    {puzzle.walls.has(wallKey(ri, ci, ri, ci + 1)) && ci < puzzle.size - 1 && (
+                      <div className="absolute right-0 top-[10%] bottom-[10%] w-[3px] bg-foreground/70 rounded-full z-20" />
+                    )}
+                    {puzzle.walls.has(wallKey(ri, ci, ri + 1, ci)) && ri < puzzle.size - 1 && (
+                      <div className="absolute bottom-0 left-[10%] right-[10%] h-[3px] bg-foreground/70 rounded-full z-20" />
+                    )}
+
+                    {/* Checkpoint badge */}
                     {cp > 0 && (
-                      <span className={`relative z-10 font-bold text-sm rounded-full w-7 h-7 flex items-center justify-center
-                        ${isOnPath ? 'bg-primary-foreground text-primary' : 'bg-muted-foreground/20 text-foreground'}
+                      <span className={`relative z-10 font-bold text-sm rounded-full w-7 h-7 flex items-center justify-center shadow-sm
+                        ${isOnPath ? 'bg-white text-primary' : 'bg-white/90 text-primary/70 border border-primary/20'}
                       `}>
                         {cp}
                       </span>
                     )}
 
-                    {/* Head indicator for non-checkpoint cells */}
+                    {/* Head dot */}
                     {isHead && cp === 0 && (
-                      <span className="relative z-10 w-3 h-3 rounded-full bg-primary-foreground" />
+                      <span className="relative z-10 w-3.5 h-3.5 rounded-full bg-white shadow-sm" />
                     )}
                   </div>
                 );
