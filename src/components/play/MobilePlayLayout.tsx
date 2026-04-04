@@ -22,7 +22,7 @@ import { useGameIcons } from '@/hooks/useGameIcons';
 import { useRounds } from '@/hooks/useRounds';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news';
+type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards';
 
 interface MobilePlayLayoutProps {
   player: Player;
