@@ -41,6 +41,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
   const tabs: { value: TabValue; icon: typeof Gamepad2; label: string }[] = [
     { value: 'games', icon: Gamepad2, label: 'Games' },
+    { value: 'leaderboards', icon: Trophy, label: 'Ranks' },
     { value: 'polls', icon: BarChart3, label: 'Polls' },
     { value: 'youtube', icon: Youtube, label: 'Music' },
     { value: 'news', icon: Newspaper, label: 'News' },
