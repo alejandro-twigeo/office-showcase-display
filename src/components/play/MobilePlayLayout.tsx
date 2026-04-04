@@ -181,6 +181,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             {!selectedGame && <MiniGamesLeaderboardGrid />}
           </div>
         )}
+        {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
