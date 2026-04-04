@@ -55,7 +55,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <h2 className="text-xl font-bold">Games</h2>
             <p className="text-sm text-muted-foreground">Pick a game to play</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
