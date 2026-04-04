@@ -156,7 +156,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     <div className="relative w-full h-full">
       <div
         ref={containerRef}
-        className="w-full h-40 lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
+        className="w-full h-[42vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
         style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -250,19 +250,19 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Desktop: image left, map right. Mobile: stacked */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Image */}
         {activeLocation.pano_id && (
-          <div className="lg:h-[50vh] min-h-[10rem]">
+          <div className="lg:h-[50vh]">
             <ZoomableImage src={activeLocation.pano_id} alt="mystery" />
           </div>
         )}
 
         {/* Map */}
         {canGuess && (
-          <div className="h-[240px] lg:h-[50vh] overflow-hidden rounded-lg border">
+          <div className="h-[42vh] lg:h-[50vh] overflow-hidden rounded-lg border">
             <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
           </div>
         )}

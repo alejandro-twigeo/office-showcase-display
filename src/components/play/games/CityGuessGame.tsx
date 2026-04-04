@@ -229,7 +229,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           <div className="relative">
             <div
               ref={imgContainerRef}
-              className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
+              className="h-[40vh] sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -263,7 +263,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
         {attemptsLeft > 0 && (
           <>
-            <div ref={mapRef} className="h-48 sm:h-56 rounded-lg border z-0" />
+            <div ref={mapRef} className="h-[40vh] sm:h-56 rounded-lg border z-0" />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit Guess ({attemptsLeft} left)
             </Button>

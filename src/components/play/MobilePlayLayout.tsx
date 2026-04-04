@@ -55,7 +55,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <h2 className="text-xl font-bold">Games</h2>
             <p className="text-sm text-muted-foreground">Pick a game to play</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
@@ -181,7 +181,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-24 space-y-4">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 pb-20 space-y-3">
         {activeTab === 'games' && (
           <div className="space-y-3">
             {renderGameContent()}
