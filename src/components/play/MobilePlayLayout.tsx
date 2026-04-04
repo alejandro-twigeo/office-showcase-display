@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, ArrowLeft } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
