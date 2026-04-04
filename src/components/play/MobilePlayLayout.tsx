@@ -181,7 +181,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-24 space-y-4">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 pb-20 space-y-3">
         {activeTab === 'games' && (
           <div className="space-y-3">
             {renderGameContent()}
