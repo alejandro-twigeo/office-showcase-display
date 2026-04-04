@@ -250,12 +250,12 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Desktop: image left, map right. Mobile: stacked */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Image */}
         {activeLocation.pano_id && (
-          <div className="lg:h-[50vh] min-h-[10rem]">
+          <div className="lg:h-[50vh]">
             <ZoomableImage src={activeLocation.pano_id} alt="mystery" />
           </div>
         )}
