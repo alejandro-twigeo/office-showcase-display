@@ -229,7 +229,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           <div className="relative">
             <div
               ref={imgContainerRef}
-              className="h-56 sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
+              className="h-[40vh] sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
