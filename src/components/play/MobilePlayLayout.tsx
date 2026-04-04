@@ -97,17 +97,9 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       );
     }
 
-    // Render selected game with back button
+    // Render selected game directly (no back button — use bottom nav "Games" to go back)
     return (
-      <div className="space-y-3">
-        <button
-          onClick={() => setSelectedGame(null)}
-          className="flex items-center gap-1.5 text-sm font-medium text-primary active:text-primary/70 transition-colors py-1"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to games
-        </button>
-
+      <div className="space-y-2">
         {selectedGame === 'geoguessr' && (
           <GuessMap playerName={player.name} hideOtherGames />
         )}
