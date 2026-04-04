@@ -156,7 +156,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     <div className="relative w-full h-full">
       <div
         ref={containerRef}
-        className="w-full h-40 lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
+        className="w-full h-[42vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
         style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
