@@ -145,13 +145,13 @@ export function WordleGame({ playerName }: WordleGameProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Grid */}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-[3px]">
           {gridRows.map((row, ri) => (
-            <div key={ri} className="flex gap-1">
+            <div key={ri} className="flex gap-[3px]">
               {row.map((cell, ci) => (
                 <div
                   key={ci}
-                  className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-lg font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                  className={`w-[calc((100vw-4rem)/5)] max-w-14 aspect-square flex items-center justify-center text-lg font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
                 >
                   {cell.letter}
                 </div>
@@ -185,16 +185,16 @@ export function WordleGame({ playerName }: WordleGameProps) {
 
         {/* Keyboard */}
         {!gameOver && (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-[3px] w-full">
             {KEYBOARD_ROWS.map((row, ri) => (
-              <div key={ri} className="flex gap-0.5">
+              <div key={ri} className="flex gap-[3px] w-full justify-center">
                 {row.map((key) => (
                   <button
                     key={key}
                     onClick={() => handleKeyPress(key)}
                     className={`${
-                      key.length > 1 ? 'px-2 text-xs' : 'w-8 sm:w-9'
-                    } h-10 rounded font-medium transition-colors ${getKeyColor(keyMap.get(key))}`}
+                      key.length > 1 ? 'px-3 text-xs min-w-[2.5rem]' : 'flex-1 max-w-[2.5rem]'
+                    } h-12 rounded-lg font-semibold transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
                   >
                     {key === '⌫' ? '⌫' : key.toUpperCase()}
                   </button>
