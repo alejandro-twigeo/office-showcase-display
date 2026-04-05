@@ -51,27 +51,27 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   const renderGameContent = () => {
     if (!selectedGame) {
       return (
-        <div className="space-y-4">
-          <div className="px-1">
-            <h2 className="text-xl font-bold">Games</h2>
-            <p className="text-sm text-muted-foreground">Pick a game to play</p>
+        <div className="space-y-2">
+          <div className="px-0.5">
+            <h2 className="text-lg font-bold">Games</h2>
+            <p className="text-xs text-muted-foreground">Pick a game to play</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
-              className="flex flex-col items-center gap-1.5 rounded-2xl bg-primary/10 active:scale-95 transition-transform text-center overflow-hidden"
+              className="flex flex-col items-center rounded-xl bg-primary/10 active:scale-[0.97] transition-transform text-center overflow-hidden"
             >
-              <div className="w-full aspect-square rounded-2xl overflow-hidden">
+              <div className="w-full aspect-square rounded-xl overflow-hidden">
                 {icons['geoguessr'] ? (
                   <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                    <Target className="h-10 w-10 text-primary" />
+                    <Target className="h-8 w-8 text-primary" />
                   </div>
                 )}
               </div>
-              <p className="font-semibold text-xs pb-2">GeoGuessr</p>
+              <p className="font-semibold text-[0.7rem] py-1">GeoGuessr</p>
             </button>
 
             {/* Mini games */}
@@ -79,18 +79,18 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               <button
                 key={game.id}
                 onClick={() => setSelectedGame(game.id)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl bg-secondary/30 active:scale-95 transition-transform text-center overflow-hidden"
+                className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden"
               >
-                <div className="w-full aspect-square rounded-2xl overflow-hidden">
+                <div className="w-full aspect-square rounded-xl overflow-hidden">
                   {icons[game.id] ? (
                     <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary/30">
-                      <span className="text-4xl">{game.emoji}</span>
+                      <span className="text-3xl">{game.emoji}</span>
                     </div>
                   )}
                 </div>
-                <p className="font-semibold text-xs pb-2">{game.name}</p>
+                <p className="font-semibold text-[0.7rem] py-1">{game.name}</p>
               </button>
             ))}
           </div>

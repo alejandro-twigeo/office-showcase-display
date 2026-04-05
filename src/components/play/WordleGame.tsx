@@ -185,16 +185,16 @@ export function WordleGame({ playerName }: WordleGameProps) {
 
         {/* Keyboard */}
         {!gameOver && (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-[3px] w-full">
             {KEYBOARD_ROWS.map((row, ri) => (
-              <div key={ri} className="flex gap-0.5">
+              <div key={ri} className="flex gap-[3px] w-full justify-center">
                 {row.map((key) => (
                   <button
                     key={key}
                     onClick={() => handleKeyPress(key)}
                     className={`${
-                      key.length > 1 ? 'px-2 text-xs' : 'w-8 sm:w-9'
-                    } h-10 rounded font-medium transition-colors ${getKeyColor(keyMap.get(key))}`}
+                      key.length > 1 ? 'px-3 text-xs min-w-[2.5rem]' : 'flex-1 max-w-[2.5rem]'
+                    } h-12 rounded-lg font-semibold transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
                   >
                     {key === '⌫' ? '⌫' : key.toUpperCase()}
                   </button>
