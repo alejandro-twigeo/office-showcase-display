@@ -156,7 +156,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     <div className="relative w-full h-full">
       <div
         ref={containerRef}
-        className="w-full h-[30vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
+        className="w-full h-[25vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
         style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -262,7 +262,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
         {/* Map */}
         {canGuess && (
-          <div className="h-[28vh] lg:h-[50vh] overflow-hidden rounded-lg border">
+          <div className="h-[22vh] lg:h-[50vh] overflow-hidden rounded-lg border">
             <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
           </div>
         )}
