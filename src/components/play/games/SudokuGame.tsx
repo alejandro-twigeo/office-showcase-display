@@ -160,10 +160,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 px-3 pb-3">
-        {/* Grid + number pad in a compact layout */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded">
+      <CardContent className="space-y-3 px-2 pb-3">
+        <div className="flex flex-col items-center gap-3">
+          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full max-w-sm">
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
@@ -174,9 +173,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center text-base sm:text-lg font-bold transition-colors
+                  className={`aspect-square flex items-center justify-center text-lg font-bold transition-colors min-h-[2.75rem]
                     ${borderR} ${borderB}
-                    ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer hover:bg-primary/10'}
+                    ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer active:bg-primary/10'}
                     ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}
                     ${isError ? 'text-destructive bg-destructive/10' : ''}`}
                 >
@@ -186,15 +185,15 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
             }))}
           </div>
 
-          {/* Number pad — compact row */}
-          <div className="flex gap-1.5">
+          {/* Number pad */}
+          <div className="flex gap-2 w-full max-w-sm justify-center">
             {[1, 2, 3, 4, 5, 6].map(n => (
-              <Button key={n} variant="outline" size="sm" className="w-9 h-9 sm:w-10 sm:h-10 text-base sm:text-lg font-bold p-0"
+              <Button key={n} variant="outline" size="sm" className="flex-1 h-12 text-lg font-bold p-0 rounded-lg"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
                 {n}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" className="w-9 h-9 sm:w-10 sm:h-10 text-sm p-0"
+            <Button variant="ghost" size="sm" className="flex-1 h-12 text-base p-0 rounded-lg"
               onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
               ✕
             </Button>
