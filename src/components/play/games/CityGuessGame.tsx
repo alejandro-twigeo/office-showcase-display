@@ -45,6 +45,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [showLocation, setShowLocation] = useState(false);
   const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
