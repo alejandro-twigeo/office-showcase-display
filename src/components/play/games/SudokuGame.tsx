@@ -186,14 +186,14 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           </div>
 
           {/* Number pad */}
-          <div className="flex gap-2 w-full max-w-sm justify-center">
+          <div className="flex gap-1.5 w-full justify-center">
             {[1, 2, 3, 4, 5, 6].map(n => (
-              <Button key={n} variant="outline" size="sm" className="flex-1 h-12 text-lg font-bold p-0 rounded-lg"
+              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 text-xl font-bold p-0 rounded-xl"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
                 {n}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" className="flex-1 h-12 text-base p-0 rounded-lg"
+            <Button variant="ghost" size="sm" className="flex-1 h-14 text-lg p-0 rounded-xl"
               onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
               ✕
             </Button>

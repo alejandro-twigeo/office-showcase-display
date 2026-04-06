@@ -114,20 +114,20 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
           <span className="ml-auto">{matched.size / 2}/8 pairs</span>
         </div>
       </CardHeader>
-      <CardContent className="px-2">
-        <div className="grid grid-cols-4 gap-[6px] w-full">
+      <CardContent className="px-1">
+        <div className="grid grid-cols-4 gap-1 w-full">
           {tiles.map((emoji, i) => {
             const isRevealed = revealed.includes(i) || matched.has(i);
             return (
               <button
                 key={i}
                 onClick={() => handleFlip(i)}
-                className={`aspect-square rounded-xl text-3xl flex items-center justify-center transition-all duration-200 min-h-[3.5rem]
+                className={`aspect-square rounded-xl text-4xl flex items-center justify-center transition-all duration-200
                   ${matched.has(i) ? 'bg-primary/20 border-2 border-primary scale-95' :
                     isRevealed ? 'bg-secondary border-2 border-accent' :
                     'bg-muted border-2 border-border active:bg-muted/70 cursor-pointer'}`}
               >
-                {isRevealed ? emoji : '?'}
+                {isRevealed ? emoji : <span className="text-2xl text-muted-foreground font-bold">?</span>}
               </button>
             );
           })}

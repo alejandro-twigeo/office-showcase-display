@@ -193,8 +193,8 @@ export function WordleGame({ playerName }: WordleGameProps) {
                     key={key}
                     onClick={() => handleKeyPress(key)}
                     className={`${
-                      key.length > 1 ? 'px-3 text-xs min-w-[2.5rem]' : 'flex-1 max-w-[2.5rem]'
-                    } h-12 rounded-lg font-semibold transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
+                      key.length > 1 ? 'px-2 text-xs min-w-[2.5rem]' : 'flex-1'
+                    } h-[3.25rem] rounded-lg font-semibold text-base transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
                   >
                     {key === '⌫' ? '⌫' : key.toUpperCase()}
                   </button>
