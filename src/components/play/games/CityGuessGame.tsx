@@ -217,12 +217,31 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
   const maxAttempts = settings.city_guess_max_attempts;
   const attemptsLeft = maxAttempts - guesses.length;
+  const [showLocation, setShowLocation] = useState(false);
+
+  // When showing location, add a marker for the actual position
+  useEffect(() => {
+    if (!showLocation || !leafletRef.current || !image) return;
+    // Remove old guess marker
+    if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
+    // Add actual location marker
+    const icon = L.divIcon({
+      html: '<div style="background:#ef4444;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>',
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
+    leafletRef.current.setView([image.lat, image.lng], 15);
+  }, [showLocation, image]);
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">🏙️ City Guess — {selectedCity.name}</CardTitle>
-        <p className="text-xs text-muted-foreground">{attemptsLeft} guess{attemptsLeft !== 1 ? 'es' : ''} left</p>
+        <p className="text-xs text-muted-foreground">
+          {attemptsLeft > 0 ? `${attemptsLeft} guess${attemptsLeft !== 1 ? 'es' : ''} left` : 'No more guesses'}
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {image && (
@@ -261,13 +280,28 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           </div>
         )}
 
-        {attemptsLeft > 0 && (
+        {attemptsLeft > 0 ? (
           <>
             <div ref={mapRef} className="h-[28vh] sm:h-56 rounded-lg border z-0" />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit Guess ({attemptsLeft} left)
             </Button>
           </>
+        ) : (
+          <div className="space-y-2">
+            {!showLocation ? (
+              <div className="text-center py-3">
+                <Button variant="outline" size="sm" onClick={() => setShowLocation(true)} className="gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  Show Location
+                </Button>
+              </div>
+            ) : (
+              <div ref={mapRef} className="h-[28vh] sm:h-56 rounded-lg border z-0 relative">
+                {/* Map will show actual location */}
+              </div>
+            )}
+          </div>
         )}
 
         {guesses.length > 0 && (
