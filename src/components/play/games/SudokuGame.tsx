@@ -160,9 +160,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 px-2 pb-3">
+      <CardContent className="space-y-3 px-1 pb-3">
         <div className="flex flex-col items-center gap-3">
-          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full max-w-sm">
+          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full">
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
@@ -173,7 +173,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`aspect-square flex items-center justify-center text-lg font-bold transition-colors min-h-[2.75rem]
+                  className={`aspect-square flex items-center justify-center text-xl font-bold transition-colors
                     ${borderR} ${borderB}
                     ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer active:bg-primary/10'}
                     ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}
@@ -186,14 +186,14 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           </div>
 
           {/* Number pad */}
-          <div className="flex gap-2 w-full max-w-sm justify-center">
+          <div className="flex gap-1.5 w-full justify-center">
             {[1, 2, 3, 4, 5, 6].map(n => (
-              <Button key={n} variant="outline" size="sm" className="flex-1 h-12 text-lg font-bold p-0 rounded-lg"
+              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 text-xl font-bold p-0 rounded-xl"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
                 {n}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" className="flex-1 h-12 text-base p-0 rounded-lg"
+            <Button variant="ghost" size="sm" className="flex-1 h-14 text-lg p-0 rounded-xl"
               onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
               ✕
             </Button>

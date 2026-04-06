@@ -56,7 +56,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <h2 className="text-lg font-bold">Games</h2>
             <p className="text-xs text-muted-foreground">Pick a game to play</p>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-3 gap-1">
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
@@ -174,7 +174,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-[5rem] space-y-2">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-1 py-1 pb-[5.5rem] space-y-1.5">
         {activeTab === 'games' && renderGameContent()}
         {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
@@ -185,7 +185,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-6 h-16">
+        <div className="grid grid-cols-6 h-[4.5rem]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -195,14 +195,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 min-h-[44px] ${
+                className={`flex flex-col items-center justify-center gap-1 transition-colors active:scale-95 min-h-[56px] ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-6 w-6 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[0.65rem] font-semibold leading-none">{label}</span>
+                <Icon className={`h-7 w-7 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.7rem] font-semibold leading-none">{label}</span>
               </button>
             );
           })}

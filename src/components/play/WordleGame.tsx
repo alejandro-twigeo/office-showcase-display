@@ -151,7 +151,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
               {row.map((cell, ci) => (
                 <div
                   key={ci}
-                  className={`w-[calc((100vw-4rem)/5)] max-w-14 aspect-square flex items-center justify-center text-lg font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                  className={`w-[calc((100vw-2.5rem)/5)] max-w-14 aspect-square flex items-center justify-center text-xl font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
                 >
                   {cell.letter}
                 </div>
@@ -193,8 +193,8 @@ export function WordleGame({ playerName }: WordleGameProps) {
                     key={key}
                     onClick={() => handleKeyPress(key)}
                     className={`${
-                      key.length > 1 ? 'px-3 text-xs min-w-[2.5rem]' : 'flex-1 max-w-[2.5rem]'
-                    } h-12 rounded-lg font-semibold transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
+                      key.length > 1 ? 'px-2 text-xs min-w-[2.5rem]' : 'flex-1'
+                    } h-[3.25rem] rounded-lg font-semibold text-base transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
                   >
                     {key === '⌫' ? '⌫' : key.toUpperCase()}
                   </button>
