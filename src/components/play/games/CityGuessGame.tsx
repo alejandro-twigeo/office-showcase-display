@@ -218,7 +218,6 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
   const maxAttempts = settings.city_guess_max_attempts;
   const attemptsLeft = maxAttempts - guesses.length;
-  const [showLocation, setShowLocation] = useState(false);
 
   // When showing location, add a marker for the actual position
   useEffect(() => {
