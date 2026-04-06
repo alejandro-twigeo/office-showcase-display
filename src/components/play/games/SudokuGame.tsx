@@ -160,9 +160,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 px-2 pb-3">
+      <CardContent className="space-y-3 px-1 pb-3">
         <div className="flex flex-col items-center gap-3">
-          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full max-w-sm">
+          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full">
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
