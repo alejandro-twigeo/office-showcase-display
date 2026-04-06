@@ -43,6 +43,8 @@ export default function ManagerPage() {
   const [editWeights, setEditWeights] = useState<DifficultyWeights>({ easy: 1, hard: 1.2 });
   const [editWordlePoints, setEditWordlePoints] = useState('');
   const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState<string[]>([]);
+  const [editMaxGuesses, setEditMaxGuesses] = useState<string>('');
+  const [guessLimitEnabled, setGuessLimitEnabled] = useState(false);
 
   // Mini game settings
   const [editCityDistParam, setEditCityDistParam] = useState('200');
@@ -71,6 +73,8 @@ export default function ManagerPage() {
     setEditWeights(settings.difficulty_weights);
     setEditWordlePoints(String(settings.wordle_points));
     setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
+    setGuessLimitEnabled(settings.max_guesses_per_challenge != null);
+    setEditMaxGuesses(String(settings.max_guesses_per_challenge ?? 5));
   }, [settings]);
 
   useEffect(() => {
@@ -121,10 +125,12 @@ export default function ManagerPage() {
     const wp = parseInt(editWordlePoints);
     const wap = editWordleAttemptPoints.map(Number);
     if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
+    const maxGuesses = guessLimitEnabled ? parseInt(editMaxGuesses) || 5 : null;
     updateSettings.mutate({
       distance_parameter: distParam,
       attempt_multipliers: multipliers,
       difficulty_weights: editWeights,
+      max_guesses_per_challenge: maxGuesses,
       wordle_points: wp,
       wordle_attempt_points: wap,
     });
@@ -299,6 +305,18 @@ export default function ManagerPage() {
                       <Input type="number" value={editWeights[d]} min={0} step={0.1} onChange={(e) => setEditWeights(w => ({ ...w, [d]: parseFloat(e.target.value) || 0 }))} className="h-6 text-xs flex-1" />
                     </div>
                   ))}
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium">Guess limit</p>
+                    <Switch checked={guessLimitEnabled} onCheckedChange={setGuessLimitEnabled} />
+                  </div>
+                  {guessLimitEnabled && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground w-14">Max</span>
+                      <Input type="number" value={editMaxGuesses} min={1} max={20} onChange={(e) => setEditMaxGuesses(e.target.value)} className="h-6 text-xs flex-1" />
+                    </div>
+                  )}
                 </div>
               </div>
 

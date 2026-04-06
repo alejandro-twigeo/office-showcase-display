@@ -239,6 +239,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   };
 
   const canGuess = settings.max_guesses_per_challenge == null || remainingGuesses > 0;
+  const [showLocation, setShowLocation] = useState(false);
 
   if (!activeLocation) {
     return (
@@ -261,9 +262,14 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
         )}
 
         {/* Map */}
-        {canGuess && (
-          <div className="h-[22vh] lg:h-[50vh] overflow-hidden rounded-lg border">
-            <LeafletMap onMapClick={handleMapClick} markerPosition={selectedPosition} />
+        {(canGuess || showLocation) && (
+          <div className="h-[22vh] lg:h-[50vh] overflow-hidden rounded-lg border relative">
+            <LeafletMap onMapClick={canGuess ? handleMapClick : () => {}} markerPosition={showLocation ? { lat: activeLocation.lat, lng: activeLocation.lng } : selectedPosition} />
+            {showLocation && (
+              <div className="absolute top-2 left-2 z-[1000] bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-semibold shadow-lg">
+                📍 Actual location
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -287,13 +293,19 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
             className="w-full"
             size="sm"
           >
-            {submitGuess.isPending ? "Submitting..." : "Submit Guess"}
+            {submitGuess.isPending ? "Submitting..." : `Submit Guess${settings.max_guesses_per_challenge != null ? ` (${remainingGuesses} left)` : ''}`}
           </Button>
         </>
       ) : (
-        <div className="text-center py-4">
-          <Check className="h-8 w-8 text-primary mx-auto mb-2" />
+        <div className="text-center py-3 space-y-2">
+          <Check className="h-8 w-8 text-primary mx-auto" />
           <p className="text-sm font-medium">No more guesses!</p>
+          {!showLocation && (
+            <Button variant="outline" size="sm" onClick={() => setShowLocation(true)} className="gap-1.5">
+              <MapPin className="h-4 w-4" />
+              Show Location
+            </Button>
+          )}
         </div>
       )}
 
