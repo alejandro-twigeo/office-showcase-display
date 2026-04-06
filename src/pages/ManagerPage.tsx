@@ -74,6 +74,8 @@ export default function ManagerPage() {
     setEditWeights(settings.difficulty_weights);
     setEditWordlePoints(String(settings.wordle_points));
     setEditWordleAttemptPoints(settings.wordle_attempt_points.map(String));
+    setGuessLimitEnabled(settings.max_guesses_per_challenge != null);
+    setEditMaxGuesses(String(settings.max_guesses_per_challenge ?? 5));
   }, [settings]);
 
   useEffect(() => {
