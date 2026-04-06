@@ -125,10 +125,12 @@ export default function ManagerPage() {
     const wp = parseInt(editWordlePoints);
     const wap = editWordleAttemptPoints.map(Number);
     if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
+    const maxGuesses = guessLimitEnabled ? parseInt(editMaxGuesses) || 5 : null;
     updateSettings.mutate({
       distance_parameter: distParam,
       attempt_multipliers: multipliers,
       difficulty_weights: editWeights,
+      max_guesses_per_challenge: maxGuesses,
       wordle_points: wp,
       wordle_attempt_points: wap,
     });
