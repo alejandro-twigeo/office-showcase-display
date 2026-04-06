@@ -45,7 +45,6 @@ export default function ManagerPage() {
   const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState<string[]>([]);
   const [editMaxGuesses, setEditMaxGuesses] = useState<string>('');
   const [guessLimitEnabled, setGuessLimitEnabled] = useState(false);
-  const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState<string[]>([]);
 
   // Mini game settings
   const [editCityDistParam, setEditCityDistParam] = useState('200');
