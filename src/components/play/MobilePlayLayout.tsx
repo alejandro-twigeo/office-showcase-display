@@ -174,7 +174,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-1.5 py-1.5 pb-[5rem] space-y-2">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-1 py-1 pb-[5.5rem] space-y-1.5">
         {activeTab === 'games' && renderGameContent()}
         {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
