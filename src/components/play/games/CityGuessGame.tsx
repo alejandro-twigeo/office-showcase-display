@@ -233,22 +233,6 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const maxAttempts = settings.city_guess_max_attempts;
   const attemptsLeft = maxAttempts - guesses.length;
 
-  // When showing location, add a marker for the actual position
-  useEffect(() => {
-    if (!showLocation || !leafletRef.current || !image) return;
-    // Remove old guess marker
-    if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
-    // Add actual location marker
-    const icon = L.divIcon({
-      html: '<div style="background:#ef4444;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>',
-      className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    });
-    L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
-    leafletRef.current.setView([image.lat, image.lng], 15);
-  }, [showLocation, image]);
-
   return (
     <Card>
       <CardHeader className="pb-2">
