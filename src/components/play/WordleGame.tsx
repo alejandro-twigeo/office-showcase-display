@@ -151,7 +151,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
               {row.map((cell, ci) => (
                 <div
                   key={ci}
-                  className={`w-[calc((100vw-4rem)/5)] max-w-14 aspect-square flex items-center justify-center text-lg font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                  className={`w-[calc((100vw-2.5rem)/5)] max-w-14 aspect-square flex items-center justify-center text-xl font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
                 >
                   {cell.letter}
                 </div>
