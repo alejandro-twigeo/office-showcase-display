@@ -306,6 +306,18 @@ export default function ManagerPage() {
                     </div>
                   ))}
                 </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium">Guess limit</p>
+                    <Switch checked={guessLimitEnabled} onCheckedChange={setGuessLimitEnabled} />
+                  </div>
+                  {guessLimitEnabled && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground w-14">Max</span>
+                      <Input type="number" value={editMaxGuesses} min={1} max={20} onChange={(e) => setEditMaxGuesses(e.target.value)} className="h-6 text-xs flex-1" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Wordle */}
