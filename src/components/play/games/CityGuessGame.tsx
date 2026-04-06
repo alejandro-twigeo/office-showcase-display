@@ -170,6 +170,20 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     });
   }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore]);
 
+  // When showing location, add a marker for the actual position
+  useEffect(() => {
+    if (!showLocation || !leafletRef.current || !image) return;
+    if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
+    const icon = L.divIcon({
+      html: '<div style="background:hsl(var(--destructive));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>',
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
+    leafletRef.current.setView([image.lat, image.lng], 15);
+  }, [showLocation, image]);
+
   if (todayScore) {
     return (
       <Card>
