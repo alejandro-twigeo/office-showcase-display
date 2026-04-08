@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useWordle, type LetterStatus } from '@/hooks/useWordle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Trophy, CheckCircle, XCircle } from 'lucide-react';
 
 interface WordleGameProps {
@@ -18,6 +19,7 @@ function getStatusColor(status: LetterStatus): string {
 }
 
 export function WordleGame({ playerName }: WordleGameProps) {
+  const isMobile = useIsMobile();
   const {
     guesses,
     currentInput,
@@ -70,6 +72,8 @@ export function WordleGame({ playerName }: WordleGameProps) {
     const timer = window.setTimeout(focusInput, 250);
     return () => window.clearTimeout(timer);
   }, [gameOver, focusInput]);
+
+  const gridWidthClass = isMobile ? 'w-full' : 'w-full max-w-[26rem]';
 
   // Build grid rows (6 total)
   const gridRows = [];
@@ -166,7 +170,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
               aria-label="Wordle input"
             />
           )}
-          <div className="w-full max-w-[min(26rem,calc(100vw-1.5rem))]">
+          <div className={gridWidthClass}>
             {gridRows.map((row, ri) => (
               <div key={ri} className="grid grid-cols-5 gap-2 w-full">
                 {row.map((cell, ci) => (
@@ -185,7 +189,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
               type="button"
               variant="outline"
               size="sm"
-              className="w-full max-w-[min(26rem,calc(100vw-1.5rem))] sm:hidden"
+              className={`${gridWidthClass} ${isMobile ? '' : 'hidden'}`}
               onClick={focusInput}
             >
               Show Keyboard

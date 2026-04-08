@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock, RotateCcw, Undo2 } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
@@ -175,6 +176,7 @@ interface LabyrinthGameProps {
 }
 
 export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
@@ -323,8 +325,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     setStarted(false);
     setDone(false);
     setError(false);
-    setElapsed(0);
-    setStartTime(Date.now());
     isDragging.current = false;
   }, []);
 
@@ -519,7 +519,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           Draw a path from ① through every cell. Tap or drag to draw.
         </p>
       </CardHeader>
-      <CardContent className="px-1 sm:px-4">
+      <CardContent className={isMobile ? 'px-1' : 'px-4'}>
         <div className="flex flex-col items-center gap-3">
           <div
             ref={gridRef}

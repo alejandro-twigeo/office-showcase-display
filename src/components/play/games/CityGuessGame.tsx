@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
 import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import L from 'leaflet';
@@ -31,6 +32,7 @@ interface CityGuessGameProps {
 }
 
 export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
@@ -232,6 +234,8 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
   const maxAttempts = settings.city_guess_max_attempts;
   const attemptsLeft = maxAttempts - guesses.length;
+  const imageHeightClass = isMobile ? 'h-[30vh]' : 'h-64';
+  const mapHeightClass = isMobile ? 'h-[28vh]' : 'h-56';
 
   return (
     <Card>
@@ -246,7 +250,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           <div className="relative">
             <div
               ref={imgContainerRef}
-              className="h-[30vh] sm:h-64 rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none"
+              className={`${imageHeightClass} rounded-lg overflow-hidden border bg-black cursor-grab active:cursor-grabbing touch-none select-none`}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -280,7 +284,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
         {attemptsLeft > 0 ? (
           <>
-            <div ref={mapRef} className="h-[28vh] sm:h-56 rounded-lg border z-0" />
+            <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0`} />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit guess to see solution
             </Button>
@@ -295,7 +299,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
                 </Button>
               </div>
             ) : (
-              <div ref={mapRef} className="h-[28vh] sm:h-56 rounded-lg border z-0 relative">
+              <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0 relative`}>
                 {/* Map will show actual location */}
               </div>
             )}
