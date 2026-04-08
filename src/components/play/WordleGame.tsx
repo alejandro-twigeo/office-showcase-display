@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useWordle, type LetterStatus } from '@/hooks/useWordle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,28 +8,12 @@ interface WordleGameProps {
   playerName: string;
 }
 
-const KEYBOARD_ROWS = [
-  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-  ['enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '⌫'],
-];
-
 function getStatusColor(status: LetterStatus): string {
   switch (status) {
     case 'correct': return 'bg-green-600 text-white border-green-600';
     case 'present': return 'bg-yellow-500 text-white border-yellow-500';
     case 'absent': return 'bg-muted-foreground/30 text-foreground border-muted-foreground/30';
     case 'empty': return 'bg-background border-border';
-  }
-}
-
-function getKeyColor(status: LetterStatus | undefined): string {
-  if (!status) return 'bg-secondary text-secondary-foreground hover:bg-secondary/80';
-  switch (status) {
-    case 'correct': return 'bg-green-600 text-white';
-    case 'present': return 'bg-yellow-500 text-white';
-    case 'absent': return 'bg-muted-foreground/40 text-muted-foreground';
-    default: return 'bg-secondary text-secondary-foreground';
   }
 }
 
@@ -46,13 +30,14 @@ export function WordleGame({ playerName }: WordleGameProps) {
     earnedPoints,
     existingEarnedPoints,
     settings,
-    keyStatuses,
     alreadyPlayed,
     existingScore,
     roundNumber,
   } = useWordle(playerName);
-
-  const keyMap = keyStatuses();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const handleKeyPress = useCallback((key: string) => {
     if (gameOver) return;
@@ -78,6 +63,13 @@ export function WordleGame({ playerName }: WordleGameProps) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [handleKeyPress]);
+
+  useEffect(() => {
+    if (gameOver) return;
+    focusInput();
+    const timer = window.setTimeout(focusInput, 250);
+    return () => window.clearTimeout(timer);
+  }, [gameOver, focusInput]);
 
   // Build grid rows (6 total)
   const gridRows = [];
@@ -141,11 +133,39 @@ export function WordleGame({ playerName }: WordleGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           🟩 Wordle — Round {roundNumber}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts!</p>
+        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Start typing for your first guess and click Enter to submit. Up to {settings.wordle_attempt_points[0]} pts!</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Grid */}
-        <div className="flex flex-col items-center gap-3">
+        <div
+          className="flex flex-col items-center gap-3"
+          onClick={focusInput}
+        >
+          {!gameOver && (
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoFocus
+              spellCheck={false}
+              enterKeyHint="done"
+              value={currentInput}
+              onChange={(e) => {
+                const nextValue = e.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5);
+                setCurrentInput(nextValue);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitGuess();
+                }
+              }}
+              className="sr-only"
+              aria-label="Wordle input"
+            />
+          )}
           <div className="w-full max-w-[min(26rem,calc(100vw-1.5rem))]">
             {gridRows.map((row, ri) => (
               <div key={ri} className="grid grid-cols-5 gap-2 w-full">
@@ -160,6 +180,17 @@ export function WordleGame({ playerName }: WordleGameProps) {
               </div>
             ))}
           </div>
+          {!gameOver && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full max-w-[min(26rem,calc(100vw-1.5rem))] sm:hidden"
+              onClick={focusInput}
+            >
+              Show Keyboard
+            </Button>
+          )}
         </div>
 
         {/* Error */}
@@ -185,26 +216,6 @@ export function WordleGame({ playerName }: WordleGameProps) {
           </div>
         )}
 
-        {/* Keyboard */}
-        {!gameOver && (
-          <div className="w-full max-w-[min(26rem,calc(100vw-1.5rem))] mx-auto space-y-2">
-            {KEYBOARD_ROWS.map((row, ri) => (
-              <div key={ri} className="flex gap-1 w-full">
-                {row.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyPress(key)}
-                    className={`${
-                      key.length > 1 ? 'min-w-[3rem] px-3 text-xs' : 'flex-1 min-w-0'
-                    } h-[3.4rem] rounded-lg font-semibold text-base transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
-                  >
-                    {key === '⌫' ? '⌫' : key.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

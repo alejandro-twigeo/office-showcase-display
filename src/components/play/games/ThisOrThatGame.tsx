@@ -6,7 +6,6 @@ import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, see
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, X, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 const GAME_ID = 'this_or_that';
 
@@ -193,7 +192,7 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
         <p className="text-xs text-muted-foreground">Question {currentQ + 1} of 5 · {q.category}</p>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm font-medium text-center py-2">{q.prompt}</p>
+        <p className="text-lg sm:text-base font-semibold text-center py-2 leading-snug">{q.prompt}</p>
 
         {showResult ? (
           <div className={`text-center py-4 rounded-lg border-2 ${showResult.correct ? 'border-green-500 bg-green-500/10' : 'border-destructive bg-destructive/10'}`}>
@@ -208,17 +207,17 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="h-20 text-base font-semibold whitespace-normal"
+              className="h-24 sm:h-20 text-lg sm:text-base font-semibold whitespace-normal"
               onClick={() => handleAnswer('a')}
             >
               {q.a}
             </Button>
             <Button
               variant="outline"
-              className="h-20 text-base font-semibold whitespace-normal"
+              className="h-24 sm:h-20 text-lg sm:text-base font-semibold whitespace-normal"
               onClick={() => handleAnswer('b')}
             >
               {q.b}

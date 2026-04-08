@@ -84,7 +84,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
-  const [errors, setErrors] = useState<Set<string>>(new Set());
+  const [hintMessage, setHintMessage] = useState('');
+  const [hintCell, setHintCell] = useState<string | null>(null);
+  const [hintUsed, setHintUsed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   // Timer
@@ -107,17 +109,8 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
     const newGrid = grid.map(row => [...row]);
     newGrid[r][c] = num === 0 ? null : num;
     setGrid(newGrid);
-
-    // Check errors
-    const newErrors = new Set<string>();
-    for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 6; col++) {
-        if (newGrid[row][col] !== null && newGrid[row][col] !== solved[row][col]) {
-          newErrors.add(`${row}-${col}`);
-        }
-      }
-    }
-    setErrors(newErrors);
+    setHintMessage('');
+    setHintCell(null);
 
     // Check completion
     const isComplete = newGrid.every((row, ri) => row.every((cell, ci) => cell === solved[ri][ci]));
@@ -133,6 +126,29 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
         round_id: roundId,
         meta: { time_seconds: time },
       });
+    }
+  };
+
+  const handleHint = () => {
+    if (hintUsed) return;
+
+    let wrongCell: string | null = null;
+    for (let ri = 0; ri < 6 && !wrongCell; ri++) {
+      for (let ci = 0; ci < 6; ci++) {
+        if (puzzle[ri][ci] === null && grid[ri][ci] !== null && grid[ri][ci] !== solved[ri][ci]) {
+          wrongCell = `${ri}-${ci}`;
+          break;
+        }
+      }
+    }
+
+    setHintUsed(true);
+    if (wrongCell) {
+      setHintCell(wrongCell);
+      setHintMessage('One incorrect number has been highlighted.');
+    } else {
+      setHintCell(null);
+      setHintMessage('Everything seems correct so far.');
     }
   };
 
@@ -160,24 +176,24 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 px-1 pb-3">
+      <CardContent className="space-y-3 px-1 lg:px-3 pb-3">
         <div className="flex flex-col items-center gap-3">
-          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full">
+          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full max-w-md lg:max-w-[22rem] mx-auto">
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
-              const isError = errors.has(`${ri}-${ci}`);
+              const isHintCell = hintCell === `${ri}-${ci}`;
               const borderR = ci === 2 ? 'border-r-2 border-r-foreground' : 'border-r border-r-border';
               const borderB = ri === 1 || ri === 3 ? 'border-b-2 border-b-foreground' : 'border-b border-b-border';
               return (
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`aspect-square flex items-center justify-center text-[clamp(1.1rem,3vw,2.5rem)] font-bold transition-colors
+                  className={`aspect-square flex items-center justify-center text-[clamp(1.1rem,3vw,2.3rem)] lg:text-[clamp(1rem,1.4vw,1.35rem)] font-bold transition-colors
                     ${borderR} ${borderB}
                     ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer active:bg-primary/10'}
-                    ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}
-                    ${isError ? 'text-destructive bg-destructive/10' : ''}`}
+                    ${isHintCell ? 'bg-red-500 text-white' : ''}
+                    ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}`}
                 >
                   {cell ?? ''}
                 </button>
@@ -186,17 +202,30 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           </div>
 
           {/* Number pad */}
-          <div className="flex gap-1.5 w-full justify-center">
+          <div className="flex gap-1.5 w-full max-w-md lg:max-w-[22rem] justify-center">
             {[1, 2, 3, 4, 5, 6].map(n => (
-              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 text-xl font-bold p-0 rounded-xl"
+              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 lg:h-12 text-xl lg:text-lg font-bold p-0 rounded-xl"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
                 {n}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" className="flex-1 h-14 text-lg p-0 rounded-xl"
+            <Button variant="ghost" size="sm" className="flex-1 h-14 lg:h-12 text-lg lg:text-base p-0 rounded-xl"
               onClick={() => handleNumberInput(0)} disabled={!selectedCell}>
               ✕
             </Button>
+          </div>
+
+          <div className="w-full max-w-md lg:max-w-[22rem] space-y-2">
+            {!hintUsed ? (
+              <Button variant="outline" className="w-full" onClick={handleHint}>
+                Hint
+              </Button>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground">Daily hint used</p>
+            )}
+            {hintMessage && (
+              <p className="text-center text-sm text-muted-foreground">{hintMessage}</p>
+            )}
           </div>
         </div>
 

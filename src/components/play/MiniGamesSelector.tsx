@@ -1,5 +1,5 @@
 import { useState, useImperativeHandle, forwardRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { WordleGame } from './WordleGame';
 import { CityGuessGame } from './games/CityGuessGame';
 import { ThisOrThatGame } from './games/ThisOrThatGame';
@@ -10,13 +10,14 @@ import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 export { MINI_GAMES };
 
-import { Gamepad2 } from 'lucide-react';
 import { useGameIcons } from '@/hooks/useGameIcons';
 
 interface MiniGamesSelectorProps {
   playerName: string;
   onGameChange?: (gameId: string | null) => void;
   roundId?: string;
+  includeGeoGuessr?: boolean;
+  onSelectGeoGuessr?: () => void;
 }
 
 export interface MiniGamesSelectorHandle {
@@ -24,7 +25,7 @@ export interface MiniGamesSelectorHandle {
 }
 
 export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
-  function MiniGamesSelector({ playerName, onGameChange, roundId }, ref) {
+  function MiniGamesSelector({ playerName, onGameChange, roundId, includeGeoGuessr = false, onSelectGeoGuessr }, ref) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
 
@@ -53,15 +54,23 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Gamepad2 className="h-5 w-5 text-primary" />
-            Mini Games
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Pick a game to play</p>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {includeGeoGuessr && (
+              <button
+                onClick={onSelectGeoGuessr}
+                className="flex flex-col items-center gap-1 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center"
+              >
+                <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-background/50">
+                  {icons['geoguessr'] ? (
+                    <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl">🎯</span>
+                  )}
+                </div>
+                <p className="font-medium text-[10px] leading-tight">GeoGuessr</p>
+              </button>
+            )}
             {MINI_GAMES.map((game) => (
               <button
                 key={game.id}

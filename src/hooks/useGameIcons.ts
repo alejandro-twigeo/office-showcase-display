@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export type GameIcons = Record<string, string>; // gameId -> public URL
+export const LEADERBOARD_PLAYER_COUNT_KEY = '__leaderboard_player_count';
 
 export function useGameIcons() {
   const queryClient = useQueryClient();
@@ -14,7 +15,9 @@ export function useGameIcons() {
         .select('game_icons')
         .eq('id', 1)
         .single();
-      return ((data as any)?.game_icons ?? {}) as GameIcons;
+      const rawIcons = ((data as any)?.game_icons ?? {}) as GameIcons;
+      const { [LEADERBOARD_PLAYER_COUNT_KEY]: _leaderboardPlayerCount, ...icons } = rawIcons;
+      return icons as GameIcons;
     },
   });
 

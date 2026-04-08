@@ -291,7 +291,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
             className="w-full"
             size="sm"
           >
-            {submitGuess.isPending ? "Submitting..." : `Submit Guess${settings.max_guesses_per_challenge != null ? ` (${remainingGuesses} left)` : ''}`}
+            {submitGuess.isPending ? "Submitting..." : `Submit Guess${settings.max_guesses_per_challenge != null ? ` (${remainingGuesses} left to see solution)` : ''}`}
           </Button>
         </>
       ) : (
@@ -364,29 +364,68 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
             {activeTab === 'other' ? 'Other Games' : 'Make Your Guess'}
           </CardTitle>
           <div className="flex items-center gap-1">
-            {!hideOtherGames && (
+            {!hideOtherGames && (activeTab !== 'other' || insideMiniGame) && (
               <Button
                 variant={activeTab === 'other' ? 'default' : 'outline'}
                 size="sm"
-                className={`h-7 text-xs gap-1.5 ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary' : ''}`}
+                className={`relative overflow-hidden h-7 lg:h-9 text-xs lg:text-sm gap-1.5 px-2.5 lg:px-5 lg:min-w-[13.5rem] ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary lg:border-[#fe822a]/50 lg:text-[#9a4300] lg:hover:text-[#7a3500]' : 'lg:border-[#fe822a]/30 lg:text-[#5c2500]'} lg:shadow-[0_10px_30px_rgba(254,130,42,0.18)]`}
                 onClick={() => {
                   if (activeTab === 'other' && insideMiniGame) {
                     miniGameRef.current?.reset();
-                  } else if (activeTab === 'other') {
-                    setActiveTab('easy');
                   } else {
                     setActiveTab('other');
                     miniGameRef.current?.reset();
                   }
                 }}
               >
-                <Gamepad2 className="h-3.5 w-3.5" />
-                {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 hidden lg:block opacity-95"
+                  style={{
+                    backgroundImage: `
+                      radial-gradient(circle at 18% 18%, rgba(243,244,246,0.92), transparent 28%),
+                      radial-gradient(circle at 82% 24%, rgba(255,179,107,0.86), transparent 34%),
+                      radial-gradient(circle at 50% 100%, rgba(254,130,42,0.82), transparent 42%),
+                      linear-gradient(135deg, rgba(243,244,246,0.94), rgba(255,179,107,0.92))
+                    `,
+                    backgroundSize: '180% 180%',
+                    willChange: 'transform, background-position, filter',
+                    animation: 'other-games-grainient 2.4s linear infinite alternate',
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 hidden lg:block mix-blend-soft-light opacity-25"
+                  style={{
+                    backgroundImage:
+                      'radial-gradient(rgba(255,255,255,0.8) 0.6px, transparent 0.8px)',
+                    backgroundSize: '7px 7px',
+                  }}
+                />
+                <span className="relative z-10 flex items-center justify-center gap-1.5 w-full">
+                  <Gamepad2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                  {activeTab === 'other' ? '← Back to games' : 'Other Games'}
+                </span>
               </Button>
             )}
           </div>
         </div>
       </CardHeader>
+
+      <style>{`
+        @keyframes other-games-grainient {
+          0% {
+            background-position: 0% 50%;
+            transform: scale(1);
+            filter: saturate(1) brightness(1);
+          }
+          100% {
+            background-position: 100% 50%;
+            transform: scale(1.08);
+            filter: saturate(1.12) brightness(1.04);
+          }
+        }
+      `}</style>
 
       <CardContent className="space-y-4">
         {activeTab !== 'other' ? (
@@ -416,7 +455,14 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
             />
           </>
         ) : (
-          <MiniGamesSelector ref={miniGameRef} playerName={playerName} onGameChange={handleMinigameChange} roundId={activeRound?.id} />
+          <MiniGamesSelector
+            ref={miniGameRef}
+            playerName={playerName}
+            onGameChange={handleMinigameChange}
+            roundId={activeRound?.id}
+            includeGeoGuessr
+            onSelectGeoGuessr={() => setActiveTab('easy')}
+          />
         )}
       </CardContent>
     </Card>

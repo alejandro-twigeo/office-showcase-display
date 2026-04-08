@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal } from 'lucide-react';
 import { todayDate } from '@/hooks/useMinigameScore';
 import { MINI_GAMES } from './miniGamesList';
+import { LEADERBOARD_PLAYER_COUNT_KEY } from '@/hooks/useGameIcons';
 
 interface TopPlayer {
   player_name: string;
@@ -18,10 +19,26 @@ for (const g of MINI_GAMES) {
 GAME_LABELS['wordle'] = GAME_LABELS['wordle'] || { emoji: '🟩', name: 'Wordle' };
 GAME_LABELS['geoguessr'] = { emoji: '📍', name: 'GeoGuessr' };
 
-function useTop3AllGames() {
+function useLeaderboardPlayerCount() {
+  return useQuery({
+    queryKey: ['leaderboard_player_count'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('scoring_settings')
+        .select('game_icons')
+        .eq('id', 1)
+        .single();
+      const configured = Number((data as any)?.game_icons?.[LEADERBOARD_PLAYER_COUNT_KEY] ?? 3);
+      return Number.isFinite(configured) && configured > 0 ? configured : 3;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+function useTopPlayersAllGames(playerLimit: number) {
   const today = todayDate();
   return useQuery({
-    queryKey: ['minigame_top3_all', today],
+    queryKey: ['minigame_top_players_all', today, playerLimit],
     queryFn: async () => {
       // Fetch today's scores for all games
       const { data: scores } = await supabase
@@ -49,7 +66,7 @@ function useTop3AllGames() {
       for (const s of (scores ?? [])) {
         if (!byGame.has(s.game_id)) byGame.set(s.game_id, []);
         const list = byGame.get(s.game_id)!;
-        if (list.length < 3 && !list.some(p => p.player_name === s.player_name)) {
+        if (list.length < playerLimit && !list.some(p => p.player_name === s.player_name)) {
           list.push({
             player_name: s.player_name,
             score: s.score,
@@ -68,7 +85,7 @@ function useTop3AllGames() {
             wordlePlayers.set(w.player_name, score);
           }
         }
-        const sorted = [...wordlePlayers.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const sorted = [...wordlePlayers.entries()].sort((a, b) => b[1] - a[1]).slice(0, playerLimit);
         if (sorted.length > 0) {
           byGame.set('wordle', sorted.map(([name, score]) => ({
             player_name: name,
@@ -91,9 +108,10 @@ const RANK_COLORS = [
 ];
 
 export function MiniGamesLeaderboardGrid() {
-  const { data: gameData, isLoading } = useTop3AllGames();
+  const { data: playerLimit = 3, isLoading: isLoadingLimit } = useLeaderboardPlayerCount();
+  const { data: gameData, isLoading } = useTopPlayersAllGames(playerLimit);
 
-  if (isLoading) return null;
+  if (isLoading || isLoadingLimit) return null;
 
   const games = gameData ? [...gameData.entries()].filter(([, players]) => players.length > 0) : [];
   if (games.length === 0) return null;
@@ -104,31 +122,31 @@ export function MiniGamesLeaderboardGrid() {
         <Trophy className="h-3.5 w-3.5" />
         Today's Leaderboards
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2">
         {games.map(([gameId, players]) => {
           const label = GAME_LABELS[gameId] || { emoji: '🎮', name: gameId };
           return (
             <div
               key={gameId}
-              className="rounded-xl border bg-secondary/20 p-2.5 space-y-1.5"
+              className="rounded-xl border bg-secondary/20 p-3 sm:p-2.5 space-y-2 sm:space-y-1.5 min-w-0"
             >
-              <p className="text-xs font-semibold truncate">
+              <p className="text-sm sm:text-xs font-semibold truncate">
                 {label.emoji} {label.name}
               </p>
               {players.map((p, i) => (
-                <div key={p.player_name} className="flex items-center gap-1.5">
-                  <div className="w-4 shrink-0 flex justify-center">
+                <div key={p.player_name} className="flex items-center gap-2 sm:gap-1.5 min-w-0">
+                  <div className="w-5 sm:w-4 shrink-0 flex justify-center">
                     {i === 0 ? (
-                      <Trophy className={`h-3.5 w-3.5 ${RANK_COLORS[0]}`} />
+                      <Trophy className={`h-4 w-4 sm:h-3.5 sm:w-3.5 ${RANK_COLORS[0]}`} />
                     ) : i <= 2 ? (
-                      <Medal className={`h-3.5 w-3.5 ${RANK_COLORS[i]}`} />
+                      <Medal className={`h-4 w-4 sm:h-3.5 sm:w-3.5 ${RANK_COLORS[i]}`} />
                     ) : (
-                      <span className="text-[10px] text-muted-foreground">{i + 1}</span>
+                      <span className="text-xs sm:text-[10px] text-muted-foreground">{i + 1}</span>
                     )}
                   </div>
-                  <span className="text-sm shrink-0">{p.avatar}</span>
-                  <span className="text-xs truncate min-w-0">{p.player_name}</span>
-                  <span className="ml-auto text-xs font-mono text-accent font-semibold">{p.score}</span>
+                  <span className="text-base sm:text-sm shrink-0">{p.avatar}</span>
+                  <span className="text-sm sm:text-xs truncate min-w-0">{p.player_name}</span>
+                  <span className="ml-auto text-sm sm:text-xs font-mono text-accent font-semibold shrink-0">{p.score}</span>
                 </div>
               ))}
             </div>

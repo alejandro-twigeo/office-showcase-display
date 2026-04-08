@@ -131,23 +131,6 @@ export function useWordle(playerName: string) {
     }
   }, [currentInput, guesses, gameOver, evaluateGuess, roundId, deviceId, playerName, queryClient]);
 
-  // Keyboard status map for the on-screen keyboard
-  const keyStatuses = useCallback((): Map<string, LetterStatus> => {
-    const map = new Map<string, LetterStatus>();
-    for (const guess of guesses) {
-      for (let i = 0; i < 5; i++) {
-        const letter = guess.word[i];
-        const status = guess.statuses[i];
-        const current = map.get(letter);
-        // Priority: correct > present > absent
-        if (!current || status === 'correct' || (status === 'present' && current !== 'correct')) {
-          map.set(letter, status);
-        }
-      }
-    }
-    return map;
-  }, [guesses]);
-
   const earnedPoints = won ? calculateWordleScore(guesses.length, settings) : 0;
   const existingEarnedPoints = existingScore?.solved
     ? calculateWordleScore(existingScore.attempts, settings)
@@ -166,7 +149,6 @@ export function useWordle(playerName: string) {
     earnedPoints,
     existingEarnedPoints,
     settings,
-    keyStatuses,
     alreadyPlayed: !!existingScore,
     existingScore,
     roundNumber,

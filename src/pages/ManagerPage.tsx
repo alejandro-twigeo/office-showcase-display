@@ -11,7 +11,7 @@ import { useScoring, type DifficultyWeights } from '@/hooks/useScoring';
 import { useRoundSchedule } from '@/hooks/useRoundSchedule';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceCount } from '@/hooks/usePresenceCount';
-import { useGameIcons } from '@/hooks/useGameIcons';
+import { LEADERBOARD_PLAYER_COUNT_KEY, useGameIcons } from '@/hooks/useGameIcons';
 import { fetchMapillaryRound } from '@/lib/mapillary';
 import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
 
@@ -45,6 +45,7 @@ export default function ManagerPage() {
   const [editWordleAttemptPoints, setEditWordleAttemptPoints] = useState<string[]>([]);
   const [editMaxGuesses, setEditMaxGuesses] = useState<string>('');
   const [guessLimitEnabled, setGuessLimitEnabled] = useState(false);
+  const [editLeaderboardPlayers, setEditLeaderboardPlayers] = useState('3');
 
   // Mini game settings
   const [editCityDistParam, setEditCityDistParam] = useState('200');
@@ -81,7 +82,7 @@ export default function ManagerPage() {
     if (!unlocked) return;
     (async () => {
       const { data } = await supabase.from('scoring_settings' as never)
-        .select('city_guess_distance_param, city_guess_max_attempts, thisorthat_points_per_q, thisorthat_streak_bonus, sudoku_max_points, sudoku_time_param, pairs_max_points, pairs_time_param, pairs_move_penalty, labyrinth_max_points, labyrinth_time_param, labyrinth_reset_penalty')
+        .select('city_guess_distance_param, city_guess_max_attempts, thisorthat_points_per_q, thisorthat_streak_bonus, sudoku_max_points, sudoku_time_param, pairs_max_points, pairs_time_param, pairs_move_penalty, labyrinth_max_points, labyrinth_time_param, labyrinth_reset_penalty, game_icons')
         .eq('id', 1).single();
       if (data) {
         const d = data as any;
@@ -97,6 +98,7 @@ export default function ManagerPage() {
         setEditLabMax(String(d.labyrinth_max_points ?? 100));
         setEditLabTime(String(d.labyrinth_time_param ?? 60));
         setEditLabResetPen(String(d.labyrinth_reset_penalty ?? 5));
+        setEditLeaderboardPlayers(String(d.game_icons?.[LEADERBOARD_PLAYER_COUNT_KEY] ?? 3));
       }
     })();
 
@@ -124,7 +126,8 @@ export default function ManagerPage() {
     const multipliers = editMultipliers.map(Number);
     const wp = parseInt(editWordlePoints);
     const wap = editWordleAttemptPoints.map(Number);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN)) return;
+    const leaderboardPlayers = parseInt(editLeaderboardPlayers);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN) || isNaN(leaderboardPlayers) || leaderboardPlayers < 1) return;
     const maxGuesses = guessLimitEnabled ? parseInt(editMaxGuesses) || 5 : null;
     updateSettings.mutate({
       distance_parameter: distParam,
@@ -134,6 +137,12 @@ export default function ManagerPage() {
       wordle_points: wp,
       wordle_attempt_points: wap,
     });
+    const { data: existingSettings } = await supabase
+      .from('scoring_settings' as never)
+      .select('game_icons')
+      .eq('id', 1)
+      .single();
+    const existingGameIcons = ((existingSettings as any)?.game_icons ?? {}) as Record<string, unknown>;
     await supabase.from('scoring_settings' as never).update({
       city_guess_distance_param: parseFloat(editCityDistParam),
       city_guess_max_attempts: parseInt(editCityMaxAttempts),
@@ -147,6 +156,10 @@ export default function ManagerPage() {
       labyrinth_max_points: parseInt(editLabMax),
       labyrinth_time_param: parseInt(editLabTime),
       labyrinth_reset_penalty: parseInt(editLabResetPen),
+      game_icons: {
+        ...existingGameIcons,
+        [LEADERBOARD_PLAYER_COUNT_KEY]: leaderboardPlayers,
+      },
     } as never).eq('id', 1);
   };
 
@@ -331,6 +344,10 @@ export default function ManagerPage() {
                       <Input type="number" value={val} min={0} onChange={(e) => { const n = [...editWordleAttemptPoints]; n[i] = e.target.value; setEditWordleAttemptPoints(n); }} className="h-6 text-xs flex-1" />
                     </div>
                   ))}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium">Leaderboard players shown</p>
+                  <Input type="number" value={editLeaderboardPlayers} min={1} max={20} onChange={(e) => setEditLeaderboardPlayers(e.target.value)} className="h-7 text-sm" />
                 </div>
               </div>
             </div>

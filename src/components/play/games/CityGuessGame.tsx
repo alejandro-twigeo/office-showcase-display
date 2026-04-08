@@ -238,7 +238,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">🏙️ City Guess — {selectedCity.name}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {attemptsLeft > 0 ? `${attemptsLeft} guess${attemptsLeft !== 1 ? 'es' : ''} left` : 'No more guesses'}
+          {attemptsLeft > 0 ? 'One guess only. Submit to see the solution.' : 'No more guesses'}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -282,7 +282,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           <>
             <div ref={mapRef} className="h-[28vh] sm:h-56 rounded-lg border z-0" />
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
-              Submit Guess ({attemptsLeft} left)
+              Submit guess to see solution
             </Button>
           </>
         ) : (

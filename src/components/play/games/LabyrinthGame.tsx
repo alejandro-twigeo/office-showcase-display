@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
-import { CheckCircle, Clock, Undo2 } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, Undo2 } from 'lucide-react';
 
 const GAME_ID = 'labyrinth';
 
@@ -106,8 +106,8 @@ function generateZipPuzzle(rng: () => number): ZipPuzzle {
   checkpoints[path[0][0]][path[0][1]] = 1;
   checkpoints[path[total - 1][0]][path[total - 1][1]] = total;
 
-  // Place ~6-8 intermediate checkpoints spread along the path
-  const numCheckpoints = 6 + Math.floor(rng() * 3); // 6-8 intermediate
+  // Place 5-6 intermediate checkpoints so total visible checkpoints is 7-8 including start/end
+  const numCheckpoints = 5 + Math.floor(rng() * 2); // 5-6 intermediate
   const step = total / (numCheckpoints + 2);
   let cpNum = 2;
   for (let i = 1; i < numCheckpoints + 1; i++) {
@@ -158,9 +158,9 @@ function generateZipPuzzle(rng: () => number): ZipPuzzle {
       }
     }
   }
-  // Shuffle and pick ~3-5 walls
+  // Shuffle and pick 6-9 walls
   nonPathEdges.sort(() => rng() - 0.5);
-  const numWalls = 3 + Math.floor(rng() * 3);
+  const numWalls = 6 + Math.floor(rng() * 4);
   for (let i = 0; i < Math.min(numWalls, nonPathEdges.length); i++) {
     walls.add(nonPathEdges[i]);
   }
@@ -318,6 +318,28 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [path]);
 
+  const restartPuzzle = useCallback(() => {
+    setPath([]);
+    setStarted(false);
+    setDone(false);
+    setError(false);
+    setElapsed(0);
+    setStartTime(Date.now());
+    isDragging.current = false;
+  }, []);
+
+  const trimPathToCell = useCallback((r: number, c: number, currentPath: [number, number][]) => {
+    const existingIndex = currentPath.findIndex(([pr, pc]) => pr === r && pc === c);
+    if (existingIndex === -1) return null;
+    return currentPath.slice(0, existingIndex + 1);
+  }, []);
+
+  const isLastPathCell = useCallback((r: number, c: number, currentPath: [number, number][]) => {
+    if (currentPath.length === 0) return false;
+    const last = currentPath[currentPath.length - 1];
+    return last[0] === r && last[1] === c;
+  }, []);
+
   // Touch drag support
   const getCellFromTouch = useCallback((clientX: number, clientY: number): [number, number] | null => {
     if (!gridRef.current) return null;
@@ -350,12 +372,9 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     const cell = getCellFromTouch(t.clientX, t.clientY);
     if (!cell) return;
     setPath(prev => {
-      // Allow undo by dragging back to previous cell
-      if (prev.length >= 2) {
-        const secondLast = prev[prev.length - 2];
-        if (secondLast[0] === cell[0] && secondLast[1] === cell[1]) {
-          return prev.slice(0, -1);
-        }
+      const trimmedPath = trimPathToCell(cell[0], cell[1], prev);
+      if (trimmedPath && trimmedPath.length !== prev.length) {
+        return trimmedPath;
       }
       const newPath = tryAddCell(cell[0], cell[1], prev);
       if (newPath !== prev) {
@@ -364,7 +383,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       }
       return prev;
     });
-  }, [getCellFromTouch, tryAddCell, checkWin]);
+  }, [getCellFromTouch, trimPathToCell, tryAddCell, checkWin]);
 
   const handleTouchEnd = useCallback(() => {
     isDragging.current = false;
@@ -373,18 +392,16 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   // Mouse drag support for desktop
   const handleMouseDown = useCallback((r: number, c: number) => {
     isDragging.current = true;
+    if (isLastPathCell(r, c, path)) return;
     handleCellClick(r, c);
-  }, [handleCellClick]);
+  }, [handleCellClick, isLastPathCell, path]);
 
   const handleMouseEnter = useCallback((r: number, c: number) => {
     if (!isDragging.current || done) return;
     setPath(prev => {
-      // Allow undo by dragging back
-      if (prev.length >= 2) {
-        const secondLast = prev[prev.length - 2];
-        if (secondLast[0] === r && secondLast[1] === c) {
-          return prev.slice(0, -1);
-        }
+      const trimmedPath = trimPathToCell(r, c, prev);
+      if (trimmedPath && trimmedPath.length !== prev.length) {
+        return trimmedPath;
       }
       const newPath = tryAddCell(r, c, prev);
       if (newPath !== prev) {
@@ -393,7 +410,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       }
       return prev;
     });
-  }, [done, tryAddCell, checkWin]);
+  }, [done, trimPathToCell, tryAddCell, checkWin]);
 
   useEffect(() => {
     const handleMouseUp = () => { isDragging.current = false; };
@@ -475,7 +492,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">🌀 Zip</CardTitle>
-          {started && (
+          <div className="flex items-center gap-1">
             <button
               onClick={undoLast}
               className="flex items-center gap-1 text-xs text-muted-foreground active:text-foreground transition-colors p-1.5 rounded-lg"
@@ -484,7 +501,15 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
               <Undo2 className="h-3.5 w-3.5" />
               Undo
             </button>
-          )}
+            <button
+              onClick={restartPuzzle}
+              className="flex items-center gap-1 text-xs text-muted-foreground active:text-foreground transition-colors p-1.5 rounded-lg"
+              disabled={path.length === 0}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restart
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
@@ -504,7 +529,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             className="inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none"
             style={{
               gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})`,
-              backgroundColor: 'hsl(var(--primary) / 0.15)',
+              backgroundColor: 'hsl(var(--muted))',
               padding: '2px',
             }}
           >
