@@ -194,7 +194,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-6 h-[clamp(5.5rem,12vw,6.5rem)] lg:h-[clamp(6rem,10vw,7rem)]">
+        <div className="grid grid-cols-6 h-[6.25rem] lg:h-[clamp(6rem,10vw,7rem)]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -204,14 +204,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-1 lg:gap-1.5 transition-colors active:scale-95 min-h-[56px] lg:min-h-[64px] ${
+                className={`flex flex-col items-center justify-center gap-1.5 lg:gap-1.5 transition-colors active:scale-95 min-h-[72px] lg:min-h-[64px] px-1 ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-[clamp(1.5rem,4vw,2rem)] w-[clamp(1.5rem,4vw,2rem)] lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[clamp(0.65rem,1vw,0.85rem)] lg:text-xs font-semibold leading-none">{label}</span>
+                <Icon className={`h-7 w-7 lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.78rem] lg:text-xs font-semibold leading-none text-center">{label}</span>
               </button>
             );
           })}

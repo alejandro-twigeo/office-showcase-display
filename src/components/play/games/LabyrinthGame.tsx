@@ -443,7 +443,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   }
 
   const cellSize = isMobile
-    ? `min(calc((100vw - 1rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
+    ? `min(calc((100vw - 0.5rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
     : `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 4rem)`;
 
   // Determine wall borders per cell
@@ -521,7 +521,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           Draw a path from ① through every cell. Tap or drag to draw.
         </p>
       </CardHeader>
-      <CardContent className={isMobile ? 'px-1' : 'px-4'}>
+      <CardContent className={isMobile ? 'px-0' : 'px-4'}>
         <div className="flex flex-col items-center gap-3">
           <div
             ref={gridRef}
