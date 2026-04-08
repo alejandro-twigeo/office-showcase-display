@@ -91,18 +91,21 @@ function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<t
       const { data: players } = await supabase.from('players').select('name, avatar');
       const avatarMap = new Map(players?.map(p => [p.name, p.avatar]) ?? []);
 
-      // Group by game, all players
+      // Group by game first, then dedupe within each game leaderboard.
       const byGame = new Map<string, TopPlayer[]>();
-      const scores = dedupeMinigameScores((rawScores ?? []) as MinigameScoreRow[]);
+      const rawScoresByGame = new Map<string, MinigameScoreRow[]>();
 
-      for (const s of scores) {
-        if (!byGame.has(s.game_id)) byGame.set(s.game_id, []);
-        const list = byGame.get(s.game_id)!;
-        list.push({
-          player_name: s.player_name,
-          score: s.score,
-          avatar: avatarMap.get(s.player_name) ?? '👤',
-        });
+      for (const score of ((rawScores ?? []) as MinigameScoreRow[])) {
+        if (!rawScoresByGame.has(score.game_id)) rawScoresByGame.set(score.game_id, []);
+        rawScoresByGame.get(score.game_id)!.push(score);
+      }
+
+      for (const [gameId, gameScores] of rawScoresByGame.entries()) {
+        byGame.set(gameId, dedupeMinigameScores(gameScores).map((score) => ({
+          player_name: score.player_name,
+          score: score.score,
+          avatar: avatarMap.get(score.player_name) ?? '👤',
+        })));
       }
 
       const sortedRounds = [...(rounds ?? [])].sort((a, b) => {
