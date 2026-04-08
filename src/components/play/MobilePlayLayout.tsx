@@ -124,7 +124,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   };
 
   return (
-    <div className="bg-background flex flex-col" style={{ minHeight: 'var(--app-height, 100vh)' }}>
+    <div className="bg-background flex flex-col" style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)' }}>
       {/* Compact mobile header */}
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-3 py-2 safe-area-top">
         <div className="flex items-center justify-between">
