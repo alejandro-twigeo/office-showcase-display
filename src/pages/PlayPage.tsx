@@ -16,6 +16,8 @@ import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, 
 import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
+import { useDeviceId } from '@/hooks/useDeviceId';
+import { usePresenceTrack } from '@/hooks/usePresenceCount';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
 
@@ -23,10 +25,17 @@ export default function PlayPage() {
   const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const deviceId = useDeviceId();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
   const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
   const [activeMinigame, setActiveMinigame] = useState<string | null>(null);
+
+  usePresenceTrack('app', {
+    deviceId,
+    playerName: player?.name,
+    page: 'play',
+  });
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">

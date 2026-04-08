@@ -58,7 +58,7 @@ export default function ManagerPage() {
   const { settings, updateSettings } = useScoring();
   const { schedule, updateSchedule } = useRoundSchedule();
   const deviceId = useDeviceId();
-  const onlineUsers = usePresenceCount('app', { deviceId });
+  const onlineUsers = usePresenceCount('app', { deviceId, page: 'manager' }, { excludeSelf: true });
   const { icons, uploadIcon, removeIcon } = useGameIcons();
 
   // Scoring edit state

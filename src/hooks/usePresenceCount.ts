@@ -1,16 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-type PresenceState = Record<string, Array<{ deviceId?: string; playerName?: string }>>;
+type PresenceMeta = {
+  deviceId?: string;
+  playerName?: string;
+  page?: "play" | "tv" | "manager";
+  ts?: number;
+};
 
-export function usePresenceCount(room: string, meta?: { deviceId?: string; playerName?: string }) {
+type PresenceState = Record<string, Array<PresenceMeta>>;
+
+function usePresenceKey(deviceId?: string) {
+  return useMemo(() => {
+    const base = deviceId ?? crypto.randomUUID();
+    return `${base}-${Math.random().toString(16).slice(2)}`;
+  }, [deviceId]);
+}
+
+export function usePresenceTrack(room: string, meta?: PresenceMeta) {
+  const presenceKey = usePresenceKey(meta?.deviceId);
+
+  useEffect(() => {
+    const channel = supabase.channel(`presence:${room}`, {
+      config: { presence: { key: presenceKey } },
+    });
+
+    const trackPresence = () =>
+      channel.track({
+        deviceId: meta?.deviceId,
+        playerName: meta?.playerName,
+        page: meta?.page,
+        ts: Date.now(),
+      });
+
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        trackPresence();
+      }
+    });
+
+    const ping = window.setInterval(trackPresence, 30_000);
+
+    return () => {
+      window.clearInterval(ping);
+      supabase.removeChannel(channel);
+    };
+  }, [room, presenceKey, meta?.deviceId, meta?.page, meta?.playerName]);
+}
+
+export function usePresenceCount(
+  room: string,
+  meta?: PresenceMeta,
+  options?: { excludeSelf?: boolean }
+) {
   const [count, setCount] = useState(0);
-
-  // stable unique key per tab/device
-  const presenceKey = useMemo(() => {
-    const base = meta?.deviceId ?? crypto.randomUUID();
-    return `${base}-${Math.random().toString(16).slice(2)}`; // avoids collisions across tabs
-  }, [meta?.deviceId]);
+  const presenceKey = usePresenceKey(meta?.deviceId);
 
   useEffect(() => {
     const channel = supabase.channel(`presence:${room}`, {
@@ -19,30 +63,40 @@ export function usePresenceCount(room: string, meta?: { deviceId?: string; playe
 
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState() as PresenceState;
-      const total = Object.values(state).reduce((sum, arr) => sum + arr.length, 0);
-      setCount(total);
+      const uniqueUsers = new Set<string>();
+
+      for (const [key, entries] of Object.entries(state)) {
+        if (options?.excludeSelf && key === presenceKey) continue;
+
+        for (const entry of entries) {
+          uniqueUsers.add(entry.deviceId ?? key);
+        }
+      }
+
+      setCount(uniqueUsers.size);
     });
+
+    const trackPresence = () =>
+      channel.track({
+        deviceId: meta?.deviceId,
+        playerName: meta?.playerName,
+        page: meta?.page,
+        ts: Date.now(),
+      });
 
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
-        channel.track({
-          deviceId: meta?.deviceId,
-          playerName: meta?.playerName,
-          ts: Date.now(),
-        });
+        trackPresence();
       }
     });
 
-    // keep-alive so long-lived tabs don’t get dropped on flaky networks
-    const ping = window.setInterval(() => {
-      channel.track({ deviceId: meta?.deviceId, playerName: meta?.playerName, ts: Date.now() });
-    }, 30_000);
+    const ping = window.setInterval(trackPresence, 30_000);
 
     return () => {
       window.clearInterval(ping);
       supabase.removeChannel(channel);
     };
-  }, [room, presenceKey, meta?.deviceId, meta?.playerName]);
+  }, [meta?.deviceId, meta?.page, meta?.playerName, options?.excludeSelf, presenceKey, room]);
 
   return count;
 }

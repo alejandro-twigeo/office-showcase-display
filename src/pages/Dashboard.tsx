@@ -8,6 +8,8 @@ import { PlantStatus } from "@/components/dashboard/PlantStatus";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
+import { useDeviceId } from "@/hooks/useDeviceId";
+import { usePresenceTrack } from "@/hooks/usePresenceCount";
 
 /**
  * When "Desktop mode" is active on a small screen we render the full
@@ -38,8 +40,14 @@ function useDesktopZoom(enabled: boolean) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const deviceId = useDeviceId();
   const [forceDesktop, setForceDesktop] = useState(false);
   const zoom = useDesktopZoom(forceDesktop);
+
+  usePresenceTrack("app", {
+    deviceId,
+    page: "tv",
+  });
 
   // Desktop-forced mode: render fixed-size layout scaled via CSS zoom
   if (forceDesktop) {
