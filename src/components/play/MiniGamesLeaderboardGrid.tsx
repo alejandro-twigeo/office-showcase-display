@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, Medal } from 'lucide-react';
+import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { todayDate } from '@/hooks/useMinigameScore';
 import { MINI_GAMES } from './miniGamesList';
-import { LEADERBOARD_PLAYER_COUNT_KEY } from '@/hooks/useGameIcons';
+import { calculateScore, useScoring } from '@/hooks/useScoring';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface TopPlayer {
   player_name: string;
@@ -19,54 +21,70 @@ for (const g of MINI_GAMES) {
 GAME_LABELS['wordle'] = GAME_LABELS['wordle'] || { emoji: '🟩', name: 'Wordle' };
 GAME_LABELS['geoguessr'] = { emoji: '📍', name: 'GeoGuessr' };
 
-function useLeaderboardPlayerCount() {
+function useAllLeaderboardDates() {
   return useQuery({
-    queryKey: ['leaderboard_player_count'],
+    queryKey: ['all-game-leaderboard-dates'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('scoring_settings')
-        .select('game_icons')
-        .eq('id', 1)
-        .single();
-      const configured = Number((data as any)?.game_icons?.[LEADERBOARD_PLAYER_COUNT_KEY] ?? 3);
-      return Number.isFinite(configured) && configured > 0 ? configured : 3;
+      const [{ data: minigameDates }, { data: wordleDates }, { data: guessDates }] = await Promise.all([
+        supabase.from('minigame_scores').select('date'),
+        supabase.from('wordle_scores').select('created_at'),
+        supabase.from('guesses').select('created_at'),
+      ]);
+
+      const allDates = new Set<string>();
+      for (const row of minigameDates ?? []) {
+        if ((row as any).date) allDates.add((row as any).date);
+      }
+      for (const row of wordleDates ?? []) {
+        if ((row as any).created_at) allDates.add(String((row as any).created_at).slice(0, 10));
+      }
+      for (const row of guessDates ?? []) {
+        if ((row as any).created_at) allDates.add(String((row as any).created_at).slice(0, 10));
+      }
+
+      allDates.add(todayDate());
+      return [...allDates].sort((a, b) => b.localeCompare(a));
     },
     refetchInterval: 30000,
   });
 }
 
-function useTopPlayersAllGames(playerLimit: number) {
-  const today = todayDate();
+function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<typeof useScoring>['settings']) {
   return useQuery({
-    queryKey: ['minigame_top_players_all', today, playerLimit],
+    queryKey: ['all-game-leaderboards', selectedDate, distanceSettings.distance_parameter, JSON.stringify(distanceSettings.attempt_multipliers)],
     queryFn: async () => {
-      // Fetch today's scores for all games
-      const { data: scores } = await supabase
-        .from('minigame_scores')
-        .select('game_id, player_name, score')
-        .eq('date', today)
-        .order('score', { ascending: false });
+      const dateStart = `${selectedDate}T00:00:00.000Z`;
+      const dateEnd = `${selectedDate}T23:59:59.999Z`;
 
-      // Fetch wordle scores for today
-      const todayStart = today + 'T00:00:00.000Z';
-      const todayEnd = today + 'T23:59:59.999Z';
-      const { data: wordleScores } = await supabase
-        .from('wordle_scores')
-        .select('player_name, attempts, solved')
-        .gte('created_at', todayStart)
-        .lte('created_at', todayEnd);
+      const [{ data: scores }, { data: wordleScores }, { data: geoGuesses }] = await Promise.all([
+        supabase
+          .from('minigame_scores')
+          .select('game_id, player_name, score')
+          .eq('date', selectedDate)
+          .order('score', { ascending: false }),
+        supabase
+          .from('wordle_scores')
+          .select('player_name, attempts, solved')
+          .gte('created_at', dateStart)
+          .lte('created_at', dateEnd),
+        supabase
+          .from('guesses')
+          .select('player_name, distance_km, guess_number, created_at')
+          .gte('created_at', dateStart)
+          .lte('created_at', dateEnd),
+      ]);
 
       // Fetch avatars
       const { data: players } = await supabase.from('players').select('name, avatar');
       const avatarMap = new Map(players?.map(p => [p.name, p.avatar]) ?? []);
 
-      // Group by game, top 3
+      // Group by game, all players
       const byGame = new Map<string, TopPlayer[]>();
 
       for (const s of (scores ?? [])) {
         if (!byGame.has(s.game_id)) byGame.set(s.game_id, []);
         const list = byGame.get(s.game_id)!;
-        if (list.length < playerLimit && !list.some(p => p.player_name === s.player_name)) {
+        if (!list.some(p => p.player_name === s.player_name)) {
           list.push({
             player_name: s.player_name,
             score: s.score,
@@ -85,9 +103,27 @@ function useTopPlayersAllGames(playerLimit: number) {
             wordlePlayers.set(w.player_name, score);
           }
         }
-        const sorted = [...wordlePlayers.entries()].sort((a, b) => b[1] - a[1]).slice(0, playerLimit);
+        const sorted = [...wordlePlayers.entries()].sort((a, b) => b[1] - a[1]);
         if (sorted.length > 0) {
           byGame.set('wordle', sorted.map(([name, score]) => ({
+            player_name: name,
+            score,
+            avatar: avatarMap.get(name) ?? '👤',
+          })));
+        }
+      }
+
+      if (geoGuesses && geoGuesses.length > 0) {
+        const geoPlayers = new Map<string, number>();
+        for (const g of geoGuesses) {
+          const score = calculateScore(g.distance_km, g.guess_number ?? 1, distanceSettings);
+          if (!geoPlayers.has(g.player_name) || score > geoPlayers.get(g.player_name)!) {
+            geoPlayers.set(g.player_name, score);
+          }
+        }
+        const sorted = [...geoPlayers.entries()].sort((a, b) => b[1] - a[1]);
+        if (sorted.length > 0) {
+          byGame.set('geoguessr', sorted.map(([name, score]) => ({
             player_name: name,
             score,
             avatar: avatarMap.get(name) ?? '👤',
@@ -108,20 +144,47 @@ const RANK_COLORS = [
 ];
 
 export function MiniGamesLeaderboardGrid() {
-  const { data: playerLimit = 3, isLoading: isLoadingLimit } = useLeaderboardPlayerCount();
-  const { data: gameData, isLoading } = useTopPlayersAllGames(playerLimit);
+  const { settings } = useScoring();
+  const { data: dates = [], isLoading: isLoadingDates } = useAllLeaderboardDates();
+  const [dateIdx, setDateIdx] = useState(0);
 
-  if (isLoading || isLoadingLimit) return null;
+  const allDates = useMemo(() => {
+    const today = todayDate();
+    if (dates.length === 0) return [today];
+    if (!dates.includes(today)) return [today, ...dates];
+    return dates;
+  }, [dates]);
+
+  const selectedDate = allDates[dateIdx] ?? todayDate();
+  const { data: gameData, isLoading } = usePlayersAllGames(selectedDate, settings);
+
+  if (isLoading || isLoadingDates) return null;
 
   const games = gameData ? [...gameData.entries()].filter(([, players]) => players.length > 0) : [];
   if (games.length === 0) return null;
 
+  const canGoPrev = dateIdx < allDates.length - 1;
+  const canGoNext = dateIdx > 0;
+
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1.5">
-        <Trophy className="h-3.5 w-3.5" />
-        Today's Leaderboards
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+          <Trophy className="h-3.5 w-3.5" />
+          Game Leaderboards
+        </p>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDateIdx(i => i + 1)} disabled={!canGoPrev}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-xs font-medium text-muted-foreground min-w-[5rem] text-center">
+            {selectedDate === todayDate() ? 'Today' : selectedDate}
+          </span>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDateIdx(i => i - 1)} disabled={!canGoNext}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2">
         {games.map(([gameId, players]) => {
           const label = GAME_LABELS[gameId] || { emoji: '🎮', name: gameId };

@@ -119,7 +119,8 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
     if (isComplete) {
       setDone(true);
       const time = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
-      const score = Math.max(1, Math.round(settings.sudoku_max_points / (1 + time / settings.sudoku_time_param)));
+      const baseScore = Math.round(settings.sudoku_max_points / (1 + time / settings.sudoku_time_param));
+      const score = Math.max(1, baseScore - (hintUsed ? settings.sudoku_hint_penalty : 0));
       await submitScore.mutateAsync({
         game_id: GAME_ID,
         player_name: playerName,
@@ -220,7 +221,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <div className={`w-full space-y-2 ${isMobile ? '' : 'max-w-md lg:max-w-[22rem]'}`}>
             {!hintUsed ? (
               <Button variant="outline" className="w-full" onClick={handleHint}>
-                Hint
+                Hint (-{settings.sudoku_hint_penalty} pts)
               </Button>
             ) : (
               <p className="text-center text-sm text-muted-foreground">Daily hint used</p>

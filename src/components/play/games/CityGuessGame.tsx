@@ -186,7 +186,9 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     leafletRef.current.setView([image.lat, image.lng], 15);
   }, [showLocation, image]);
 
-  if (todayScore) {
+  const hasLocalSession = !!selectedCity || !!image || guesses.length > 0 || showLocation;
+
+  if (todayScore && !hasLocalSession) {
     return (
       <Card>
         <CardHeader className="pb-2">

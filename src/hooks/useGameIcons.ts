@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type GameIcons = Record<string, string>; // gameId -> public URL
 export const LEADERBOARD_PLAYER_COUNT_KEY = '__leaderboard_player_count';
+export const SUDOKU_HINT_PENALTY_KEY = '__sudoku_hint_penalty';
+
+function stripReservedKeys(rawIcons: GameIcons): GameIcons {
+  return Object.fromEntries(
+    Object.entries(rawIcons).filter(([key]) => !key.startsWith('__'))
+  ) as GameIcons;
+}
 
 export function useGameIcons() {
   const queryClient = useQueryClient();
@@ -16,8 +23,7 @@ export function useGameIcons() {
         .eq('id', 1)
         .single();
       const rawIcons = ((data as any)?.game_icons ?? {}) as GameIcons;
-      const { [LEADERBOARD_PLAYER_COUNT_KEY]: _leaderboardPlayerCount, ...icons } = rawIcons;
-      return icons as GameIcons;
+      return stripReservedKeys(rawIcons);
     },
   });
 
@@ -37,8 +43,12 @@ export function useGameIcons() {
 
     const publicUrl = urlData.publicUrl + '?t=' + Date.now();
 
-    // Save to scoring_settings
-    const current = query.data ?? {};
+    const { data: settingsData } = await supabase
+      .from('scoring_settings' as any)
+      .select('game_icons')
+      .eq('id', 1)
+      .single();
+    const current = ((settingsData as any)?.game_icons ?? {}) as GameIcons;
     const updated = { ...current, [gameId]: publicUrl };
     await supabase
       .from('scoring_settings' as any)
@@ -50,7 +60,12 @@ export function useGameIcons() {
   };
 
   const removeIcon = async (gameId: string) => {
-    const current = query.data ?? {};
+    const { data: settingsData } = await supabase
+      .from('scoring_settings' as any)
+      .select('game_icons')
+      .eq('id', 1)
+      .single();
+    const current = ((settingsData as any)?.game_icons ?? {}) as GameIcons;
     const { [gameId]: _, ...rest } = current;
     await supabase
       .from('scoring_settings' as any)

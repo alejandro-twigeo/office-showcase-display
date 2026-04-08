@@ -11,7 +11,7 @@ import { useScoring, type DifficultyWeights } from '@/hooks/useScoring';
 import { useRoundSchedule } from '@/hooks/useRoundSchedule';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceCount } from '@/hooks/usePresenceCount';
-import { LEADERBOARD_PLAYER_COUNT_KEY, useGameIcons } from '@/hooks/useGameIcons';
+import { LEADERBOARD_PLAYER_COUNT_KEY, SUDOKU_HINT_PENALTY_KEY, useGameIcons } from '@/hooks/useGameIcons';
 import { fetchMapillaryRound } from '@/lib/mapillary';
 import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -78,6 +78,7 @@ export default function ManagerPage() {
   const [editTotStreak, setEditTotStreak] = useState('0.2');
   const [editSudokuMax, setEditSudokuMax] = useState('100');
   const [editSudokuTime, setEditSudokuTime] = useState('300');
+  const [editSudokuHintPenalty, setEditSudokuHintPenalty] = useState('15');
   const [editPairsMax, setEditPairsMax] = useState('100');
   const [editPairsTime, setEditPairsTime] = useState('120');
   const [editPairsMovePen, setEditPairsMovePen] = useState('2');
@@ -152,6 +153,7 @@ export default function ManagerPage() {
         setEditTotStreak(String(d.thisorthat_streak_bonus ?? 0.2));
         setEditSudokuMax(String(d.sudoku_max_points ?? 100));
         setEditSudokuTime(String(d.sudoku_time_param ?? 300));
+        setEditSudokuHintPenalty(String(d.game_icons?.[SUDOKU_HINT_PENALTY_KEY] ?? 15));
         setEditPairsMax(String(d.pairs_max_points ?? 100));
         setEditPairsTime(String(d.pairs_time_param ?? 120));
         setEditPairsMovePen(String(d.pairs_move_penalty ?? 2));
@@ -187,7 +189,8 @@ export default function ManagerPage() {
     const wp = parseInt(editWordlePoints);
     const wap = editWordleAttemptPoints.map(Number);
     const leaderboardPlayers = parseInt(editLeaderboardPlayers);
-    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN) || isNaN(leaderboardPlayers) || leaderboardPlayers < 1) return;
+    const sudokuHintPenalty = parseInt(editSudokuHintPenalty);
+    if (isNaN(distParam) || distParam <= 0 || multipliers.some(isNaN) || isNaN(wp) || wap.some(isNaN) || isNaN(leaderboardPlayers) || leaderboardPlayers < 1 || isNaN(sudokuHintPenalty) || sudokuHintPenalty < 0) return;
     const maxGuesses = guessLimitEnabled ? parseInt(editMaxGuesses) || 5 : null;
     updateSettings.mutate({
       distance_parameter: distParam,
@@ -219,6 +222,7 @@ export default function ManagerPage() {
       game_icons: {
         ...existingGameIcons,
         [LEADERBOARD_PLAYER_COUNT_KEY]: leaderboardPlayers,
+        [SUDOKU_HINT_PENALTY_KEY]: sudokuHintPenalty,
       },
     } as never).eq('id', 1);
   };
@@ -430,6 +434,7 @@ export default function ManagerPage() {
                   <p className="text-xs font-medium">🔢 Sudoku</p>
                   <div className="flex items-center gap-1"><span className="text-xs text-muted-foreground w-14">Max pts</span><Input type="number" value={editSudokuMax} onChange={(e) => setEditSudokuMax(e.target.value)} className="h-6 text-xs flex-1" /></div>
                   <div className="flex items-center gap-1"><span className="text-xs text-muted-foreground w-14">Time</span><Input type="number" value={editSudokuTime} onChange={(e) => setEditSudokuTime(e.target.value)} className="h-6 text-xs flex-1" /></div>
+                  <div className="flex items-center gap-1"><span className="text-xs text-muted-foreground w-14">Hint pen</span><Input type="number" value={editSudokuHintPenalty} min={0} onChange={(e) => setEditSudokuHintPenalty(e.target.value)} className="h-6 text-xs flex-1" /></div>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-medium">🃏 Pairs</p>
