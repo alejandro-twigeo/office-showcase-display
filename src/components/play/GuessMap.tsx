@@ -1,24 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
-import { RefreshCw, MapPin, Target, Check, AlertCircle, Lock, Settings, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Clock, Gamepad2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRoundSchedule } from "@/hooks/useRoundSchedule";
-import { supabase } from "@/integrations/supabase/client";
+import { MapPin, Target, Check, AlertCircle, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Gamepad2 } from "lucide-react";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
-import { fetchMapillaryRound } from "@/lib/mapillary";
-import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
 import { MiniGamesSelector, type MiniGamesSelectorHandle } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
-import { usePresenceCount } from "@/hooks/usePresenceCount";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet default icon issue
@@ -341,73 +332,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
   const deviceId = useDeviceId();
   const { settings } = useScoring();
   const { activeRound } = useRounds();
-  const { schedule, updateSchedule } = useRoundSchedule();
-  const creatingRef = useRef(false);
-  const [isCreatingRound, setIsCreatingRound] = useState(false);
-  const [passwordAction, setPasswordAction] = useState<{ type: 'new' } | null>(null);
-  const [actionPassword, setActionPassword] = useState('');
-  const [actionError, setActionError] = useState('');
   const miniGameRef = useRef<MiniGamesSelectorHandle>(null);
-
-
-  const { createNewLocation: createEasy } = useActiveLocation(1);
-  const { createNewLocation: createHard } = useActiveLocation(3);
-
-  const createFullRound = useCallback(async () => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setIsCreatingRound(true);
-    try {
-      // Deactivate previous round
-      await supabase
-        .from('rounds' as any)
-        .update({ is_active: false } as any)
-        .eq('is_active', true);
-
-      // Create new round
-      const { data: newRound, error: roundErr } = await supabase
-        .from('rounds' as any)
-        .insert({ is_active: true } as any)
-        .select()
-        .single();
-      if (roundErr || !newRound) throw roundErr ?? new Error('Failed to create round');
-      const roundId = (newRound as any).id;
-
-      // Fetch both images in parallel
-      const [easyImage, hardImage] = await Promise.all([
-        fetchMapillaryRound(1),
-        fetchMapillaryRound(3),
-      ]);
-
-      // Deactivate old locations for both difficulties
-      await Promise.all([
-        supabase.from('locations').update({ is_active: false }).eq('is_active', true).eq('difficulty', 1),
-        supabase.from('locations').update({ is_active: false }).eq('is_active', true).eq('difficulty', 3),
-      ]);
-
-      // Create both locations with round_id
-      const { error: locErr } = await supabase.from('locations').insert([
-        { lat: easyImage.lat, lng: easyImage.lng, pano_id: easyImage.thumb_url, difficulty: 1, is_active: true, round_id: roundId },
-        { lat: hardImage.lat, lng: hardImage.lng, pano_id: hardImage.thumb_url, difficulty: 3, is_active: true, round_id: roundId },
-      ]);
-      if (locErr) throw locErr;
-    } catch (err) {
-      console.error("Round creation failed", err);
-    } finally {
-      creatingRef.current = false;
-      setIsCreatingRound(false);
-    }
-  }, []);
-
-  const handlePasswordConfirm = async () => {
-    if (actionPassword !== '1234') { setActionError('Wrong password'); return; }
-    if (passwordAction?.type === 'new') {
-      void createFullRound();
-    }
-    setPasswordAction(null);
-    setActionPassword('');
-    setActionError('');
-  };
 
 
 
@@ -452,78 +377,6 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
                 {activeTab === 'other' ? (insideMiniGame ? '← Back to games' : '← Geo Guess') : 'Other Games'}
               </Button>
             )}
-
-            {/* Round settings */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Round settings">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-3" align="end">
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Manual Reset</p>
-                  <p className="text-xs text-muted-foreground">Creates both an Easy and Hard challenge</p>
-                  <Button variant="outline" size="sm" className="w-full h-8"
-                    onClick={() => setPasswordAction({ type: 'new' })}
-                    disabled={isCreatingRound}>
-                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isCreatingRound ? "animate-spin" : ""}`} />
-                    New Round
-                  </Button>
-                  {passwordAction && (
-                    <div className="space-y-2 border-t pt-2">
-                      <div className="flex items-center gap-2">
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                        <Input type="password" placeholder="Password"
-                          value={actionPassword}
-                          onChange={(e) => { setActionPassword(e.target.value); setActionError(''); }}
-                          onKeyDown={(e) => e.key === 'Enter' && handlePasswordConfirm()}
-                          className="flex-1 h-8 text-sm" />
-                        <Button size="sm" onClick={handlePasswordConfirm} className="h-8">Start</Button>
-                      </div>
-                      {actionError && <p className="text-xs text-destructive">{actionError}</p>}
-                    </div>
-                  )}
-
-                  {/* Daily Auto-Reset */}
-                  <div className="border-t pt-3 space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Daily Auto-Reset</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Enabled</span>
-                      <Switch
-                        checked={schedule?.enabled ?? false}
-                        onCheckedChange={(checked) => updateSchedule.mutate({ enabled: checked })}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Stockholm time
-                      </span>
-                      <Select
-                        value={String(schedule?.reset_hour ?? 8)}
-                        onValueChange={(v) => updateSchedule.mutate({ reset_hour: parseInt(v) })}
-                      >
-                        <SelectTrigger className="w-24 h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={String(i)}>
-                              {String(i).padStart(2, '0')}:00
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {schedule?.last_auto_reset_at && (
-                      <p className="text-[10px] text-muted-foreground">
-                        Last auto-reset: {new Date(schedule.last_auto_reset_at).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
       </CardHeader>
@@ -552,7 +405,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
               playerName={playerName}
               settings={settings}
               onCreateRound={() => {}}
-              isCreating={isCreatingRound}
+              isCreating={false}
             />
           </>
         ) : (

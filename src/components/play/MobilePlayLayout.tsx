@@ -60,14 +60,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
-              className="flex flex-col items-center rounded-xl bg-primary/10 active:scale-[0.97] transition-transform text-center overflow-hidden"
+              className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden"
             >
               <div className="w-full aspect-square rounded-xl overflow-hidden">
                 {icons['geoguessr'] ? (
                   <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                    <Target className="h-8 w-8 text-primary" />
+                  <div className="w-full h-full flex items-center justify-center bg-secondary/30">
+                    <Target className="h-7 w-7 text-primary" />
                   </div>
                 )}
               </div>
@@ -86,7 +86,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                     <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary/30">
-                      <span className="text-3xl">{game.emoji}</span>
+                      <span className="text-2xl">{game.emoji}</span>
                     </div>
                   )}
                 </div>
@@ -185,7 +185,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-6 h-[4.5rem]">
+        <div className="grid grid-cols-6 h-[4.5rem] lg:h-[5rem]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -195,14 +195,14 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-1 transition-colors active:scale-95 min-h-[56px] ${
+                className={`flex flex-col items-center justify-center gap-1 lg:gap-1.5 transition-colors active:scale-95 min-h-[56px] lg:min-h-[64px] ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-7 w-7 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[0.7rem] font-semibold leading-none">{label}</span>
+                <Icon className={`h-7 w-7 lg:h-8 lg:w-8 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.7rem] lg:text-xs font-semibold leading-none">{label}</span>
               </button>
             );
           })}
