@@ -122,12 +122,12 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
               <button
                 key={i}
                 onClick={() => handleFlip(i)}
-                className={`aspect-square rounded-xl text-4xl flex items-center justify-center transition-all duration-200
+                className={`aspect-square rounded-xl text-[clamp(2.5rem,6vw,4rem)] flex items-center justify-center transition-all duration-200
                   ${matched.has(i) ? 'bg-primary/20 border-2 border-primary scale-95' :
                     isRevealed ? 'bg-secondary border-2 border-accent' :
                     'bg-muted border-2 border-border active:bg-muted/70 cursor-pointer'}`}
               >
-                {isRevealed ? emoji : <span className="text-2xl text-muted-foreground font-bold">?</span>}
+                {isRevealed ? emoji : <span className="text-[clamp(1.75rem,4vw,2.5rem)] text-muted-foreground font-bold">?</span>}
               </button>
             );
           })}

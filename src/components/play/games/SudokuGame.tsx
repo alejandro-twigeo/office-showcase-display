@@ -173,7 +173,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`aspect-square flex items-center justify-center text-xl font-bold transition-colors
+                  className={`aspect-square flex items-center justify-center text-[clamp(1.1rem,3vw,2.5rem)] font-bold transition-colors
                     ${borderR} ${borderB}
                     ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer active:bg-primary/10'}
                     ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}

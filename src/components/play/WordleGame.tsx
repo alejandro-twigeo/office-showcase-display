@@ -145,19 +145,21 @@ export function WordleGame({ playerName }: WordleGameProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Grid */}
-        <div className="flex flex-col items-center gap-[3px]">
-          {gridRows.map((row, ri) => (
-            <div key={ri} className="flex gap-[3px]">
-              {row.map((cell, ci) => (
-                <div
-                  key={ci}
-                  className={`w-[calc((100vw-2.5rem)/5)] max-w-14 aspect-square flex items-center justify-center text-xl font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
-                >
-                  {cell.letter}
-                </div>
-              ))}
-            </div>
-          ))}
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-full max-w-[min(26rem,calc(100vw-1.5rem))]">
+            {gridRows.map((row, ri) => (
+              <div key={ri} className="grid grid-cols-5 gap-2 w-full">
+                {row.map((cell, ci) => (
+                  <div
+                    key={ci}
+                    className={`aspect-square w-full flex items-center justify-center text-xl font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                  >
+                    {cell.letter}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Error */}
@@ -185,16 +187,16 @@ export function WordleGame({ playerName }: WordleGameProps) {
 
         {/* Keyboard */}
         {!gameOver && (
-          <div className="flex flex-col items-center gap-[3px] w-full">
+          <div className="w-full max-w-[min(26rem,calc(100vw-1.5rem))] mx-auto space-y-2">
             {KEYBOARD_ROWS.map((row, ri) => (
-              <div key={ri} className="flex gap-[3px] w-full justify-center">
+              <div key={ri} className="flex gap-1 w-full">
                 {row.map((key) => (
                   <button
                     key={key}
                     onClick={() => handleKeyPress(key)}
                     className={`${
-                      key.length > 1 ? 'px-2 text-xs min-w-[2.5rem]' : 'flex-1'
-                    } h-[3.25rem] rounded-lg font-semibold text-base transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
+                      key.length > 1 ? 'min-w-[3rem] px-3 text-xs' : 'flex-1 min-w-0'
+                    } h-[3.4rem] rounded-lg font-semibold text-base transition-colors active:scale-95 ${getKeyColor(keyMap.get(key))}`}
                   >
                     {key === '⌫' ? '⌫' : key.toUpperCase()}
                   </button>

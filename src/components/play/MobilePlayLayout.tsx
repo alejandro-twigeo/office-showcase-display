@@ -65,11 +65,11 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <h2 className="text-lg font-bold">Games</h2>
             <p className="text-xs text-muted-foreground">Pick a game to play</p>
           </div>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 gap-2">
             {/* GeoGuessr */}
             <button
               onClick={() => setSelectedGame('geoguessr')}
-              className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden"
+              className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
             >
               <div className="w-full aspect-square rounded-xl overflow-hidden">
                 {icons['geoguessr'] ? (
@@ -88,7 +88,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               <button
                 key={game.id}
                 onClick={() => setSelectedGame(game.id)}
-                className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden"
+                className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
               >
                 <div className="w-full aspect-square rounded-xl overflow-hidden">
                   {icons[game.id] ? (
@@ -183,7 +183,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-1 py-1 pb-[5.5rem] space-y-1.5">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 pb-[6.5rem] lg:pb-[7rem] space-y-2 sm:px-3 sm:py-3">
         {activeTab === 'games' && renderGameContent()}
         {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
@@ -194,7 +194,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-6 h-[4.5rem] lg:h-[5rem]">
+        <div className="grid grid-cols-6 h-[clamp(5.5rem,12vw,6.5rem)] lg:h-[clamp(6rem,10vw,7rem)]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -210,8 +210,8 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-7 w-7 lg:h-8 lg:w-8 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[0.7rem] lg:text-xs font-semibold leading-none">{label}</span>
+                <Icon className={`h-[clamp(1.5rem,4vw,2rem)] w-[clamp(1.5rem,4vw,2rem)] lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[clamp(0.65rem,1vw,0.85rem)] lg:text-xs font-semibold leading-none">{label}</span>
               </button>
             );
           })}
