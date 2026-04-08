@@ -442,7 +442,9 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
-  const cellSize = `min(calc((100vw - 1rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`;
+  const cellSize = isMobile
+    ? `min(calc((100vw - 1rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
+    : `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 4rem)`;
 
   // Determine wall borders per cell
   const getWallStyle = (r: number, c: number): React.CSSProperties => {

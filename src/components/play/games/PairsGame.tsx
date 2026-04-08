@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededShuffle } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock } from 'lucide-react';
 
 const GAME_ID = 'pairs';
@@ -15,6 +16,7 @@ interface PairsGameProps {
 }
 
 export function PairsGame({ playerName, roundId }: PairsGameProps) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
@@ -114,8 +116,8 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
           <span className="ml-auto">{matched.size / 2}/8 pairs</span>
         </div>
       </CardHeader>
-      <CardContent className="px-1 lg:px-3">
-        <div className="grid grid-cols-4 gap-1 lg:gap-2 w-full max-w-md lg:max-w-[22rem] mx-auto">
+      <CardContent className={isMobile ? 'px-0' : 'px-1 lg:px-3'}>
+        <div className={`grid grid-cols-4 gap-1 lg:gap-2 w-full ${isMobile ? '' : 'max-w-md lg:max-w-[22rem] mx-auto'}`}>
           {tiles.map((emoji, i) => {
             const isRevealed = revealed.includes(i) || matched.has(i);
             return (

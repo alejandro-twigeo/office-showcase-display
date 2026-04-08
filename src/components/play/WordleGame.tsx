@@ -37,9 +37,18 @@ export function WordleGame({ playerName }: WordleGameProps) {
     roundNumber,
   } = useWordle(playerName);
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentRowRef = useRef<HTMLDivElement>(null);
+  const focusScrollTimeoutRef = useRef<number | null>(null);
+  const scrollActiveRowIntoView = useCallback(() => {
+    currentRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, []);
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
-  }, []);
+    if (focusScrollTimeoutRef.current != null) {
+      window.clearTimeout(focusScrollTimeoutRef.current);
+    }
+    focusScrollTimeoutRef.current = window.setTimeout(scrollActiveRowIntoView, 150);
+  }, [scrollActiveRowIntoView]);
 
   const handleKeyPress = useCallback((key: string) => {
     if (gameOver) return;
@@ -70,8 +79,22 @@ export function WordleGame({ playerName }: WordleGameProps) {
     if (gameOver) return;
     focusInput();
     const timer = window.setTimeout(focusInput, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      if (focusScrollTimeoutRef.current != null) {
+        window.clearTimeout(focusScrollTimeoutRef.current);
+      }
+    };
   }, [gameOver, focusInput]);
+
+  useEffect(() => {
+    if (!isMobile || gameOver || typeof window === 'undefined' || !window.visualViewport) return;
+    const handleViewportChange = () => {
+      window.setTimeout(scrollActiveRowIntoView, 100);
+    };
+    window.visualViewport.addEventListener('resize', handleViewportChange);
+    return () => window.visualViewport?.removeEventListener('resize', handleViewportChange);
+  }, [isMobile, gameOver, scrollActiveRowIntoView]);
 
   const gridWidthClass = isMobile ? 'w-full' : 'w-full max-w-[26rem]';
 
@@ -139,7 +162,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
         </CardTitle>
         <p className="text-xs text-muted-foreground">Guess the 5-letter word. Start typing for your first guess and click Enter to submit. Up to {settings.wordle_attempt_points[0]} pts!</p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className={`space-y-3 ${isMobile ? 'pb-28' : ''}`}>
         {/* Grid */}
         <div
           className="flex flex-col items-center gap-3"
@@ -172,11 +195,15 @@ export function WordleGame({ playerName }: WordleGameProps) {
           )}
           <div className={gridWidthClass}>
             {gridRows.map((row, ri) => (
-              <div key={ri} className="grid grid-cols-5 gap-2 w-full">
+              <div
+                key={ri}
+                ref={ri === guesses.length && !gameOver ? currentRowRef : undefined}
+                className="grid grid-cols-5 gap-2 w-full"
+              >
                 {row.map((cell, ci) => (
                   <div
                     key={ci}
-                    className={`aspect-square w-full flex items-center justify-center text-xl font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                    className={`aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
                   >
                     {cell.letter}
                   </div>

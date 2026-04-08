@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock } from 'lucide-react';
 
 const GAME_ID = 'sudoku';
@@ -65,6 +66,7 @@ interface SudokuGameProps {
 }
 
 export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
   const { data: todayScore } = useMinigameTodayScore(GAME_ID, playerName, roundId);
@@ -176,9 +178,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           <span className="ml-auto">Medium · 2×3 blocks</span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 px-1 lg:px-3 pb-3">
+      <CardContent className={isMobile ? 'space-y-3 px-0 pb-3' : 'space-y-3 px-1 lg:px-3 pb-3'}>
         <div className="flex flex-col items-center gap-3">
-          <div className="inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full max-w-md lg:max-w-[22rem] mx-auto">
+          <div className={`inline-grid grid-cols-6 gap-0 border-2 border-foreground rounded w-full ${isMobile ? '' : 'max-w-md lg:max-w-[22rem] mx-auto'}`}>
             {grid.map((row, ri) => row.map((cell, ci) => {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
@@ -202,7 +204,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           </div>
 
           {/* Number pad */}
-          <div className="flex gap-1.5 w-full max-w-md lg:max-w-[22rem] justify-center">
+          <div className={`flex gap-1.5 w-full justify-center ${isMobile ? '' : 'max-w-md lg:max-w-[22rem]'}`}>
             {[1, 2, 3, 4, 5, 6].map(n => (
               <Button key={n} variant="outline" size="sm" className="flex-1 h-14 lg:h-12 text-xl lg:text-lg font-bold p-0 rounded-xl"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
@@ -215,7 +217,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
             </Button>
           </div>
 
-          <div className="w-full max-w-md lg:max-w-[22rem] space-y-2">
+          <div className={`w-full space-y-2 ${isMobile ? '' : 'max-w-md lg:max-w-[22rem]'}`}>
             {!hintUsed ? (
               <Button variant="outline" className="w-full" onClick={handleHint}>
                 Hint
