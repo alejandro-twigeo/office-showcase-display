@@ -6,10 +6,12 @@ import { useRounds } from '@/hooks/useRounds';
 import { useScoring, calculateWordleScore } from '@/hooks/useScoring';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardPlayerCount } from '@/hooks/useGameIcons';
 
 export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboard?: boolean; progressBar?: React.ReactNode }) {
   const { rounds } = useRounds();
   const { settings } = useScoring();
+  const { data: leaderboardPlayerCount = 3 } = useLeaderboardPlayerCount();
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
 
   const sortedRounds = useMemo(() =>
@@ -47,6 +49,7 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
     if (!a.solved && b.solved) return 1;
     return a.attempts - b.attempts;
   });
+  const visibleSorted = sorted.slice(0, leaderboardPlayerCount);
 
   const getRankIcon = (r: number) => {
     if (r === 1) return <Trophy className="h-5 w-5 text-warning" />;
@@ -84,12 +87,12 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
-        {sorted.length === 0 ? (
+        {visibleSorted.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">
             No Wordle scores yet
           </p>
         ) : (
-          sorted.map((entry, i) => (
+          visibleSorted.map((entry, i) => (
             <div key={entry.id} className={`flex items-center gap-1.5 rounded-md bg-secondary/50 ${dashboard ? 'py-1 px-1.5' : 'p-2'}`}>
               <div className="flex items-center justify-center w-5 shrink-0">
                 {entry.solved ? getRankIcon(i + 1) : <span className="text-xs text-muted-foreground">—</span>}

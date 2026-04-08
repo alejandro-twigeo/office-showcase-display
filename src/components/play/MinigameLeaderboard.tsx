@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useLeaderboardPlayerCount } from '@/hooks/useGameIcons';
 
 interface Props {
   gameId: string;
@@ -17,6 +18,7 @@ interface Props {
 
 export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta, dashboard = false, progressBar }: Props) {
   const { data: dates = [] } = useMinigameDates(gameId);
+  const { data: leaderboardPlayerCount = 3 } = useLeaderboardPlayerCount();
   const [dateIdx, setDateIdx] = useState(0);
 
   const allDates = useMemo(() => {
@@ -40,6 +42,7 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
 
   const canGoPrev = dateIdx < allDates.length - 1;
   const canGoNext = dateIdx > 0;
+  const visibleScores = scores.slice(0, leaderboardPlayerCount);
 
   const getRankIcon = (r: number) => {
     if (r === 1) return <Trophy className="h-5 w-5 text-warning" />;
@@ -73,10 +76,10 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className={`space-y-1 ${dashboard ? "overflow-y-auto min-h-0 flex-1" : ""}`}>
-        {scores.length === 0 ? (
+        {visibleScores.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-sm">No scores yet</p>
         ) : (
-          scores.map((entry, i) => (
+          visibleScores.map((entry, i) => (
             <div key={entry.id} className={`flex items-center gap-1.5 rounded-md bg-secondary/50 ${dashboard ? 'py-1 px-1.5' : 'p-2'}`}>
               <div className="flex items-center justify-center w-5 shrink-0">
                 {getRankIcon(i + 1)}

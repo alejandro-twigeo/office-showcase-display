@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type GameIcons = Record<string, string>; // gameId -> public URL
 export const LEADERBOARD_PLAYER_COUNT_KEY = '__leaderboard_player_count';
 export const SUDOKU_HINT_PENALTY_KEY = '__sudoku_hint_penalty';
+const DEFAULT_LEADERBOARD_PLAYER_COUNT = 3;
 
 function stripReservedKeys(rawIcons: GameIcons): GameIcons {
   return Object.fromEntries(
@@ -75,4 +76,20 @@ export function useGameIcons() {
   };
 
   return { icons: query.data ?? {}, isLoading: query.isLoading, uploadIcon, removeIcon };
+}
+
+export function useLeaderboardPlayerCount() {
+  return useQuery({
+    queryKey: ['leaderboard_player_count'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('scoring_settings' as any)
+        .select('game_icons')
+        .eq('id', 1)
+        .single();
+      const rawIcons = ((data as any)?.game_icons ?? {}) as Record<string, unknown>;
+      const count = Number(rawIcons[LEADERBOARD_PLAYER_COUNT_KEY] ?? DEFAULT_LEADERBOARD_PLAYER_COUNT);
+      return Number.isFinite(count) && count > 0 ? count : DEFAULT_LEADERBOARD_PLAYER_COUNT;
+    },
+  });
 }

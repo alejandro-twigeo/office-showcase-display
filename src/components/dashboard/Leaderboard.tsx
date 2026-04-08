@@ -8,6 +8,7 @@ import { useGuesses } from '@/hooks/useGuesses';
 import { useActiveLocation } from '@/hooks/useActiveLocation';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { useLeaderboardPlayerCount } from '@/hooks/useGameIcons';
 
 interface Guess {
   id: string;
@@ -30,6 +31,7 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
   const { settings } = useScoring();
   const { difficulty_weights } = settings;
   const { rounds } = useRounds();
+  const { data: leaderboardPlayerCount = 3 } = useLeaderboardPlayerCount();
   const [selectedRoundIdx, setSelectedRoundIdx] = useState(0); // 0 = current/latest
 
   // Determine which round to show
@@ -101,6 +103,7 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
     combined.push({ name, easy, easyAttempt: easyData?.attempt ?? 0, hard, hardAttempt: hardData?.attempt ?? 0, total });
   }
   combined.sort((a, b) => b.total - a.total);
+  const visibleCombined = combined.slice(0, leaderboardPlayerCount);
 
   const getRankIcon = (r: number) => {
     if (r === 1) return <Trophy className="h-5 w-5 text-warning" />;
@@ -138,12 +141,12 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
       </CardHeader>
       {progressBar && <div className="px-3 md:px-6">{progressBar}</div>}
       <CardContent className="space-y-1 overflow-y-auto min-h-0 flex-1">
-        {combined.length === 0 ? (
+        {visibleCombined.length === 0 ? (
           <p className="text-muted-foreground text-center py-4 text-[clamp(14px,1vw,34px)]">
             No guesses yet. Be the first!
           </p>
         ) : (
-          combined.map((entry, i) => (
+          visibleCombined.map((entry, i) => (
             <div key={entry.name} className="flex items-center gap-1.5 py-1 px-1.5 rounded-md bg-secondary/50">
               <div className="flex items-center justify-center w-5 shrink-0">
                 {getRankIcon(i + 1)}
