@@ -61,8 +61,15 @@ function LeafletMap({
     }).addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => onMapClick(e.latlng.lat, e.latlng.lng));
     mapRef.current = map;
-    setTimeout(() => map.invalidateSize(), 0);
-    return () => { map.remove(); mapRef.current = null; };
+    setTimeout(() => {
+      if (mapRef.current) mapRef.current.invalidateSize();
+    }, 0);
+    return () => { 
+      if (mapRef.current) {
+        mapRef.current.remove(); 
+        mapRef.current = null; 
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

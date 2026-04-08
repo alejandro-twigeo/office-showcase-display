@@ -73,7 +73,7 @@ export function useScoring() {
   // Real-time
   useEffect(() => {
     const channel = supabase
-      .channel('scoring_settings_rt')
+      .channel(`scoring_settings_rt_${Math.random()}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scoring_settings' }, () => {
         queryClient.invalidateQueries({ queryKey: ['scoring_settings'] });
       })
