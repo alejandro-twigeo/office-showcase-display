@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
-import { todayDate } from '@/hooks/useMinigameScore';
+import { dedupeMinigameScores, todayDate, type MinigameScoreRow } from '@/hooks/useMinigameScore';
 import { MINI_GAMES } from './miniGamesList';
 import { calculateScore, calculateWordleScore, useScoring } from '@/hooks/useScoring';
 import { useMemo, useState } from 'react';
@@ -74,10 +74,10 @@ function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<t
       const dateStart = `${selectedDate}T00:00:00.000Z`;
       const dateEnd = `${selectedDate}T23:59:59.999Z`;
 
-      const [{ data: scores }, { data: rounds }] = await Promise.all([
+      const [{ data: rawScores }, { data: rounds }] = await Promise.all([
         supabase
           .from('minigame_scores')
-          .select('game_id, player_name, score')
+          .select('id, game_id, date, player_name, device_id, score, meta, created_at, round_id')
           .eq('date', selectedDate)
           .order('score', { ascending: false }),
         supabase
@@ -93,8 +93,9 @@ function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<t
 
       // Group by game, all players
       const byGame = new Map<string, TopPlayer[]>();
+      const scores = dedupeMinigameScores((rawScores ?? []) as MinigameScoreRow[]);
 
-      for (const s of (scores ?? [])) {
+      for (const s of scores) {
         if (!byGame.has(s.game_id)) byGame.set(s.game_id, []);
         const list = byGame.get(s.game_id)!;
         list.push({

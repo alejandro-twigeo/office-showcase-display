@@ -14,6 +14,39 @@ export interface MinigameScoreRow {
   round_id: string | null;
 }
 
+export function dedupeMinigameScores(rows: MinigameScoreRow[]): MinigameScoreRow[] {
+  const byPlayer = new Map<string, MinigameScoreRow>();
+
+  for (const row of rows) {
+    const current = byPlayer.get(row.player_name);
+    if (!current) {
+      byPlayer.set(row.player_name, row);
+      continue;
+    }
+
+    if (row.score > current.score) {
+      byPlayer.set(row.player_name, row);
+      continue;
+    }
+
+    if (row.score === current.score) {
+      const rowCreatedAt = row.created_at ?? '';
+      const currentCreatedAt = current.created_at ?? '';
+      if (rowCreatedAt < currentCreatedAt || (rowCreatedAt === currentCreatedAt && row.id < current.id)) {
+        byPlayer.set(row.player_name, row);
+      }
+    }
+  }
+
+  return [...byPlayer.values()].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aCreatedAt = a.created_at ?? '';
+    const bCreatedAt = b.created_at ?? '';
+    if (aCreatedAt !== bCreatedAt) return aCreatedAt.localeCompare(bCreatedAt);
+    return a.id.localeCompare(b.id);
+  });
+}
+
 /** Get today's date string in YYYY-MM-DD */
 export function todayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -79,7 +112,7 @@ export function useMinigameLeaderboard(gameId: string, date: string) {
         .eq('game_id', gameId)
         .eq('date', date)
         .order('score', { ascending: false });
-      return (data ?? []) as unknown as MinigameScoreRow[];
+      return dedupeMinigameScores((data ?? []) as unknown as MinigameScoreRow[]);
     },
     enabled: !!date,
   });
