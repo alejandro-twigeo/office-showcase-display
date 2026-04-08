@@ -195,6 +195,11 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
+  // Start timer immediately when game loads
+  useEffect(() => {
+    setStartTime(Date.now());
+  }, []);
+
   useEffect(() => {
     if (startTime && !done) {
       timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
@@ -238,7 +243,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
           if (checkpoints[cr][cc] === 1 && cr === r && cc === c) {
             if (!started) {
               setStarted(true);
-              setStartTime(Date.now());
             }
             return [[r, c] as [number, number]];
           }

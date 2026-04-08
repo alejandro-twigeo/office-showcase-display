@@ -34,7 +34,7 @@ export function useRounds() {
   // Real-time
   useEffect(() => {
     const channel = supabase
-      .channel('rounds-rt')
+      .channel(`rounds-rt-${Math.random()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds' }, () => {
         queryClient.invalidateQueries({ queryKey: ['rounds'] });
       })
