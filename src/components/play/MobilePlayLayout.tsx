@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
@@ -38,6 +38,15 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const { icons } = useGameIcons();
   const { activeRound } = useRounds();
+
+  useEffect(() => {
+    const setAppHeight = () => {
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    return () => window.removeEventListener('resize', setAppHeight);
+  }, []);
 
   const tabs: { value: TabValue; icon: typeof Gamepad2; label: string }[] = [
     { value: 'games', icon: Gamepad2, label: 'Games' },
@@ -115,7 +124,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col">
+    <div className="bg-background flex flex-col" style={{ minHeight: 'var(--app-height, 100vh)' }}>
       {/* Compact mobile header */}
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-3 py-2 safe-area-top">
         <div className="flex items-center justify-between">
