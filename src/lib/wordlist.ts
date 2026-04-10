@@ -29,6 +29,8 @@ export function getWordForRound(roundNumber: number): string {
   return WORDLE_WORDS[roundNumber % WORDLE_WORDS.length];
 }
 
+const VALID_WORDS = new Set(WORDLE_WORDS);
+
 /** All valid guess words (same list for simplicity - any 5-letter word is accepted) */
 export function isValidWord(word: string): boolean {
   return word.length === 5 && /^[a-z]+$/.test(word);
