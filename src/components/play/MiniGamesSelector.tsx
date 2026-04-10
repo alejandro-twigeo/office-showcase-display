@@ -2,6 +2,7 @@ import { useState, useImperativeHandle, forwardRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WordleGame } from './WordleGame';
 import { CityGuessGame } from './games/CityGuessGame';
+import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { ThisOrThatGame } from './games/ThisOrThatGame';
 import { SudokuGame } from './games/SudokuGame';
 import { PairsGame } from './games/PairsGame';
@@ -43,6 +44,7 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
       <div className="space-y-4">
         {selectedGame === 'wordle' && <WordleGame playerName={playerName} />}
         {selectedGame === 'city_guess' && <CityGuessGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'color_memory' && <ColorMemoryGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}

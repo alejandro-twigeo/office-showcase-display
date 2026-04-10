@@ -10,6 +10,7 @@ const GAME_ROTATION = [
   { type: 'geo' as const },
   { type: 'wordle' as const },
   { type: 'mini' as const, gameId: 'city_guess', title: 'City Guess', emoji: '🏙️' },
+  { type: 'mini' as const, gameId: 'color_memory', title: 'Color Memory', emoji: '🎨' },
   { type: 'mini' as const, gameId: 'this_or_that', title: 'This or That', emoji: '⚖️' },
   { type: 'mini' as const, gameId: 'sudoku', title: 'Sudoku', emoji: '🔢' },
   { type: 'mini' as const, gameId: 'pairs', title: 'Pairs', emoji: '🃏' },

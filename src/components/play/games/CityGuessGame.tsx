@@ -32,6 +32,7 @@ interface CityGuessGameProps {
 }
 
 export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
+  const maxAttempts = 2;
   const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const settings = useMinigameSettings();
@@ -160,6 +161,10 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
     const newBest = Math.max(bestScore, points);
     setBestScore(newBest);
+    const hasReachedGuessLimit = newGuesses.length >= maxAttempts;
+    if (hasReachedGuessLimit) {
+      setShowLocation(true);
+    }
 
     // Submit best score
     await submitScore.mutateAsync({
@@ -170,7 +175,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       round_id: roundId,
       meta: { city: selectedCity?.name, attempts: newGuesses.length, best_distance: Math.min(dist, ...(guesses.map(g => g.distance))) },
     });
-  }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore]);
+  }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore, maxAttempts, roundId]);
 
   // When showing location, add a marker for the actual position
   useEffect(() => {
@@ -234,7 +239,6 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     );
   }
 
-  const maxAttempts = settings.city_guess_max_attempts;
   const attemptsLeft = maxAttempts - guesses.length;
   const imageHeightClass = isMobile ? 'h-[30vh]' : 'h-64';
   const mapHeightClass = isMobile ? 'h-[28vh]' : 'h-56';
@@ -244,7 +248,9 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">🏙️ City Guess — {selectedCity.name}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {attemptsLeft > 0 ? 'One guess only. Submit to see the solution.' : 'No more guesses'}
+          {attemptsLeft > 0
+            ? `${attemptsLeft} guess${attemptsLeft === 1 ? '' : 'es'} left. The solution appears after your second guess.`
+            : 'Solution revealed.'}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -284,29 +290,18 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           </div>
         )}
 
-        {attemptsLeft > 0 ? (
-          <>
-            <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0`} />
+        <div className="space-y-2">
+          <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0 relative`} />
+          {attemptsLeft > 0 ? (
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
-              Submit guess to see solution
+              Submit guess
             </Button>
-          </>
-        ) : (
-          <div className="space-y-2">
-            {!showLocation ? (
-              <div className="text-center py-3">
-                <Button variant="outline" size="sm" onClick={() => setShowLocation(true)} className="gap-1.5">
-                  <MapPin className="h-4 w-4" />
-                  Show Location
-                </Button>
-              </div>
-            ) : (
-              <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0 relative`}>
-                {/* Map will show actual location */}
-              </div>
-            )}
-          </div>
-        )}
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">
+              Solution shown on the map.
+            </p>
+          )}
+        </div>
 
         {guesses.length > 0 && (
           <div className="space-y-1 border-t pt-2">

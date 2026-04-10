@@ -162,6 +162,7 @@ export function UsageAnalytics() {
     geoguessr: '📍 GeoGuessr',
     wordle: '🟩 Wordle',
     city_guess: '🏙️ City Guess',
+    color_memory: '🎨 Color Memory',
     this_or_that: '⚖️ This or That',
     sudoku: '🔢 Sudoku',
     pairs: '🃏 Pairs',

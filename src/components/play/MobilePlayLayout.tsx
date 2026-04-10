@@ -12,6 +12,7 @@ import { ProfileEditor } from './ProfileEditor';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { WordleGame } from './WordleGame';
 import { CityGuessGame } from './games/CityGuessGame';
+import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { ThisOrThatGame } from './games/ThisOrThatGame';
 import { SudokuGame } from './games/SudokuGame';
 import { PairsGame } from './games/PairsGame';
@@ -115,6 +116,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         )}
         {selectedGame === 'wordle' && <WordleGame playerName={player.name} />}
         {selectedGame === 'city_guess' && <CityGuessGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'color_memory' && <ColorMemoryGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'sudoku' && <SudokuGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'pairs' && <PairsGame playerName={player.name} roundId={activeRound?.id} />}
@@ -183,7 +185,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className="flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 pb-[6.5rem] lg:pb-[7rem] space-y-2 sm:px-3 sm:py-3">
+      <main className={`flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[6.5rem] lg:pb-[7rem] space-y-2 sm:px-3 sm:py-3 ${activeTab === 'games' && selectedGame ? 'pt-4' : 'py-2'}`}>
         {activeTab === 'games' && renderGameContent()}
         {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}

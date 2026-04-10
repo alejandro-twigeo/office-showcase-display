@@ -20,6 +20,7 @@ const MINI_GAMES = [
   { id: 'geoguessr', name: 'GeoGuessr', emoji: '🎯' },
   { id: 'wordle', name: 'Wordle', emoji: '🟩' },
   { id: 'city_guess', name: 'City Guess', emoji: '🏙️' },
+  { id: 'color_memory', name: 'Color Memory', emoji: '🎨' },
   { id: 'this_or_that', name: 'This or That', emoji: '⚖️' },
   { id: 'sudoku', name: 'Sudoku', emoji: '🔢' },
   { id: 'pairs', name: 'Pairs', emoji: '🃏' },
