@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,34 @@ interface PlaylistsPanelProps {
   onAddToQueue?: (videoId: string) => void;
 }
 
+function extractVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function parseVideoIds(input: string): string[] {
+  const tokens = input
+    .split(/[\s,]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const ids: string[] = [];
+  for (const token of tokens) {
+    const id = extractVideoId(token);
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
 /* ── Inner: items view for a single playlist ─────────────────────────────── */
 function PlaylistItemsView({
   playlist,
@@ -26,6 +54,8 @@ function PlaylistItemsView({
   onBack,
   onPlayNow,
   onAddToQueue,
+  initialBulkVideoIds,
+  onBulkLinksHandled,
 }: {
   playlist: Playlist;
   playerName: string;
@@ -33,6 +63,8 @@ function PlaylistItemsView({
   onBack: () => void;
   onPlayNow?: (videoId: string) => void;
   onAddToQueue?: (videoId: string) => void;
+  initialBulkVideoIds?: string[];
+  onBulkLinksHandled?: () => void;
 }) {
   const { items, addItem, removeItem } = usePlaylistItems(playlist.id);
   const { addToQueue: liveAddToQueue } = useYoutubeQueue();
@@ -42,24 +74,14 @@ function PlaylistItemsView({
   const [mixLoading, setMixLoading] = useState(false);
   const [singleUrl, setSingleUrl] = useState("");
   const [singleLoading, setSingleLoading] = useState(false);
+  const [batchUrls, setBatchUrls] = useState("");
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const filtered = recentVideos.filter(
     (v) =>
       v.title.toLowerCase().includes(search.toLowerCase()) ||
       v.queued_by.toLowerCase().includes(search.toLowerCase()),
   );
-
-  function extractVideoId(url: string): string | null {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /^([a-zA-Z0-9_-]{11})$/,
-    ];
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
-  }
 
   // video_ids already in this playlist for quick lookup
   const inPlaylist = new Set(items.map((i) => i.video_id));
@@ -182,6 +204,50 @@ function PlaylistItemsView({
     }
   };
 
+  const handleAddMultipleUrls = async (rawInput: string) => {
+    const ids = parseVideoIds(rawInput);
+    if (ids.length === 0) {
+      toast({ title: "No valid links", description: "Paste one or more valid YouTube links or IDs." });
+      return;
+    }
+
+    try {
+      setBatchLoading(true);
+      let added = 0;
+      for (const id of ids) {
+        if (inPlaylist.has(id)) continue;
+        const meta = await fetchYouTubeMeta(id);
+        await addItem.mutateAsync({
+          playlist_id: playlist.id,
+          video_id: id,
+          title: meta.title,
+          thumbnail_url: meta.thumbnail_url,
+          channel_title: null,
+          added_by: playerName,
+        });
+        added++;
+      }
+
+      if (added === 0) {
+        toast({ title: "Nothing new", description: "All pasted videos are already in this playlist." });
+      } else {
+        toast({ title: "Playlist updated", description: `Added ${added} song${added === 1 ? "" : "s"}.` });
+      }
+      setBatchUrls("");
+      setShowAddDialog(false);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialBulkVideoIds || initialBulkVideoIds.length === 0) return;
+    void handleAddMultipleUrls(initialBulkVideoIds.join("\n"));
+    onBulkLinksHandled?.();
+    // initialBulkVideoIds is intentionally handled once when opening a freshly created playlist.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBulkVideoIds]);
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -266,27 +332,6 @@ function PlaylistItemsView({
             onChange={(e) => setSearch(e.target.value)}
             className="mb-2"
           />
-          {/*
-            Mix/playlist import UI temporarily hidden.  The state and handler
-            (`mixUrl`, `handleImportMix`, etc.) remain in the code for future
-            re‑enablement, but the controls are not rendered.
-          */}
-          {false && (
-            <div className="flex gap-2 mb-2">
-              <Input
-                placeholder="Paste YouTube mix/playlist URL"
-                value={mixUrl}
-                onChange={(e) => setMixUrl(e.target.value)}
-              />
-              <Button
-                size="sm"
-                disabled={!mixUrl || mixLoading}
-                onClick={handleImportMix}
-              >
-                {mixLoading ? "Importing…" : "Import"}
-              </Button>
-            </div>
-          )}
           {/* Direct add: paste a single YouTube link to add immediately */}
           <div className="flex gap-2 mb-2">
             <Input
@@ -300,6 +345,21 @@ function PlaylistItemsView({
               onClick={handleAddUrl}
             >
               {singleLoading ? "Adding…" : "Add"}
+            </Button>
+          </div>
+          <div className="space-y-2 mb-2">
+            <textarea
+              placeholder="Paste several YouTube links or IDs, separated by commas"
+              value={batchUrls}
+              onChange={(e) => setBatchUrls(e.target.value)}
+              className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
+            <Button
+              size="sm"
+              disabled={!batchUrls.trim() || batchLoading}
+              onClick={() => handleAddMultipleUrls(batchUrls)}
+            >
+              {batchLoading ? "Adding links…" : "Add all links"}
             </Button>
           </div>
           <ScrollArea className="h-72">
@@ -349,6 +409,8 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
   const { playlists, createPlaylist, deletePlaylist, renamePlaylist } = usePlaylists();
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [newName, setNewName] = useState("");
+  const [bulkCreateLinks, setBulkCreateLinks] = useState("");
+  const [pendingBulkVideoIds, setPendingBulkVideoIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -374,11 +436,15 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
     });
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    createPlaylist.mutate({ name: trimmed, created_by: playerName });
+    const created = await createPlaylist.mutateAsync({ name: trimmed, created_by: playerName });
+    const ids = parseVideoIds(bulkCreateLinks);
+    setPendingBulkVideoIds(ids);
+    setSelectedPlaylist(created);
     setNewName("");
+    setBulkCreateLinks("");
   };
 
   const handleRename = (id: string) => {
@@ -397,6 +463,8 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
         onBack={() => setSelectedPlaylist(null)}
         onPlayNow={onPlayNow}
         onAddToQueue={onAddToQueue}
+        initialBulkVideoIds={pendingBulkVideoIds}
+        onBulkLinksHandled={() => setPendingBulkVideoIds([])}
       />
     );
   }
@@ -404,22 +472,35 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
   return (
     <div className="space-y-3">
       {/* Create new */}
-      <div className="flex gap-2">
-        <Input
-          placeholder="New playlist name..."
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-          className="h-8 text-sm"
-        />
-        <Button
-          size="sm"
-          className="h-8 px-3 shrink-0"
-          onClick={handleCreate}
-          disabled={!newName.trim() || createPlaylist.isPending}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+      <div className="space-y-3 rounded-lg border bg-secondary/10 p-3">
+        <p className="text-sm font-medium">New playlist</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Playlist name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+            className="h-9 text-sm"
+          />
+          <Button
+            size="sm"
+            className="h-9 px-3 shrink-0"
+            onClick={handleCreate}
+            disabled={!newName.trim() || createPlaylist.isPending}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create
+          </Button>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-foreground">Add songs now (optional)</label>
+          <textarea
+            placeholder={"Paste YouTube links or IDs\nOne per line, or separated by commas"}
+            value={bulkCreateLinks}
+            onChange={(e) => setBulkCreateLinks(e.target.value)}
+            className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
       </div>
 
       {/* List */}
@@ -516,4 +597,3 @@ export function PlaylistsPanel({ playerName, recentVideos, onPlayNow, onAddToQue
   );
 }
   // Delete confirmation modal
-

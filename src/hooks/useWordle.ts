@@ -14,13 +14,13 @@ export interface WordleGuess {
   statuses: LetterStatus[];
 }
 
-export function useWordle(playerName: string) {
+export function useWordle(playerName: string, roundIdOverride?: string) {
   const { activeRound } = useRounds();
   const { settings } = useScoring();
   const deviceId = useDeviceId();
   const queryClient = useQueryClient();
 
-  const roundId = activeRound?.id;
+  const roundId = roundIdOverride ?? activeRound?.id;
   const roundNumber = activeRound?.round_number ?? 0;
   const targetWord = getWordForRound(roundNumber);
   const wordlePoints = settings.wordle_points;

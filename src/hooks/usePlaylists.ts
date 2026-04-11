@@ -48,8 +48,9 @@ export function usePlaylists() {
 
   // Realtime
   useEffect(() => {
+    const channelName = `playlists-changes-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel("playlists-changes")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "playlists" }, () => {
         queryClient.invalidateQueries({ queryKey: ["playlists"] });
       })
@@ -97,21 +98,8 @@ export function usePlaylists() {
   return { playlists, isLoading, createPlaylist, deletePlaylist, renamePlaylist };
 }
 
-export function usePlaylistItems(playlistId: string | null) {
+export function usePlaylistItemMutations(playlistId?: string | null) {
   const queryClient = useQueryClient();
-
-  const { data: items = [], isLoading } = useQuery<PlaylistItem[]>({
-    queryKey: ["playlist-items", playlistId],
-    enabled: !!playlistId,
-    queryFn: async () => {
-      const { data, error } = await pitems()
-        .select("*")
-        .eq("playlist_id", playlistId)
-        .order("position", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as PlaylistItem[];
-    },
-  });
 
   // Add item to playlist
   const addItem = useMutation({
@@ -155,7 +143,10 @@ export function usePlaylistItems(playlistId: string | null) {
       });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["playlist-items"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlist-items"] });
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    },
   });
 
   // Remove item from playlist
@@ -164,8 +155,30 @@ export function usePlaylistItems(playlistId: string | null) {
       const { error } = await pitems().delete().eq("id", itemId);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["playlist-items", playlistId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlist-items", playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    },
   });
+
+  return { addItem, removeItem };
+}
+
+export function usePlaylistItems(playlistId: string | null) {
+  const { data: items = [], isLoading } = useQuery<PlaylistItem[]>({
+    queryKey: ["playlist-items", playlistId],
+    enabled: !!playlistId,
+    queryFn: async () => {
+      const { data, error } = await pitems()
+        .select("*")
+        .eq("playlist_id", playlistId)
+        .order("position", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PlaylistItem[];
+    },
+  });
+
+  const { addItem, removeItem } = usePlaylistItemMutations(playlistId);
 
   return { items, isLoading, addItem, removeItem };
 }

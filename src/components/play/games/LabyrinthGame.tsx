@@ -175,6 +175,13 @@ interface LabyrinthGameProps {
   roundId?: string;
 }
 
+interface GridMetrics {
+  left: number;
+  top: number;
+  cellW: number;
+  cellH: number;
+}
+
 export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const isMobile = useIsMobile();
   const deviceId = useDeviceId();
@@ -195,7 +202,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const [error, setError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const gridRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<number | null>(null);
   const isDragging = useRef(false);
+  const pathRef = useRef<[number, number][]>([]);
+  const pendingPathRef = useRef<[number, number][]>([]);
+  const gridMetricsRef = useRef<GridMetrics | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
+  const lastPointerCellRef = useRef<[number, number] | null>(null);
 
   // Start timer immediately when game loads
   useEffect(() => {
@@ -208,6 +221,18 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       return () => clearInterval(timerRef.current);
     }
   }, [startTime, done]);
+
+  useEffect(() => {
+    pathRef.current = path;
+  }, [path]);
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current != null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
 
   const isAdjacent = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
@@ -295,38 +320,55 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     }
   }, [puzzle, startTime, settings, playerName, deviceId, submitScore, roundId]);
 
+  const schedulePathRender = useCallback((nextPath: [number, number][]) => {
+    pathRef.current = nextPath;
+    pendingPathRef.current = nextPath;
+
+    if (frameRef.current != null) return;
+
+    frameRef.current = window.requestAnimationFrame(() => {
+      frameRef.current = null;
+      setPath(pendingPathRef.current);
+    });
+  }, []);
+
   const handleCellClick = useCallback((r: number, c: number) => {
     if (done) return;
+    const currentPath = pathRef.current;
     // If tapping the last cell in path, undo
-    if (path.length > 0) {
-      const last = path[path.length - 1];
-      if (last[0] === r && last[1] === c && path.length > 1) {
-        setPath(prev => prev.slice(0, -1));
+    if (currentPath.length > 0) {
+      const last = currentPath[currentPath.length - 1];
+      if (last[0] === r && last[1] === c && currentPath.length > 1) {
+        schedulePathRender(currentPath.slice(0, -1));
         return;
       }
     }
-    const newPath = tryAddCell(r, c, path);
-    if (newPath !== path) {
-      setPath(newPath);
+    const newPath = tryAddCell(r, c, currentPath);
+    if (newPath !== currentPath) {
+      schedulePathRender(newPath);
       checkWin(newPath);
     }
-  }, [done, path, tryAddCell, checkWin]);
+  }, [done, tryAddCell, checkWin, schedulePathRender]);
 
   const undoLast = useCallback(() => {
-    if (path.length > 1) {
-      setPath(prev => prev.slice(0, -1));
-    } else if (path.length === 1) {
-      setPath([]);
+    const currentPath = pathRef.current;
+    if (currentPath.length > 1) {
+      schedulePathRender(currentPath.slice(0, -1));
+    } else if (currentPath.length === 1) {
+      schedulePathRender([]);
     }
-  }, [path]);
+  }, [schedulePathRender]);
 
   const restartPuzzle = useCallback(() => {
-    setPath([]);
+    schedulePathRender([]);
     setStarted(false);
     setDone(false);
     setError(false);
     isDragging.current = false;
-  }, []);
+    activePointerIdRef.current = null;
+    lastPointerCellRef.current = null;
+    gridMetricsRef.current = null;
+  }, [schedulePathRender]);
 
   const trimPathToCell = useCallback((r: number, c: number, currentPath: [number, number][]) => {
     const existingIndex = currentPath.findIndex(([pr, pc]) => pr === r && pc === c);
@@ -340,83 +382,125 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     return last[0] === r && last[1] === c;
   }, []);
 
-  // Touch drag support
-  const getCellFromTouch = useCallback((clientX: number, clientY: number): [number, number] | null => {
+  const updateGridMetrics = useCallback(() => {
     if (!gridRef.current) return null;
     const rect = gridRef.current.getBoundingClientRect();
-    const cellW = rect.width / puzzle.size;
-    const cellH = rect.height / puzzle.size;
-    const c = Math.floor((clientX - rect.left) / cellW);
-    const r = Math.floor((clientY - rect.top) / cellH);
-    if (r < 0 || r >= puzzle.size || c < 0 || c >= puzzle.size) return null;
-    return [r, c];
+    const metrics = {
+      left: rect.left,
+      top: rect.top,
+      cellW: rect.width / puzzle.size,
+      cellH: rect.height / puzzle.size,
+    };
+    gridMetricsRef.current = metrics;
+    return metrics;
   }, [puzzle.size]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    const t = e.touches[0];
-    const cell = getCellFromTouch(t.clientX, t.clientY);
-    if (!cell) return;
-    const newPath = tryAddCell(cell[0], cell[1], path);
-    if (newPath !== path) {
-      setPath(newPath);
-      checkWin(newPath);
+  const getCellFromPoint = useCallback((clientX: number, clientY: number): [number, number] | null => {
+    const metrics = gridMetricsRef.current ?? updateGridMetrics();
+    if (!metrics) return null;
+    const c = Math.floor((clientX - metrics.left) / metrics.cellW);
+    const r = Math.floor((clientY - metrics.top) / metrics.cellH);
+    if (r < 0 || r >= puzzle.size || c < 0 || c >= puzzle.size) return null;
+    return [r, c];
+  }, [puzzle.size, updateGridMetrics]);
+
+  const applyCellToPath = useCallback((r: number, c: number) => {
+    const currentPath = pathRef.current;
+    const trimmedPath = trimPathToCell(r, c, currentPath);
+    if (trimmedPath && trimmedPath.length !== currentPath.length) {
+      schedulePathRender(trimmedPath);
+      return;
     }
-  }, [getCellFromTouch, tryAddCell, path, checkWin]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    if (!isDragging.current) return;
-    const t = e.touches[0];
-    const cell = getCellFromTouch(t.clientX, t.clientY);
-    if (!cell) return;
-    setPath(prev => {
-      const trimmedPath = trimPathToCell(cell[0], cell[1], prev);
-      if (trimmedPath && trimmedPath.length !== prev.length) {
-        return trimmedPath;
-      }
-      const newPath = tryAddCell(cell[0], cell[1], prev);
-      if (newPath !== prev) {
-        checkWin(newPath);
-        return newPath;
-      }
-      return prev;
-    });
-  }, [getCellFromTouch, trimPathToCell, tryAddCell, checkWin]);
+    if (isLastPathCell(r, c, currentPath)) return;
 
-  const handleTouchEnd = useCallback(() => {
+    const nextPath = tryAddCell(r, c, currentPath);
+    if (nextPath !== currentPath) {
+      schedulePathRender(nextPath);
+      checkWin(nextPath);
+    }
+  }, [trimPathToCell, schedulePathRender, isLastPathCell, tryAddCell, checkWin]);
+
+  const interpolateCells = useCallback((from: [number, number], to: [number, number]) => {
+    const cells: [number, number][] = [];
+    let [r, c] = from;
+
+    while (r !== to[0] || c !== to[1]) {
+      const rowDelta = to[0] - r;
+      const colDelta = to[1] - c;
+
+      if (Math.abs(colDelta) > Math.abs(rowDelta)) {
+        c += Math.sign(colDelta);
+      } else if (rowDelta !== 0) {
+        r += Math.sign(rowDelta);
+      } else {
+        c += Math.sign(colDelta);
+      }
+
+      cells.push([r, c]);
+    }
+
+    return cells;
+  }, []);
+
+  const processPointerCell = useCallback((cell: [number, number]) => {
+    const previousCell = lastPointerCellRef.current;
+    if (!previousCell) {
+      applyCellToPath(cell[0], cell[1]);
+      lastPointerCellRef.current = cell;
+      return;
+    }
+
+    if (previousCell[0] === cell[0] && previousCell[1] === cell[1]) return;
+
+    for (const [r, c] of interpolateCells(previousCell, cell)) {
+      applyCellToPath(r, c);
+    }
+
+    lastPointerCellRef.current = cell;
+  }, [applyCellToPath, interpolateCells]);
+
+  const stopDragging = useCallback((pointerId?: number) => {
+    if (pointerId != null && activePointerIdRef.current != null && activePointerIdRef.current !== pointerId) {
+      return;
+    }
+
     isDragging.current = false;
+    activePointerIdRef.current = null;
+    lastPointerCellRef.current = null;
+    gridMetricsRef.current = null;
   }, []);
 
-  // Mouse drag support for desktop
-  const handleMouseDown = useCallback((r: number, c: number) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (done) return;
+    e.preventDefault();
+    updateGridMetrics();
     isDragging.current = true;
-    if (isLastPathCell(r, c, path)) return;
-    handleCellClick(r, c);
-  }, [handleCellClick, isLastPathCell, path]);
+    activePointerIdRef.current = e.pointerId;
+    lastPointerCellRef.current = null;
+    e.currentTarget.setPointerCapture(e.pointerId);
 
-  const handleMouseEnter = useCallback((r: number, c: number) => {
-    if (!isDragging.current || done) return;
-    setPath(prev => {
-      const trimmedPath = trimPathToCell(r, c, prev);
-      if (trimmedPath && trimmedPath.length !== prev.length) {
-        return trimmedPath;
-      }
-      const newPath = tryAddCell(r, c, prev);
-      if (newPath !== prev) {
-        checkWin(newPath);
-        return newPath;
-      }
-      return prev;
-    });
-  }, [done, trimPathToCell, tryAddCell, checkWin]);
+    const cell = getCellFromPoint(e.clientX, e.clientY);
+    if (cell) {
+      processPointerCell(cell);
+    }
+  }, [done, updateGridMetrics, getCellFromPoint, processPointerCell]);
 
-  useEffect(() => {
-    const handleMouseUp = () => { isDragging.current = false; };
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => window.removeEventListener('mouseup', handleMouseUp);
-  }, []);
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || activePointerIdRef.current !== e.pointerId) return;
+    const cell = getCellFromPoint(e.clientX, e.clientY);
+    if (cell) {
+      processPointerCell(cell);
+    }
+  }, [getCellFromPoint, processPointerCell]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    stopDragging(e.pointerId);
+  }, [stopDragging]);
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    stopDragging(e.pointerId);
+  }, [stopDragging]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -445,17 +529,6 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const cellSize = isMobile
     ? `min(calc((100vw - 0.5rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
     : `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 4rem)`;
-
-  // Determine wall borders per cell
-  const getWallStyle = (r: number, c: number): React.CSSProperties => {
-    const style: React.CSSProperties = {};
-    const w = 3;
-    if (r > 0 && puzzle.walls.has(wallKey(r - 1, c, r, c))) style.borderTopWidth = `${w}px`;
-    if (r < puzzle.size - 1 && puzzle.walls.has(wallKey(r, c, r + 1, c))) style.borderBottomWidth = `${w}px`;
-    if (c > 0 && puzzle.walls.has(wallKey(r, c - 1, r, c))) style.borderLeftWidth = `${w}px`;
-    if (c < puzzle.size - 1 && puzzle.walls.has(wallKey(r, c, r, c + 1))) style.borderRightWidth = `${w}px`;
-    return style;
-  };
 
   // Determine path connection lines
   const getPathConnections = (r: number, c: number) => {
@@ -525,14 +598,16 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         <div className="flex flex-col items-center gap-3">
           <div
             ref={gridRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
             className="inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none"
             style={{
               gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})`,
               backgroundColor: 'hsl(var(--muted))',
               padding: '2px',
+              touchAction: 'none',
             }}
           >
             {Array.from({ length: puzzle.size }, (_, ri) =>
@@ -554,15 +629,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                 return (
                   <div
                     key={`${ri}-${ci}`}
-                    onMouseDown={() => handleMouseDown(ri, ci)}
-                    onMouseEnter={() => handleMouseEnter(ri, ci)}
-                    style={{ width: cellSize, height: cellSize, ...getWallStyle(ri, ci), position: 'relative' }}
+                    style={{ width: cellSize, height: cellSize, position: 'relative' }}
                     className="flex items-center justify-center cursor-pointer border-border/40"
                   >
                     {/* Path fill with organic rounding */}
                     {isOnPath && (
                       <div
-                        className="absolute inset-[1px] transition-all duration-100"
+                        className="absolute inset-[1px]"
                         style={{
                           backgroundColor: cellColor,
                           borderRadius,

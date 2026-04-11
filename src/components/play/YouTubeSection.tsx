@@ -6,10 +6,15 @@ import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import { usePrivateQueue } from "@/hooks/usePrivateQueue";
 import { PlaylistsPanel } from "@/components/play/PlaylistsPanel";
 import { PrivatePlayer } from "@/components/play/PrivatePlayer";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { usePlaylists, usePlaylistItemMutations } from "@/hooks/usePlaylists";
+import { useYouTubeSearch, type YouTubeSearchResult } from "@/hooks/useYouTubeSearch";
+import { useDeviceId } from "@/hooks/useDeviceId";
+import { toast } from "@/hooks/use-toast";
 import {
   Youtube, Play, ListMusic, Search, Trash2, Clock, User,
   GripVertical, Heart, ChevronLeft, ChevronRight, ListPlus,
-  CheckSquare, Square, X, BookMarked, Headphones, Radio,
+  CheckSquare, Square, X, BookMarked, Headphones, Radio, Loader2, Plus,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -39,9 +44,13 @@ function getModeFromStorage(): MusicMode {
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const [mode, setMode] = useState<MusicMode>(getModeFromStorage);
+  const deviceId = useDeviceId();
 
   const liveQueue = useYoutubeQueue();
   const privateQueue = usePrivateQueue();
+  const { playlists } = usePlaylists();
+  const { addItem: addPlaylistItem } = usePlaylistItemMutations();
+  const youtubeSearch = useYouTubeSearch();
 
   const q = mode === "live" ? liveQueue : privateQueue;
 
@@ -51,8 +60,11 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   } = q;
 
   const [videoUrl, setVideoUrl] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [localQueue, setLocalQueue] = useState<typeof queue | null>(null);
-  const [activeTab, setActiveTab] = useState<YTTab>("queue");
+  const [activeTab, setActiveTab] = useState<YTTab>("playlists");
+  const [selectedSearchResult, setSelectedSearchResult] = useState<YouTubeSearchResult | null>(null);
+  const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
   const dragIndex = useRef<number | null>(null);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
@@ -64,6 +76,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const displayQueue = localQueue ?? queue;
   const isPending = playNow.isPending || addToQueue.isPending;
   const videoId = extractVideoId(videoUrl.trim());
+  const searchResults = youtubeSearch.data?.results ?? [];
 
   const totalPages = Math.ceil(recentVideos.length / PAGE_SIZE);
   const pageVideos = recentVideos.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE);
@@ -72,7 +85,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
     setMode(m);
     localStorage.setItem("music-mode", m);
     setLocalQueue(null);
-    setActiveTab("queue");
+    setActiveTab("playlists");
     setHistoryPage(0);
     setSelected(new Set());
   };
@@ -85,6 +98,48 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const handleAddToQueue = () => {
     if (!videoId) return;
     addToQueue.mutate({ video_id: videoId, queued_by: playerName }, { onSuccess: () => setVideoUrl("") });
+  };
+
+  const handleSearch = () => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 3 || !deviceId) return;
+    youtubeSearch.mutate({ query: trimmed, deviceId });
+  };
+
+  const handleSearchPlayNow = (result: YouTubeSearchResult) => {
+    playNow.mutate({ video_id: result.videoId, queued_by: playerName });
+  };
+
+  const handleSearchAddToQueue = (result: YouTubeSearchResult) => {
+    addToQueue.mutate({ video_id: result.videoId, queued_by: playerName });
+  };
+
+  const handleOpenPlaylistDialog = (result: YouTubeSearchResult) => {
+    setSelectedSearchResult(result);
+    setIsPlaylistDialogOpen(true);
+  };
+
+  const handleAddSearchResultToPlaylist = async (playlistId: string) => {
+    if (!selectedSearchResult) return;
+    try {
+      await addPlaylistItem.mutateAsync({
+        playlist_id: playlistId,
+        video_id: selectedSearchResult.videoId,
+        title: selectedSearchResult.title,
+        thumbnail_url: selectedSearchResult.thumbnailUrl,
+        channel_title: selectedSearchResult.channelTitle,
+        added_by: playerName,
+      });
+      toast({
+        title: "Added to playlist",
+        description: `"${selectedSearchResult.title}" is now in your playlist.`,
+      });
+      setIsPlaylistDialogOpen(false);
+      setSelectedSearchResult(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not add the video.";
+      toast({ title: "Add failed", description: message });
+    }
   };
 
   /* ── Drag-to-reorder ────────────────────────────── */
@@ -111,7 +166,8 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -228,29 +284,6 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
           </div>
         )}
 
-        {/* URL Input */}
-        <div className="space-y-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Paste YouTube URL or video ID..."
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={handlePlayNow} disabled={!videoId || isPending} variant="default" className="w-full">
-              <Play className="h-4 w-4 mr-1" />
-              {playNow.isPending ? "Loading..." : "Play Now"}
-            </Button>
-            <Button onClick={handleAddToQueue} disabled={!videoId || isPending} variant="outline" className="w-full">
-              <ListMusic className="h-4 w-4 mr-1" />
-              {addToQueue.isPending ? "Adding..." : "Add to Queue"}
-            </Button>
-          </div>
-        </div>
-
         {/* Sub-tabs: Queue / History / Playlists */}
         <div className="flex gap-1 border-b border-border pb-0">
           {([
@@ -278,7 +311,123 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
         {/* Queue tab */}
         {activeTab === "queue" && (
-          <>
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-secondary/20 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">Search YouTube</p>
+                  <p className="text-xs text-muted-foreground">
+                    Search by artist and song. Up to 4 results.
+                  </p>
+                </div>
+                {youtubeSearch.data && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {youtubeSearch.data.remainingSearches} searches left today
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search artist and song..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleSearch}
+                  disabled={searchQuery.trim().length < 3 || youtubeSearch.isPending || !deviceId}
+                  className="shrink-0"
+                >
+                  {youtubeSearch.isPending ? (
+                    <>
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      Searching
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-1 h-4 w-4" />
+                      Search
+                    </>
+                  )}
+                </Button>
+              </div>
+              {youtubeSearch.error && (
+                <p className="text-xs text-destructive">{youtubeSearch.error.message}</p>
+              )}
+              {searchResults.length > 0 && (
+                <div className="space-y-2">
+                  {searchResults.map((result) => (
+                    <div
+                      key={result.videoId}
+                      className="rounded-md border border-border/60 bg-background/85 p-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={result.thumbnailUrl ?? `https://img.youtube.com/vi/${result.videoId}/hqdefault.jpg`}
+                          alt={result.title}
+                          className="h-12 w-20 rounded object-cover bg-secondary shrink-0"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium line-clamp-1">{result.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {result.channelTitle ?? "Unknown channel"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <Button type="button" size="sm" onClick={() => handleSearchPlayNow(result)}>
+                          <Play className="mr-1 h-3.5 w-3.5" />
+                          Play now
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => handleSearchAddToQueue(result)}>
+                          <ListMusic className="mr-1 h-3.5 w-3.5" />
+                          Add to queue
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => handleOpenPlaylistDialog(result)}>
+                          <Plus className="mr-1 h-3.5 w-3.5" />
+                          Add to playlist
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border bg-secondary/20 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">Add by link</p>
+                  <p className="text-xs text-muted-foreground">
+                    Paste a YouTube URL or video ID to play it now or queue it.
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Paste YouTube URL or video ID..."
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={handlePlayNow} disabled={!videoId || isPending} variant="default" className="w-full">
+                  <Play className="h-4 w-4 mr-1" />
+                  {playNow.isPending ? "Loading..." : "Play Now"}
+                </Button>
+                <Button onClick={handleAddToQueue} disabled={!videoId || isPending} variant="outline" className="w-full">
+                  <ListMusic className="h-4 w-4 mr-1" />
+                  {addToQueue.isPending ? "Adding..." : "Add to Queue"}
+                </Button>
+              </div>
+            </div>
             {displayQueue.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Queue is empty</p>
             ) : (
@@ -336,7 +485,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* History tab */}
@@ -492,6 +641,45 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
             onAddToQueue={handlePlaylistAddToQueue}
           />
         )}
+
+        <Dialog open={isPlaylistDialogOpen} onOpenChange={setIsPlaylistDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add to playlist</DialogTitle>
+              <DialogDescription>
+                {selectedSearchResult ? selectedSearchResult.title : "Choose a playlist"}
+              </DialogDescription>
+            </DialogHeader>
+            {playlists.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Create a playlist first in the Playlists tab.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {playlists.map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    type="button"
+                    onClick={() => handleAddSearchResultToPlaylist(playlist.id)}
+                    className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-secondary/10 px-3 py-2 text-left transition-colors hover:bg-secondary/30"
+                    disabled={addPlaylistItem.isPending}
+                  >
+                    <BookMarked className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium line-clamp-1">{playlist.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {playlist.item_count ?? 0} {(playlist.item_count ?? 0) === 1 ? "song" : "songs"}
+                      </p>
+                    </div>
+                    {addPlaylistItem.isPending && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

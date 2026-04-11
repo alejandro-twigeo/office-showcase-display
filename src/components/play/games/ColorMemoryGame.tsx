@@ -553,19 +553,24 @@ export function ColorMemoryGame({ playerName, roundId }: ColorMemoryGameProps) {
   }, []);
 
   useEffect(() => {
-    if (todayScore && !hasSubmittedRankedRound && lastScore == null) {
-      setHasSubmittedRankedRound(true);
-      setIsPracticeMode(true);
-      setPhase('result');
-      setLastScore(todayScore.score);
-      setTargetColor(rankedTarget);
-      setPlayerColor(createStartingGuess(rankedTarget));
-      setShowRankedSummaryOnly(true);
-    } else if (!todayScore) {
+    if (!todayScore) {
       setHasSubmittedRankedRound(false);
-      startRound(rankedTarget, false);
+      return;
     }
-  }, [todayScore, rankedTarget, startRound, hasSubmittedRankedRound, lastScore]);
+
+    setHasSubmittedRankedRound(true);
+    setIsPracticeMode(true);
+    setPhase('result');
+    setLastScore(todayScore.score);
+    setTargetColor(rankedTarget);
+    setPlayerColor(createStartingGuess(rankedTarget));
+    setShowRankedSummaryOnly(true);
+  }, [todayScore, rankedTarget]);
+
+  useEffect(() => {
+    if (todayScore) return;
+    startRound(rankedTarget, false);
+  }, [todayScore, rankedTarget, startRound]);
 
   useEffect(() => {
     if (phase !== 'memorize') return;

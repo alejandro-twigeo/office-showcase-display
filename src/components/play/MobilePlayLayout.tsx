@@ -114,7 +114,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {selectedGame === 'geoguessr' && (
           <GuessMap playerName={player.name} hideOtherGames />
         )}
-        {selectedGame === 'wordle' && <WordleGame playerName={player.name} />}
+        {selectedGame === 'wordle' && <WordleGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'city_guess' && <CityGuessGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'color_memory' && <ColorMemoryGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'this_or_that' && <ThisOrThatGame playerName={player.name} roundId={activeRound?.id} />}

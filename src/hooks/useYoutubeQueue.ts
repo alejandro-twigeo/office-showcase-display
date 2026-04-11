@@ -162,8 +162,9 @@ export function useYoutubeQueue() {
 
   // Real-time subscription
   useEffect(() => {
+    const channelName = `youtube-queue-changes-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel("youtube-queue-changes")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "youtube_queue" }, () => {
         queryClient.invalidateQueries({ queryKey: ["current-video"] });
         queryClient.invalidateQueries({ queryKey: ["video-queue"] });

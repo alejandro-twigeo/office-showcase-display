@@ -48,7 +48,7 @@ export function usePolls() {
   // Real-time subscription
   useEffect(() => {
     const channel = supabase
-      .channel('polls-changes')
+      .channel(`polls-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'polls' },
@@ -164,7 +164,7 @@ export function useVotes(pollId: string | undefined) {
     if (!pollId) return;
 
     const channel = supabase
-      .channel(`votes-${pollId}`)
+      .channel(`votes-${pollId}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { 

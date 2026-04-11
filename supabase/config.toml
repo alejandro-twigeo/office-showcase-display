@@ -10,3 +10,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.generate-thisorthat]
 verify_jwt = false
+[functions.youtube-search]
+verify_jwt = false

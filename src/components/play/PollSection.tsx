@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Component, type ReactNode, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { usePolls } from '@/hooks/usePolls';
@@ -9,6 +9,45 @@ import { PollManagement } from './PollManagement';
 
 interface PollSectionProps {
   playerName: string;
+}
+
+class PollPaneBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: null };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    this.setState({ message });
+    console.error('Poll pane render failed:', error);
+  }
+
+  componentDidUpdate(prevProps: { children: ReactNode }) {
+    if (prevProps.children !== this.props.children && this.state.hasError) {
+      this.setState({ hasError: false, message: null });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-lg border bg-secondary/20 p-4 text-center">
+          <p className="font-medium text-foreground">This poll pane failed to load.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Switch tabs and come back after the next fix.</p>
+          {this.state.message && (
+            <p className="mt-2 break-words text-xs text-destructive">{this.state.message}</p>
+          )}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 export function PollSection({ playerName }: PollSectionProps) {
@@ -51,24 +90,28 @@ export function PollSection({ playerName }: PollSectionProps) {
         </div>
 
         {tab === 'vote' ? (
-          activePolls.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4 text-sm">
-              No active polls. Create one in Manage tab!
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {activePolls.map((poll) => (
-                <PollVoteCard
-                  key={poll.id}
-                  poll={poll}
-                  deviceId={deviceId}
-                  playerName={playerName}
-                />
-              ))}
-            </div>
-          )
+          <PollPaneBoundary>
+            {activePolls.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4 text-sm">
+                No active polls. Create one in Manage tab!
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {activePolls.map((poll) => (
+                  <PollVoteCard
+                    key={poll.id}
+                    poll={poll}
+                    deviceId={deviceId}
+                    playerName={playerName}
+                  />
+                ))}
+              </div>
+            )}
+          </PollPaneBoundary>
         ) : (
-          <PollManagement playerName={playerName} />
+          <PollPaneBoundary>
+            <PollManagement playerName={playerName} />
+          </PollPaneBoundary>
         )}
       </CardContent>
     </Card>

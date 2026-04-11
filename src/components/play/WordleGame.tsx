@@ -7,6 +7,7 @@ import { Trophy, CheckCircle, XCircle } from 'lucide-react';
 
 interface WordleGameProps {
   playerName: string;
+  roundId?: string;
 }
 
 function getStatusColor(status: LetterStatus): string {
@@ -18,7 +19,46 @@ function getStatusColor(status: LetterStatus): string {
   }
 }
 
-export function WordleGame({ playerName }: WordleGameProps) {
+const KEYBOARD_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['enter', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+] as const;
+
+function getKeyboardKeyClass(status: LetterStatus | undefined) {
+  switch (status) {
+    case 'correct':
+      return 'bg-green-600 text-white border-green-600';
+    case 'present':
+      return 'bg-yellow-500 text-white border-yellow-500';
+    case 'absent':
+      return 'bg-muted-foreground/30 text-foreground border-muted-foreground/30';
+    default:
+      return 'bg-background text-foreground border-border hover:bg-secondary';
+  }
+}
+
+function getActionKeyClass(key: string) {
+  if (key === 'enter') {
+    return 'border-emerald-500 bg-emerald-100 hover:bg-emerald-200';
+  }
+  if (key === 'backspace') {
+    return 'border-slate-300 bg-slate-100 hover:bg-slate-200';
+  }
+  return '';
+}
+
+function getKeyboardRowTemplate(row: readonly string[], isMobile: boolean) {
+  if (isMobile) {
+    return `repeat(${row.length}, minmax(0, 1fr))`;
+  }
+
+  return row
+    .map((key) => (key === 'enter' || key === 'backspace' ? 'minmax(4.5rem, 1.35fr)' : 'minmax(2.6rem, 1fr)'))
+    .join(' ');
+}
+
+export function WordleGame({ playerName, roundId }: WordleGameProps) {
   const isMobile = useIsMobile();
   const {
     guesses,
@@ -35,7 +75,7 @@ export function WordleGame({ playerName }: WordleGameProps) {
     alreadyPlayed,
     existingScore,
     roundNumber,
-  } = useWordle(playerName);
+  } = useWordle(playerName, roundId);
   const inputRef = useRef<HTMLInputElement>(null);
   const currentRowRef = useRef<HTMLDivElement>(null);
   const focusScrollTimeoutRef = useRef<number | null>(null);
@@ -43,12 +83,13 @@ export function WordleGame({ playerName }: WordleGameProps) {
     currentRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, []);
   const focusInput = useCallback(() => {
+    if (isMobile) return;
     inputRef.current?.focus();
     if (focusScrollTimeoutRef.current != null) {
       window.clearTimeout(focusScrollTimeoutRef.current);
     }
     focusScrollTimeoutRef.current = window.setTimeout(scrollActiveRowIntoView, 150);
-  }, [scrollActiveRowIntoView]);
+  }, [isMobile, scrollActiveRowIntoView]);
 
   const handleKeyPress = useCallback((key: string) => {
     if (gameOver) return;
@@ -97,6 +138,16 @@ export function WordleGame({ playerName }: WordleGameProps) {
   }, [isMobile, gameOver, scrollActiveRowIntoView]);
 
   const gridWidthClass = isMobile ? 'w-full' : 'w-full max-w-[26rem]';
+  const keyboardStatus = guesses.reduce<Record<string, LetterStatus>>((acc, guess) => {
+    guess.word.split('').forEach((letter, index) => {
+      const nextStatus = guess.statuses[index];
+      const currentStatus = acc[letter];
+      if (currentStatus === 'correct') return;
+      if (currentStatus === 'present' && nextStatus === 'absent') return;
+      acc[letter] = nextStatus;
+    });
+    return acc;
+  }, {});
 
   // Build grid rows (6 total)
   const gridRows = [];
@@ -126,6 +177,52 @@ export function WordleGame({ playerName }: WordleGameProps) {
     }
     gridRows.push(cells);
   }
+
+  const keyboard = !gameOver ? (
+    <div className={`w-full ${isMobile ? '' : 'max-w-[17rem]'} space-y-2`} onClick={(e) => e.stopPropagation()}>
+      {KEYBOARD_ROWS.map((row, rowIndex) => (
+        <div
+          key={rowIndex}
+          className={`grid gap-1.5 ${rowIndex === 1 ? 'mx-auto w-[92%]' : ''}`}
+          style={{ gridTemplateColumns: getKeyboardRowTemplate(row, isMobile) }}
+        >
+          {row.map((key) => {
+            const isActionKey = key === 'enter' || key === 'backspace';
+            const label = key === 'backspace' ? '⌫' : key === 'enter' ? (isMobile ? '↵' : 'Enter') : key.toUpperCase();
+            return (
+              <Button
+                key={key}
+                type="button"
+                variant="outline"
+                size="sm"
+                className={[
+                  'h-12 rounded-xl border px-0 font-semibold uppercase transition-colors',
+                  '!text-slate-900 active:!text-slate-900',
+                  isActionKey ? 'text-[0.72rem]' : 'text-sm',
+                  isActionKey ? getActionKeyClass(key) : getKeyboardKeyClass(keyboardStatus[key]),
+                ].join(' ')}
+                onClick={() => {
+                  handleKeyPress(key);
+                  if (!isMobile) {
+                    focusInput();
+                  }
+                }}
+              >
+                <span
+                  className={[
+                    'text-slate-900',
+                    key === 'enter' && isMobile ? 'text-xl leading-none' : '',
+                  ].join(' ')}
+                >
+                  {label}
+                </span>
+              </Button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  ) : null;
 
   if (alreadyPlayed && existingScore) {
     return (
@@ -160,68 +257,70 @@ export function WordleGame({ playerName }: WordleGameProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           🟩 Wordle — Round {roundNumber}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Start typing for your first guess and click Enter to submit. Up to {settings.wordle_attempt_points[0]} pts!</p>
+        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts.</p>
       </CardHeader>
       <CardContent className={`space-y-3 ${isMobile ? 'pb-28' : ''}`}>
         {/* Grid */}
         <div
-          className="flex flex-col items-center gap-3"
-          onClick={focusInput}
+          className={`flex gap-4 ${isMobile ? 'flex-col items-start' : 'items-center justify-center'}`}
+          onClick={() => {
+            if (!isMobile) {
+              focusInput();
+            }
+          }}
         >
-          {!gameOver && (
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              autoFocus
-              spellCheck={false}
-              enterKeyHint="done"
-              value={currentInput}
-              onChange={(e) => {
-                const nextValue = e.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5);
-                setCurrentInput(nextValue);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  submitGuess();
-                }
-              }}
-              className="sr-only"
-              aria-label="Wordle input"
-            />
-          )}
-          <div className={gridWidthClass}>
-            {gridRows.map((row, ri) => (
-              <div
-                key={ri}
-                ref={ri === guesses.length && !gameOver ? currentRowRef : undefined}
-                className="grid grid-cols-5 gap-2 w-full"
-              >
-                {row.map((cell, ci) => (
-                  <div
-                    key={ci}
-                    className={`aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
-                  >
-                    {cell.letter}
-                  </div>
-                ))}
-              </div>
-            ))}
+          <div className={`w-full ${isMobile ? '' : 'max-w-[26rem]'} space-y-3`}>
+            {!gameOver && (
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode={isMobile ? 'none' : 'text'}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoFocus
+                spellCheck={false}
+                enterKeyHint="done"
+                value={currentInput}
+                onChange={(e) => {
+                  const nextValue = e.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5);
+                  setCurrentInput(nextValue);
+                }}
+                onFocus={(e) => {
+                  if (isMobile) {
+                    e.target.blur();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitGuess();
+                  }
+                }}
+                className="sr-only"
+                aria-label="Wordle input"
+              />
+            )}
+            <div className={gridWidthClass}>
+              {gridRows.map((row, ri) => (
+                <div
+                  key={ri}
+                  ref={ri === guesses.length && !gameOver ? currentRowRef : undefined}
+                  className="grid grid-cols-5 gap-2 w-full"
+                >
+                  {row.map((cell, ci) => (
+                    <div
+                      key={ci}
+                      className={`aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
+                    >
+                      {cell.letter}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            {isMobile && keyboard}
           </div>
-          {!gameOver && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className={`${gridWidthClass} ${isMobile ? '' : 'hidden'}`}
-              onClick={focusInput}
-            >
-              Show Keyboard
-            </Button>
-          )}
+          {!isMobile && keyboard}
         </div>
 
         {/* Error */}
