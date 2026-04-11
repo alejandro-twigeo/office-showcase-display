@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useScoring, type DifficultyWeights } from '@/hooks/useScoring';
 import { useRoundSchedule } from '@/hooks/useRoundSchedule';
 import { useDeviceId } from '@/hooks/useDeviceId';
-import { usePresenceCount } from '@/hooks/usePresenceCount';
+import { usePresenceSnapshot } from '@/hooks/usePresenceCount';
 import { LEADERBOARD_PLAYER_COUNT_KEY, SUDOKU_HINT_PENALTY_KEY, useGameIcons } from '@/hooks/useGameIcons';
 import { fetchMapillaryRound } from '@/lib/mapillary';
 import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
@@ -59,7 +59,8 @@ export default function ManagerPage() {
   const { settings, updateSettings } = useScoring();
   const { schedule, updateSchedule } = useRoundSchedule();
   const deviceId = useDeviceId();
-  const onlineUsers = usePresenceCount('app', { deviceId, page: 'manager' }, { excludeSelf: true });
+  const onlinePresence = usePresenceSnapshot('app', { deviceId, page: 'manager' }, { excludeSelf: true });
+  const onlineUsers = onlinePresence.count;
   const { icons, uploadIcon, removeIcon } = useGameIcons();
 
   // Scoring edit state
@@ -300,7 +301,16 @@ export default function ManagerPage() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Play
           </Button>
           <h1 className="text-lg font-semibold">Manager</h1>
-          <span className="text-xs text-muted-foreground">{onlineUsers} online</span>
+          <span
+            className="cursor-default text-xs text-muted-foreground"
+            title={
+              onlinePresence.playerNames.length > 0
+                ? `Online users:\n${onlinePresence.playerNames.join('\n')}`
+                : 'No other users online'
+            }
+          >
+            {onlineUsers} online
+          </span>
         </div>
       </header>
 

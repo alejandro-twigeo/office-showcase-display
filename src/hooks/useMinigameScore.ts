@@ -169,11 +169,12 @@ export function useSubmitMinigameScore() {
       meta?: Record<string, any>;
       date?: string;
     }) => {
+      const scoreDate = params.date ?? todayDate();
       const { error } = await supabase
         .from('minigame_scores' as any)
         .upsert({
           game_id: params.game_id,
-          date: params.date ?? todayDate(),
+          date: scoreDate,
           player_name: params.player_name,
           device_id: params.device_id,
           score: params.score,
@@ -181,10 +182,37 @@ export function useSubmitMinigameScore() {
           meta: params.meta ?? {},
         } as any, { onConflict: 'game_id,round_id,player_name' });
       if (error) throw error;
+      return {
+        id: `${params.game_id}-${params.player_name}-${params.round_id ?? 'no-round'}`,
+        game_id: params.game_id,
+        date: scoreDate,
+        player_name: params.player_name,
+        device_id: params.device_id,
+        score: params.score,
+        meta: params.meta ?? {},
+        created_at: new Date().toISOString(),
+        round_id: params.round_id ?? null,
+      } as MinigameScoreRow;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (row, vars) => {
+      const scoreDate = vars.date ?? todayDate();
+
+      queryClient.setQueryData(
+        ['minigame_today', vars.game_id, vars.player_name, vars.round_id ?? null],
+        row,
+      );
+
+      queryClient.setQueryData<MinigameScoreRow[]>(
+        ['minigame_leaderboard', vars.game_id, scoreDate],
+        (current = []) => dedupeMinigameScores([
+          ...current.filter((entry) => entry.player_name !== row.player_name),
+          row,
+        ]),
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['minigame_leaderboard', vars.game_id, scoreDate] });
       queryClient.invalidateQueries({ queryKey: ['minigame_leaderboard', vars.game_id] });
-      queryClient.invalidateQueries({ queryKey: ['minigame_today', vars.game_id, vars.player_name] });
+      queryClient.invalidateQueries({ queryKey: ['minigame_today', vars.game_id, vars.player_name, vars.round_id ?? null] });
       queryClient.invalidateQueries({ queryKey: ['minigame_dates', vars.game_id] });
     },
   });

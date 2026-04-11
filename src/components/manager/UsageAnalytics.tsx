@@ -12,6 +12,7 @@ interface DayStat {
   date: string;
   uniqueVisitors: number;
   totalVisits: number;
+  playerNames: string[];
 }
 
 interface GameStat {
@@ -105,6 +106,7 @@ export function UsageAnalytics() {
           date: key,
           uniqueVisitors: uniqueCount,
           totalVisits: uniqueCount,
+          playerNames: [...(byDate.get(key) ?? [])].sort((a, b) => a.localeCompare(b)),
         });
       }
       setDayStats(stats);
@@ -255,7 +257,15 @@ export function UsageAnalytics() {
                   const barPx = d.uniqueVisitors > 0 ? Math.max(Math.round((d.uniqueVisitors / maxV) * 64), 4) : 0;
                   const isToday = d.date === todayStr;
                   return (
-                    <div key={d.date} className="flex-1 flex flex-col items-end justify-end" title={`${d.date}: ${d.uniqueVisitors} visitors, ${d.totalVisits} visits`}>
+                    <div
+                      key={d.date}
+                      className="flex-1 flex flex-col items-end justify-end"
+                      title={
+                        d.playerNames.length > 0
+                          ? `${d.date}: ${d.uniqueVisitors} visitors\n${d.playerNames.join('\n')}`
+                          : `${d.date}: No visitors`
+                      }
+                    >
                       {d.uniqueVisitors > 0 && (
                         <span className="text-[7px] text-muted-foreground text-center w-full leading-none mb-0.5">{d.uniqueVisitors}</span>
                       )}

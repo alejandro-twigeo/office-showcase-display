@@ -25,6 +25,7 @@ interface GuessMapProps {
   onActiveTabChange?: (tab: 'easy' | 'hard' | 'other') => void;
   onMinigameChange?: (gameId: string | null) => void;
   hideOtherGames?: boolean;
+  forcedTab?: 'easy' | 'hard' | 'other' | null;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -335,16 +336,12 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames, forcedTab = null }: GuessMapProps) {
   const deviceId = useDeviceId();
   const { settings } = useScoring();
   const { activeRound } = useRounds();
   const miniGameRef = useRef<MiniGamesSelectorHandle>(null);
-
-
-
-
-  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('easy');
+  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('other');
   const [insideMiniGame, setInsideMiniGame] = useState(false);
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
     setActiveTabInternal(tab);
@@ -355,13 +352,23 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
     onMinigameChange?.(gameId);
   };
 
+  useEffect(() => {
+    if (!forcedTab) return;
+    setActiveTabInternal(forcedTab);
+    onActiveTabChange?.(forcedTab);
+    if (forcedTab !== 'other') {
+      miniGameRef.current?.reset();
+      setInsideMiniGame(false);
+    }
+  }, [forcedTab, onActiveTabChange]);
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            {activeTab === 'other' ? 'Other Games' : 'Make Your Guess'}
+            {activeTab === 'other' ? 'Games' : 'GeoGuessr'}
           </CardTitle>
           <div className="flex items-center gap-1">
             {!hideOtherGames && (activeTab !== 'other' || insideMiniGame) && (
@@ -404,7 +411,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
                 />
                 <span className="relative z-10 flex items-center justify-center gap-1.5 w-full">
                   <Gamepad2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  {activeTab === 'other' ? '← Back to games' : 'Other Games'}
+                  ← Back to games
                 </span>
               </Button>
             )}

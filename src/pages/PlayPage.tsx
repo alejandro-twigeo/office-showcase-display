@@ -58,8 +58,7 @@ export default function PlayPage() {
   const deviceId = useDeviceId();
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
-  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('easy');
-  const [activeMinigame, setActiveMinigame] = useState<string | null>(null);
+  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('other');
 
   usePresenceTrack('app', {
     deviceId,
@@ -197,7 +196,12 @@ export default function PlayPage() {
                 <button
                   type="button"
                   key={value}
-                  onClick={() => setActiveTab(value)}
+                  onClick={() => {
+                    setActiveTab(value);
+                    if (value === 'guess') {
+                      setGamesSubTab('other');
+                    }
+                  }}
                   className={`desktop-target-nav ${activeTab === value ? 'desktop-target-nav-active' : ''}`}
                 >
                   <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary text-primary' : ''}`} />
@@ -276,8 +280,7 @@ export default function PlayPage() {
             <div className="space-y-4">
               <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
                 setGamesSubTab(tab);
-                if (tab !== 'other') setActiveMinigame(null);
-              }} onMinigameChange={setActiveMinigame} />
+              }} forcedTab={gamesSubTab} />
               {gamesSubTab !== 'other' && <Leaderboard />}
             </div>
           )}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useDeviceId } from '@/hooks/useDeviceId';
+import { getDeviceId, useDeviceId } from '@/hooks/useDeviceId';
 import {
   useMinigameTodayScore,
   useSubmitMinigameScore,
@@ -8,6 +8,7 @@ import {
   seededRandom,
   todayDate,
 } from '@/hooks/useMinigameScore';
+import { toast } from '@/hooks/use-toast';
 import { CheckCircle, Crosshair } from 'lucide-react';
 
 const GAME_ID = 'color_memory';
@@ -532,7 +533,7 @@ export function ColorMemoryGame({ playerName, roundId }: ColorMemoryGameProps) {
   const [countdownTicks, setCountdownTicks] = useState(MEMORIZE_TICKS);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastScore, setLastScore] = useState<number | null>(null);
-  const [hasSubmittedRankedRound, setHasSubmittedRankedRound] = useState(false);
+  const [submittedRankedScore, setSubmittedRankedScore] = useState<number | null>(null);
   const [showRankedSummaryOnly, setShowRankedSummaryOnly] = useState(false);
 
   const startReconstruction = useCallback(() => {
@@ -553,24 +554,27 @@ export function ColorMemoryGame({ playerName, roundId }: ColorMemoryGameProps) {
   }, []);
 
   useEffect(() => {
+    setSubmittedRankedScore(null);
+  }, [roundId]);
+
+  useEffect(() => {
+    if (submittedRankedScore != null) return;
     if (!todayScore) {
-      setHasSubmittedRankedRound(false);
       return;
     }
 
-    setHasSubmittedRankedRound(true);
     setIsPracticeMode(true);
     setPhase('result');
     setLastScore(todayScore.score);
     setTargetColor(rankedTarget);
     setPlayerColor(createStartingGuess(rankedTarget));
     setShowRankedSummaryOnly(true);
-  }, [todayScore, rankedTarget]);
+  }, [todayScore, rankedTarget, submittedRankedScore]);
 
   useEffect(() => {
-    if (todayScore) return;
+    if (todayScore || submittedRankedScore != null) return;
     startRound(rankedTarget, false);
-  }, [todayScore, rankedTarget, startRound]);
+  }, [todayScore, rankedTarget, startRound, submittedRankedScore]);
 
   useEffect(() => {
     if (phase !== 'memorize') return;
@@ -600,27 +604,40 @@ export function ColorMemoryGame({ playerName, roundId }: ColorMemoryGameProps) {
   }, [phase, startReconstruction]);
 
   const handleSubmit = async () => {
-    const score = scoreColorMatch(targetColor, playerColor);
+    const score = Math.round(scoreColorMatch(targetColor, playerColor));
     setLastScore(score);
     setPhase('result');
+    setShowRankedSummaryOnly(false);
 
-    if (!isPracticeMode && !hasSubmittedRankedRound && deviceId) {
-      await submitScore.mutateAsync({
-        game_id: GAME_ID,
-        player_name: playerName,
-        device_id: deviceId,
-        score,
-        round_id: roundId,
-        meta: {
-          target_h: Math.round(targetColor.h),
-          target_s: Math.round(targetColor.s),
-          target_l: Math.round(targetColor.l),
-          guess_h: Math.round(playerColor.h),
-          guess_s: Math.round(playerColor.s),
-          guess_l: Math.round(playerColor.l),
-        },
-      });
-      setHasSubmittedRankedRound(true);
+    if (!isPracticeMode && submittedRankedScore == null && !todayScore) {
+      const stableDeviceId = deviceId || getDeviceId();
+      setSubmittedRankedScore(score);
+
+      try {
+        await submitScore.mutateAsync({
+          game_id: GAME_ID,
+          player_name: playerName,
+          device_id: stableDeviceId,
+          score,
+          round_id: roundId,
+          meta: {
+            target_h: Math.round(targetColor.h),
+            target_s: Math.round(targetColor.s),
+            target_l: Math.round(targetColor.l),
+            guess_h: Math.round(playerColor.h),
+            guess_s: Math.round(playerColor.s),
+            guess_l: Math.round(playerColor.l),
+          },
+        });
+      } catch (error) {
+        setSubmittedRankedScore(null);
+        const description = error instanceof Error ? error.message : 'Could not save your score.';
+        toast({
+          title: 'Score not saved',
+          description,
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -660,7 +677,7 @@ export function ColorMemoryGame({ playerName, roundId }: ColorMemoryGameProps) {
             <div className="space-y-4">
               <div className="rounded-[1.25rem] bg-muted px-4 py-3 text-right">
                 <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Best today</p>
-                <p className="mt-2 text-3xl font-black tracking-[-0.06em] text-foreground">{todayScore?.score ?? '--'}</p>
+                <p className="mt-2 text-3xl font-black tracking-[-0.06em] text-foreground">{todayScore?.score ?? submittedRankedScore ?? '--'}</p>
               </div>
               {phase === 'reconstruct' && (
                 <div className="px-1 py-1">

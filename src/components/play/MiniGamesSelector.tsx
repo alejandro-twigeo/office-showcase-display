@@ -63,9 +63,9 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
                 onClick={onSelectGeoGuessr}
                 className="flex flex-col items-center justify-center gap-2 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center sm:min-h-[8.75rem]"
               >
-                <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-background/50 sm:w-[4.1rem] sm:h-[4.1rem] sm:rounded-[1.1rem] sm:bg-gradient-to-br sm:from-white sm:to-slate-100 sm:shadow-[0_10px_24px_rgba(15,23,42,0.12)] sm:ring-1 sm:ring-slate-200/80">
+                <div className="flex h-10 w-10 items-center justify-center overflow-visible sm:h-[4.1rem] sm:w-[4.1rem]">
                   {icons['geoguessr'] ? (
-                    <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                    <img src={icons['geoguessr']} alt="GeoGuessr" className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl sm:text-[2rem]">🎯</span>
                   )}
@@ -79,9 +79,9 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
                 onClick={() => selectGame(game.id)}
                 className="flex flex-col items-center justify-center gap-2 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center sm:min-h-[8.75rem]"
               >
-                <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-background/50 sm:w-[4.1rem] sm:h-[4.1rem] sm:rounded-[1.1rem] sm:bg-gradient-to-br sm:from-white sm:to-slate-100 sm:shadow-[0_10px_24px_rgba(15,23,42,0.12)] sm:ring-1 sm:ring-slate-200/80">
+                <div className="flex h-10 w-10 items-center justify-center overflow-visible sm:h-[4.1rem] sm:w-[4.1rem]">
                   {icons[game.id] ? (
-                    <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
+                    <img src={icons[game.id]} alt={game.name} className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl sm:text-[2rem]">{game.emoji}</span>
                   )}
