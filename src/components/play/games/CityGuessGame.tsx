@@ -31,6 +31,10 @@ interface CityGuessGameProps {
   roundId?: string;
 }
 
+function findCityByName(name?: string | null) {
+  return CITIES.find((city) => city.name === name) ?? null;
+}
+
 export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const maxAttempts = 2;
   const isMobile = useIsMobile();
@@ -45,19 +49,24 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const [guessPos, setGuessPos] = useState<{ lat: number; lng: number } | null>(null);
   const [guesses, setGuesses] = useState<{ distance: number; score: number }[]>([]);
   const [bestScore, setBestScore] = useState(0);
+  const [hasCompletedLocalRound, setHasCompletedLocalRound] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
+  const [restoredFromScore, setRestoredFromScore] = useState(false);
+  const [mobileView, setMobileView] = useState<'image' | 'map'>('image');
   const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const actualMarkerRef = useRef<L.Marker | null>(null);
   const imgContainerRef = useRef<HTMLDivElement>(null);
 
   const MAX_ZOOM = 5;
   const lastPinchDist = useRef<number | null>(null);
+  const isMapVisible = !isMobile || mobileView === 'map';
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 1, MAX_ZOOM));
   const handleZoomOut = () => {
@@ -113,6 +122,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
   const handleSelectCity = async (city: typeof CITIES[0]) => {
     setSelectedCity(city);
+    setMobileView('image');
     setLoading(true);
     try {
       const img = await fetchMapillaryCity(city.lat, city.lng);
@@ -126,7 +136,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
   // Init leaflet map – must wait until loading is done so the div is mounted
   useEffect(() => {
-    if (!mapRef.current || leafletRef.current || !selectedCity || loading) return;
+    if (!isMapVisible || !mapRef.current || leafletRef.current || !selectedCity || loading) return;
     const map = L.map(mapRef.current).setView([selectedCity.lat, selectedCity.lng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
@@ -136,8 +146,20 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     });
     leafletRef.current = map;
     setTimeout(() => map.invalidateSize(), 200);
-    return () => { map.remove(); leafletRef.current = null; };
-  }, [selectedCity, loading]);
+    return () => {
+      map.remove();
+      leafletRef.current = null;
+      markerRef.current = null;
+      actualMarkerRef.current = null;
+    };
+  }, [selectedCity, loading, isMapVisible]);
+
+  useEffect(() => {
+    if (!isMapVisible || !leafletRef.current) return;
+    setTimeout(() => {
+      leafletRef.current?.invalidateSize();
+    }, 0);
+  }, [isMapVisible]);
 
   // Update marker
   useEffect(() => {
@@ -145,6 +167,9 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     if (guessPos) {
       if (markerRef.current) markerRef.current.setLatLng([guessPos.lat, guessPos.lng]);
       else markerRef.current = L.marker([guessPos.lat, guessPos.lng]).addTo(leafletRef.current);
+    } else if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
     }
   }, [guessPos]);
 
@@ -164,6 +189,8 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     const hasReachedGuessLimit = newGuesses.length >= maxAttempts;
     if (hasReachedGuessLimit) {
       setShowLocation(true);
+      setHasCompletedLocalRound(true);
+      if (isMobile) setMobileView('map');
     }
 
     // Submit best score
@@ -173,40 +200,64 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       device_id: deviceId,
       score: newBest,
       round_id: roundId,
-      meta: { city: selectedCity?.name, attempts: newGuesses.length, best_distance: Math.min(dist, ...(guesses.map(g => g.distance))) },
+      meta: {
+        city: selectedCity?.name,
+        attempts: newGuesses.length,
+        best_distance: Math.min(dist, ...(guesses.map(g => g.distance))),
+        image_thumb_url: image.thumb_url,
+        image_lat: image.lat,
+        image_lng: image.lng,
+      },
     });
-  }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore, maxAttempts, roundId]);
+  }, [guessPos, image, deviceId, guesses, settings, bestScore, playerName, selectedCity, submitScore, maxAttempts, roundId, isMobile]);
+
+  const hasLocalSession = !!selectedCity || !!image || guesses.length > 0 || showLocation || hasCompletedLocalRound;
+
+  useEffect(() => {
+    if (!todayScore || hasLocalSession || restoredFromScore) return;
+
+    const meta = (todayScore.meta ?? {}) as Record<string, unknown>;
+    const city = findCityByName(typeof meta.city === 'string' ? meta.city : null);
+    const thumbUrl = typeof meta.image_thumb_url === 'string' ? meta.image_thumb_url : null;
+    const imageLat = typeof meta.image_lat === 'number' ? meta.image_lat : null;
+    const imageLng = typeof meta.image_lng === 'number' ? meta.image_lng : null;
+
+    if (!city || !thumbUrl || imageLat == null || imageLng == null) return;
+
+    setSelectedCity(city);
+    setImage({
+      id: `saved-${todayScore.id}`,
+      lat: imageLat,
+      lng: imageLng,
+      thumb_url: thumbUrl,
+    });
+    setBestScore(todayScore.score);
+    setShowLocation(true);
+    setHasCompletedLocalRound(true);
+    setRestoredFromScore(true);
+    if (isMobile) setMobileView('map');
+  }, [todayScore, hasLocalSession, restoredFromScore, isMobile]);
 
   // When showing location, add a marker for the actual position
   useEffect(() => {
     if (!showLocation || !leafletRef.current || !image) return;
-    if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+    if (actualMarkerRef.current) {
+      actualMarkerRef.current.remove();
+      actualMarkerRef.current = null;
+    }
     const icon = L.divIcon({
       html: '<div style="background:hsl(var(--destructive));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>',
       className: '',
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     });
-    L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
+    actualMarkerRef.current = L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
     leafletRef.current.setView([image.lat, image.lng], 15);
-  }, [showLocation, image]);
-
-  const hasLocalSession = !!selectedCity || !!image || guesses.length > 0 || showLocation;
-
-  if (todayScore && !hasLocalSession) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">🏙️ City Guess</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-6 space-y-2">
-          <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
-          <p className="font-medium">You scored {todayScore.score} pts today!</p>
-          <p className="text-xs text-muted-foreground">City: {(todayScore.meta as any)?.city ?? 'Unknown'}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  }, [showLocation, image, isMapVisible, selectedCity]);
 
   if (!selectedCity) {
     return (
@@ -240,8 +291,23 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   }
 
   const attemptsLeft = maxAttempts - guesses.length;
-  const imageHeightClass = isMobile ? 'h-[30vh]' : 'h-64';
-  const mapHeightClass = isMobile ? 'h-[28vh]' : 'h-56';
+  const imageHeightClass = isMobile ? 'h-[44vh]' : 'h-[50vh]';
+  const mapHeightClass = isMobile ? 'h-[44vh]' : 'h-[50vh]';
+
+  if (todayScore && !hasLocalSession) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">🏙️ City Guess</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-6 space-y-2">
+          <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
+          <p className="font-medium">You scored {todayScore.score} pts today!</p>
+          <p className="text-xs text-muted-foreground">City: {(todayScore.meta as any)?.city ?? 'Unknown'}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -249,12 +315,13 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
         <CardTitle className="text-lg">🏙️ City Guess — {selectedCity.name}</CardTitle>
         <p className="text-xs text-muted-foreground">
           {attemptsLeft > 0
-            ? `${attemptsLeft} guess${attemptsLeft === 1 ? '' : 'es'} left. The solution appears after your second guess.`
+            ? `${maxAttempts} guesses. The solution appears after your second guess.`
             : 'Solution revealed.'}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {image && (
+        <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 items-start'}`}>
+        {image && (!isMobile || mobileView === 'image') && (
           <div className="relative">
             <div
               ref={imgContainerRef}
@@ -287,20 +354,47 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
               </Button>
             </div>
             <span className="absolute top-2 left-2 text-xs bg-secondary/80 px-1.5 py-0.5 rounded font-mono">{zoom}x</span>
+            {isMobile && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 px-4 !text-slate-900 shadow-md backdrop-blur hover:!text-slate-900"
+                onClick={() => setMobileView('map')}
+              >
+                Switch to map
+              </Button>
+            )}
           </div>
         )}
 
+        {(!isMobile || mobileView === 'map') && (
         <div className="space-y-2">
-          <div ref={mapRef} className={`${mapHeightClass} rounded-lg border z-0 relative`} />
-          {attemptsLeft > 0 ? (
+          <div className={`${mapHeightClass} rounded-lg border z-0 relative`}>
+            <div ref={mapRef} className="h-full w-full" />
+            {isMobile && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-background/95 px-4 !text-slate-900 shadow-md backdrop-blur hover:!text-slate-900"
+                onClick={() => setMobileView('image')}
+              >
+                Switch to photo
+              </Button>
+            )}
+          </div>
+          {!showLocation && attemptsLeft > 0 ? (
             <Button onClick={handleSubmitGuess} disabled={!guessPos || submitScore.isPending} className="w-full" size="sm">
               Submit guess
             </Button>
           ) : (
             <p className="text-center text-sm text-muted-foreground">
-              Solution shown on the map.
+              Solution shown on the map. You can still inspect the image and location.
             </p>
           )}
+        </div>
+        )}
         </div>
 
         {guesses.length > 0 && (

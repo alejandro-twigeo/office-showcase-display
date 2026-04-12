@@ -52,6 +52,10 @@ export function todayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function dateFromIso(iso?: string | null): string {
+  return String(iso ?? '').slice(0, 10);
+}
+
 /** Deterministic daily seed from date string */
 export function dateSeed(dateStr: string): number {
   let h = 0;
@@ -133,6 +137,44 @@ export function useMinigameLeaderboard(gameId: string, date: string) {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId, date, queryClient]);
+
+  return query;
+}
+
+/** Hook: fetch scores for a game in a specific round */
+export function useMinigameLeaderboardRound(gameId: string, roundId?: string | null) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['minigame_leaderboard_round', gameId, roundId],
+    queryFn: async () => {
+      if (!roundId) return [];
+      const { data } = await supabase
+        .from('minigame_scores' as any)
+        .select('*')
+        .eq('game_id', gameId)
+        .eq('round_id', roundId)
+        .order('score', { ascending: false });
+      return dedupeMinigameScores((data ?? []) as unknown as MinigameScoreRow[]);
+    },
+    enabled: !!roundId,
+  });
+
+  useEffect(() => {
+    if (!roundId) return;
+    const channel = supabase
+      .channel(`minigame_scores_round_${gameId}_${roundId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'minigame_scores',
+        filter: `game_id=eq.${gameId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['minigame_leaderboard_round', gameId, roundId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [gameId, roundId, queryClient]);
 
   return query;
 }

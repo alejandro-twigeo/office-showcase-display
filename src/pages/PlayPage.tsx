@@ -8,7 +8,6 @@ import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { NewsSection } from '../components/play/NewsSection';
-import { Leaderboard } from '../components/dashboard/Leaderboard';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
@@ -59,6 +58,7 @@ export default function PlayPage() {
   const [activeTab, setActiveTab] = useState<TabValue>('guess');
   const [showProfile, setShowProfile] = useState(false);
   const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('other');
+  const [gamesResetKey, setGamesResetKey] = useState(0);
 
   usePresenceTrack('app', {
     deviceId,
@@ -200,6 +200,7 @@ export default function PlayPage() {
                     setActiveTab(value);
                     if (value === 'guess') {
                       setGamesSubTab('other');
+                      setGamesResetKey((key) => key + 1);
                     }
                   }}
                   className={`desktop-target-nav ${activeTab === value ? 'desktop-target-nav-active' : ''}`}
@@ -280,8 +281,7 @@ export default function PlayPage() {
             <div className="space-y-4">
               <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
                 setGamesSubTab(tab);
-              }} forcedTab={gamesSubTab} />
-              {gamesSubTab !== 'other' && <Leaderboard />}
+              }} forcedTab={gamesSubTab} resetKey={gamesResetKey} />
             </div>
           )}
           {activeTab === 'polls' && <PollSection playerName={player.name} />}

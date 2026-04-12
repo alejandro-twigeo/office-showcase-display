@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MapPin, Target, Check, AlertCircle, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Gamepad2 } from "lucide-react";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
@@ -26,6 +27,7 @@ interface GuessMapProps {
   onMinigameChange?: (gameId: string | null) => void;
   hideOtherGames?: boolean;
   forcedTab?: 'easy' | 'hard' | 'other' | null;
+  resetKey?: number;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -46,9 +48,11 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 function LeafletMap({
   onMapClick,
   markerPosition,
+  centerOnMarker = false,
 }: {
   onMapClick: (lat: number, lng: number) => void;
   markerPosition: { lat: number; lng: number } | null;
+  centerOnMarker?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -82,17 +86,20 @@ function LeafletMap({
       } else {
         markerRef.current = L.marker([markerPosition.lat, markerPosition.lng]).addTo(mapRef.current);
       }
+      if (centerOnMarker) {
+        mapRef.current.setView([markerPosition.lat, markerPosition.lng], Math.max(mapRef.current.getZoom(), 5));
+      }
     } else if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
     }
-  }, [markerPosition]);
+  }, [markerPosition, centerOnMarker]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
 /** Zoomable image with pan + pinch-to-zoom support */
-function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+function ZoomableImage({ src, alt, heightClass = "h-[25vh] lg:h-full" }: { src: string; alt: string; heightClass?: string }) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -155,7 +162,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
     <div className="relative w-full h-full">
       <div
         ref={containerRef}
-        className="w-full h-[25vh] lg:h-full overflow-hidden rounded-lg border bg-black touch-none select-none"
+        className={`w-full overflow-hidden rounded-lg border bg-black touch-none select-none ${heightClass}`}
         style={{ cursor: dragging.current ? 'grabbing' : 'grab' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -197,6 +204,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   onCreateRound: (d: Difficulty) => void;
   isCreating: boolean;
 }) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const { activeLocation } = useActiveLocation(difficulty);
   const { userGuesses, submitGuess, remainingGuesses } = useUserGuesses(
@@ -206,6 +214,8 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
     settings.max_guesses_per_challenge ?? undefined
   );
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [mobileView, setMobileView] = useState<'image' | 'map'>('image');
+  const previousCanGuessRef = useRef<boolean | null>(null);
 
   const handleMapClick = useCallback(
     (lat: number, lng: number) => {
@@ -240,6 +250,34 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   const canGuess = settings.max_guesses_per_challenge == null || remainingGuesses > 0;
   const [showLocation, setShowLocation] = useState(false);
 
+  useEffect(() => {
+    if (isMobile && showLocation) {
+      setMobileView('map');
+    }
+  }, [isMobile, showLocation]);
+
+  useEffect(() => {
+    if (isMobile) {
+      setMobileView('image');
+    }
+  }, [difficulty, isMobile]);
+
+  useEffect(() => {
+    if (!canGuess && !showLocation) {
+      setShowLocation(true);
+    }
+  }, [canGuess, showLocation]);
+
+  useEffect(() => {
+    if (previousCanGuessRef.current === true && !canGuess) {
+      setShowLocation(true);
+      if (isMobile) {
+        setMobileView('map');
+      }
+    }
+    previousCanGuessRef.current = canGuess;
+  }, [canGuess, isMobile]);
+
   if (!activeLocation) {
     return (
       <div className="text-center py-6">
@@ -251,23 +289,54 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
 
   return (
     <div className="space-y-2">
-      {/* Desktop: image left, map right. Mobile: stacked */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        {/* Image */}
-        {activeLocation.pano_id && (
-          <div className="lg:h-[50vh]">
-            <ZoomableImage src={activeLocation.pano_id} alt="mystery" />
+        {activeLocation.pano_id && (!isMobile || mobileView === 'image') && (
+          <div className="relative lg:h-[50vh]">
+            <ZoomableImage
+              src={activeLocation.pano_id}
+              alt="mystery"
+              heightClass={isMobile ? 'h-[44vh]' : 'h-[25vh] lg:h-full'}
+            />
+            {isMobile && (
+              <Button
+                type="button"
+                size="sm"
+                className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 px-4 !text-slate-900 shadow-md backdrop-blur hover:!text-slate-900"
+                onClick={() => {
+                  if (!canGuess) {
+                    setShowLocation(true);
+                  }
+                  setMobileView('map');
+                }}
+              >
+                Switch to map
+              </Button>
+            )}
           </div>
         )}
 
-        {/* Map */}
-        {(canGuess || showLocation) && (
-          <div className="h-[22vh] lg:h-[50vh] overflow-hidden rounded-lg border relative">
-            <LeafletMap onMapClick={canGuess ? handleMapClick : () => {}} markerPosition={showLocation ? { lat: activeLocation.lat, lng: activeLocation.lng } : selectedPosition} />
+        {(canGuess || showLocation) && (!isMobile || mobileView === 'map') && (
+          <div className={`${isMobile ? 'h-[44vh]' : 'h-[22vh]'} lg:h-[50vh] overflow-hidden rounded-lg border relative`}>
+            <LeafletMap
+              onMapClick={canGuess ? handleMapClick : () => {}}
+              markerPosition={showLocation ? { lat: activeLocation.lat, lng: activeLocation.lng } : selectedPosition}
+              centerOnMarker={showLocation}
+            />
             {showLocation && (
               <div className="absolute top-2 left-2 z-[1000] bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-semibold shadow-lg">
                 📍 Actual location
               </div>
+            )}
+            {isMobile && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-background/95 px-4 !text-slate-900 shadow-md backdrop-blur hover:!text-slate-900"
+                onClick={() => setMobileView('image')}
+              >
+                Switch to photo
+              </Button>
             )}
           </div>
         )}
@@ -282,7 +351,9 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
                 {selectedPosition.lat.toFixed(4)}, {selectedPosition.lng.toFixed(4)}
               </span>
             ) : (
-              <span className="text-sm text-muted-foreground">Tap the map to place your marker</span>
+              <span className="text-sm text-muted-foreground">
+                {isMobile && mobileView === 'image' ? 'Switch to the map to place your marker' : 'Tap the map to place your marker'}
+              </span>
             )}
           </div>
 
@@ -299,12 +370,6 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
         <div className="text-center py-3 space-y-2">
           <Check className="h-8 w-8 text-primary mx-auto" />
           <p className="text-sm font-medium">No more guesses!</p>
-          {!showLocation && (
-            <Button variant="outline" size="sm" onClick={() => setShowLocation(true)} className="gap-1.5">
-              <MapPin className="h-4 w-4" />
-              Show Location
-            </Button>
-          )}
         </div>
       )}
 
@@ -317,15 +382,12 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
             const multiplier = settings.attempt_multipliers[Math.min(attemptIdx, settings.attempt_multipliers.length - 1)];
             const distanceText = guess.distance_km < 1
               ? `${Math.round(guess.distance_km * 1000)} m away`
-              : `${Math.round(guess.distance_km)} km away`;
+              : `${Math.round(guess.distance_km).toLocaleString('en-US')} km away`;
             return (
-              <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1.5 rounded space-y-0.5">
+              <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1.5 rounded">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">#{i + 1}</span>
+                  <span className="font-medium">#{i + 1} · {distanceText}</span>
                   <span className="font-mono font-semibold text-accent">{score} pts</span>
-                </div>
-                <div className="text-muted-foreground">
-                  {distanceText} · Attempt {guess.guess_number ?? 1}
                 </div>
               </div>
             );
@@ -336,12 +398,16 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames, forcedTab = null }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames, forcedTab = null, resetKey = 0 }: GuessMapProps) {
+  const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const { settings } = useScoring();
   const { activeRound } = useRounds();
   const miniGameRef = useRef<MiniGamesSelectorHandle>(null);
-  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>('other');
+  const lastHandledResetKey = useRef(0);
+  const [activeTab, setActiveTabInternal] = useState<'easy' | 'hard' | 'other'>(() => (
+    hideOtherGames ? 'easy' : 'other'
+  ));
   const [insideMiniGame, setInsideMiniGame] = useState(false);
   const setActiveTab = (tab: 'easy' | 'hard' | 'other') => {
     setActiveTabInternal(tab);
@@ -362,8 +428,18 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
     }
   }, [forcedTab, onActiveTabChange]);
 
+  useEffect(() => {
+    if (resetKey === 0 || resetKey === lastHandledResetKey.current) return;
+    lastHandledResetKey.current = resetKey;
+    setActiveTabInternal('other');
+    onActiveTabChange?.('other');
+    miniGameRef.current?.reset();
+    setInsideMiniGame(false);
+  }, [resetKey, onActiveTabChange]);
+
   return (
     <Card>
+      {!isMobile && (
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -418,6 +494,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
           </div>
         </div>
       </CardHeader>
+      )}
 
       <style>{`
         @keyframes other-games-grainient {
@@ -434,23 +511,28 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
         }
       `}</style>
 
-      <CardContent className="space-y-4">
+      <CardContent className={isMobile ? "space-y-3 pt-3 pb-3" : "space-y-4"}>
         {activeTab !== 'other' ? (
           <>
             {/* Geo-Easy / Geo-Hard tabs */}
-            <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
-              <button onClick={() => setActiveTab('easy')}
-                className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                  activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-                }`}>
-                <Binoculars className="h-4 w-4 text-green-500" /> Geo-Easy
-              </button>
-              <button onClick={() => setActiveTab('hard')}
-                className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-                  activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
-                }`}>
-                <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
-              </button>
+            <div className={isMobile ? "flex items-center gap-2" : ""}>
+              {isMobile && (
+                <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Level</p>
+              )}
+              <div className={`grid grid-cols-2 gap-1 bg-muted rounded-lg ${isMobile ? 'flex-1 p-0.5' : 'p-1'}`}>
+                <button onClick={() => setActiveTab('easy')}
+                  className={`flex items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-all ${isMobile ? 'px-2 py-1.5' : 'px-3 py-1.5'} ${
+                    activeTab === 'easy' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+                  }`}>
+                  <Binoculars className="h-4 w-4 text-green-500" /> Geo-Easy
+                </button>
+                <button onClick={() => setActiveTab('hard')}
+                  className={`flex items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-all ${isMobile ? 'px-2 py-1.5' : 'px-3 py-1.5'} ${
+                    activeTab === 'hard' ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50' : 'text-muted-foreground'
+                  }`}>
+                  <Brain className="h-4 w-4 text-red-500" /> Geo-Hard
+                </button>
+              </div>
             </div>
             <DifficultyGuessPanel
               key={activeTab}

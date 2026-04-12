@@ -229,7 +229,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
-            🟩 Wordle — Round {roundNumber}
+            🟩 Wordle
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-6 space-y-2">
@@ -255,7 +255,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          🟩 Wordle — Round {roundNumber}
+          🟩 Wordle
         </CardTitle>
         <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts.</p>
       </CardHeader>

@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMinigameLeaderboard, useMinigameDates, todayDate } from '@/hooks/useMinigameScore';
+import { dateFromIso, useMinigameLeaderboardRound, todayDate } from '@/hooks/useMinigameScore';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLeaderboardPlayerCount } from '@/hooks/useGameIcons';
+import { useRounds } from '@/hooks/useRounds';
 
 interface Props {
   gameId: string;
@@ -17,19 +18,20 @@ interface Props {
 }
 
 export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta, dashboard = false, progressBar }: Props) {
-  const { data: dates = [] } = useMinigameDates(gameId);
+  const { rounds } = useRounds();
   const { data: leaderboardPlayerCount = 3 } = useLeaderboardPlayerCount();
-  const [dateIdx, setDateIdx] = useState(0);
+  const [roundIdx, setRoundIdx] = useState(0);
 
-  const allDates = useMemo(() => {
-    const today = todayDate();
-    if (dates.length === 0) return [today];
-    if (!dates.includes(today)) return [today, ...dates];
-    return dates;
-  }, [dates]);
+  const sortedRounds = useMemo(
+    () => [...rounds].sort((a, b) => {
+      if (b.round_number !== a.round_number) return b.round_number - a.round_number;
+      return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    }),
+    [rounds]
+  );
 
-  const selectedDate = allDates[dateIdx] ?? todayDate();
-  const { data: scores = [] } = useMinigameLeaderboard(gameId, selectedDate);
+  const selectedRound = sortedRounds[roundIdx] ?? null;
+  const { data: scores = [] } = useMinigameLeaderboardRound(gameId, selectedRound?.id);
 
   const { data: players } = useQuery({
     queryKey: ['players-avatars'],
@@ -40,9 +42,18 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
   });
   const avatarMap = new Map(players?.map(p => [p.name, p.avatar]) ?? []);
 
-  const canGoPrev = dateIdx < allDates.length - 1;
-  const canGoNext = dateIdx > 0;
+  const canGoPrev = roundIdx < sortedRounds.length - 1;
+  const canGoNext = roundIdx > 0;
   const visibleScores = scores.slice(0, leaderboardPlayerCount);
+
+  const label = useMemo(() => {
+    if (!selectedRound) return 'Today';
+    const roundDate = dateFromIso(selectedRound.created_at);
+    const today = todayDate();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const prefix = roundDate === today ? 'Today' : roundDate === yesterday ? 'Yesterday' : roundDate;
+    return `${prefix} · Round ${selectedRound.round_number}`;
+  }, [selectedRound]);
 
   const getRankIcon = (r: number) => {
     if (r === 1) return <Trophy className="h-5 w-5 text-warning" />;
@@ -61,14 +72,14 @@ export function MinigameLeaderboard({ gameId, title, emoji = '🏆', formatMeta,
         {!dashboard && (
           <div className="flex items-center justify-between mt-1">
             <Button variant="ghost" size="icon" className="h-6 w-6"
-              onClick={() => setDateIdx(i => i + 1)} disabled={!canGoPrev}>
+              onClick={() => setRoundIdx(i => i + 1)} disabled={!canGoPrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-xs font-medium text-muted-foreground">
-              {selectedDate === todayDate() ? 'Today' : selectedDate}
+              {label}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6"
-              onClick={() => setDateIdx(i => i - 1)} disabled={!canGoNext}>
+              onClick={() => setRoundIdx(i => i - 1)} disabled={!canGoNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
-import { dedupeMinigameScores, todayDate, type MinigameScoreRow } from '@/hooks/useMinigameScore';
+import { dateFromIso, dedupeMinigameScores, todayDate, type MinigameScoreRow } from '@/hooks/useMinigameScore';
 import { MINI_GAMES } from './miniGamesList';
 import { calculateScore, calculateWordleScore, useScoring } from '@/hooks/useScoring';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLeaderboardPlayerCount } from '@/hooks/useGameIcons';
+import { useRounds, type Round } from '@/hooks/useRounds';
 
 interface TopPlayer {
   player_name: string;
@@ -33,59 +34,23 @@ for (const g of MINI_GAMES) {
 GAME_LABELS['wordle'] = GAME_LABELS['wordle'] || { emoji: '🟩', name: 'Wordle' };
 GAME_LABELS['geoguessr'] = { emoji: '📍', name: 'GeoGuessr' };
 
-function useAllLeaderboardDates() {
-  return useQuery({
-    queryKey: ['all-game-leaderboard-dates'],
-    queryFn: async () => {
-      const [{ data: minigameDates }, { data: wordleDates }, { data: guessDates }] = await Promise.all([
-        supabase.from('minigame_scores').select('date'),
-        supabase.from('wordle_scores').select('created_at'),
-        supabase.from('guesses').select('created_at'),
-      ]);
-
-      const allDates = new Set<string>();
-      for (const row of minigameDates ?? []) {
-        if ((row as any).date) allDates.add((row as any).date);
-      }
-      for (const row of wordleDates ?? []) {
-        if ((row as any).created_at) allDates.add(String((row as any).created_at).slice(0, 10));
-      }
-      for (const row of guessDates ?? []) {
-        if ((row as any).created_at) allDates.add(String((row as any).created_at).slice(0, 10));
-      }
-
-      allDates.add(todayDate());
-      return [...allDates].sort((a, b) => b.localeCompare(a));
-    },
-    refetchInterval: 30000,
-  });
-}
-
-function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<typeof useScoring>['settings']) {
+function usePlayersAllGames(selectedRound: Round | null, distanceSettings: ReturnType<typeof useScoring>['settings']) {
   return useQuery({
     queryKey: [
       'all-game-leaderboards',
-      selectedDate,
+      selectedRound?.id,
       distanceSettings.distance_parameter,
       JSON.stringify(distanceSettings.attempt_multipliers),
       JSON.stringify(distanceSettings.difficulty_weights),
     ],
     queryFn: async () => {
-      const dateStart = `${selectedDate}T00:00:00.000Z`;
-      const dateEnd = `${selectedDate}T23:59:59.999Z`;
+      if (!selectedRound?.id) return new Map<string, TopPlayer[]>();
 
-      const [{ data: rawScores }, { data: rounds }] = await Promise.all([
-        supabase
-          .from('minigame_scores')
-          .select('id, game_id, date, player_name, device_id, score, meta, created_at, round_id')
-          .eq('date', selectedDate)
-          .order('score', { ascending: false }),
-        supabase
-          .from('rounds')
-          .select('id, round_number, is_active, created_at')
-          .gte('created_at', dateStart)
-          .lte('created_at', dateEnd),
-      ]);
+      const { data: rawScores } = await supabase
+        .from('minigame_scores')
+        .select('id, game_id, date, player_name, device_id, score, meta, created_at, round_id')
+        .eq('round_id', selectedRound.id)
+        .order('score', { ascending: false });
 
       // Fetch avatars
       const { data: players } = await supabase.from('players').select('name, avatar');
@@ -108,18 +73,7 @@ function usePlayersAllGames(selectedDate: string, distanceSettings: ReturnType<t
         })));
       }
 
-      const sortedRounds = [...(rounds ?? [])].sort((a, b) => {
-        if ((b.round_number ?? 0) !== (a.round_number ?? 0)) {
-          return (b.round_number ?? 0) - (a.round_number ?? 0);
-        }
-        return String(b.created_at ?? '').localeCompare(String(a.created_at ?? ''));
-      });
-
-      const selectedRound = selectedDate === todayDate()
-        ? sortedRounds.find((round) => round.is_active) ?? sortedRounds[0]
-        : sortedRounds[0];
-
-      if (selectedRound?.id) {
+      if (selectedRound.id) {
         const { data: wordleScores } = await supabase
           .from('wordle_scores')
           .select('player_name, attempts, solved')
@@ -218,26 +172,35 @@ const RANK_COLORS = [
 export function MiniGamesLeaderboardGrid() {
   const { settings } = useScoring();
   const { data: leaderboardPlayerCount = 3 } = useLeaderboardPlayerCount();
-  const { data: dates = [], isLoading: isLoadingDates } = useAllLeaderboardDates();
-  const [dateIdx, setDateIdx] = useState(0);
+  const { rounds, isLoading: isLoadingRounds } = useRounds();
+  const [roundIdx, setRoundIdx] = useState(0);
 
-  const allDates = useMemo(() => {
+  const sortedRounds = useMemo(
+    () => [...rounds].sort((a, b) => {
+      if (b.round_number !== a.round_number) return b.round_number - a.round_number;
+      return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    }),
+    [rounds]
+  );
+
+  const selectedRound = sortedRounds[roundIdx] ?? null;
+  const { data: gameData, isLoading } = usePlayersAllGames(selectedRound, settings);
+  const selectedRoundLabel = useMemo(() => {
+    if (!selectedRound) return 'Today';
+    const roundDate = dateFromIso(selectedRound.created_at);
     const today = todayDate();
-    if (dates.length === 0) return [today];
-    if (!dates.includes(today)) return [today, ...dates];
-    return dates;
-  }, [dates]);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const prefix = roundDate === today ? 'Today' : roundDate === yesterday ? 'Yesterday' : roundDate;
+    return `${prefix} · Round ${selectedRound.round_number}`;
+  }, [selectedRound]);
 
-  const selectedDate = allDates[dateIdx] ?? todayDate();
-  const { data: gameData, isLoading } = usePlayersAllGames(selectedDate, settings);
-
-  if (isLoading || isLoadingDates) return null;
+  if (isLoading || isLoadingRounds) return null;
 
   const games = gameData ? [...gameData.entries()].filter(([, players]) => players.length > 0) : [];
   if (games.length === 0) return null;
 
-  const canGoPrev = dateIdx < allDates.length - 1;
-  const canGoNext = dateIdx > 0;
+  const canGoPrev = roundIdx < sortedRounds.length - 1;
+  const canGoNext = roundIdx > 0;
 
   return (
     <div>
@@ -247,13 +210,13 @@ export function MiniGamesLeaderboardGrid() {
           Game Leaderboards
         </p>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDateIdx(i => i + 1)} disabled={!canGoPrev}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setRoundIdx(i => i + 1)} disabled={!canGoPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-xs font-medium text-muted-foreground min-w-[5rem] text-center">
-            {selectedDate === todayDate() ? 'Today' : selectedDate}
+            {selectedRoundLabel}
           </span>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDateIdx(i => i - 1)} disabled={!canGoNext}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setRoundIdx(i => i - 1)} disabled={!canGoNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
