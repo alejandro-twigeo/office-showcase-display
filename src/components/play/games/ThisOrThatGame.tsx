@@ -54,8 +54,8 @@ const FALLBACK_QUESTIONS: Question[] = [
   { prompt: 'Which country is larger by area?', a: 'Australia', b: 'India', correct: 'a', category: 'Geography' },
 ];
 
-function pickFallbackQuestions(): Question[] {
-  const seed = dateSeed(todayDate());
+function pickFallbackQuestions(seedKey: string): Question[] {
+  const seed = dateSeed(seedKey);
   const rng = seededRandom(seed);
   const shuffled = [...FALLBACK_QUESTIONS].sort(() => rng() - 0.5);
   return shuffled.slice(0, 5).map(q => {
@@ -66,8 +66,8 @@ function pickFallbackQuestions(): Question[] {
   });
 }
 
-function swapAnswerPositions(questions: Question[]): Question[] {
-  const seed = dateSeed(todayDate());
+function swapAnswerPositions(questions: Question[], seedKey: string): Question[] {
+  const seed = dateSeed(seedKey);
   const rng = seededRandom(seed);
   return questions.map(q => {
     if (rng() > 0.5) {
@@ -75,6 +75,14 @@ function swapAnswerPositions(questions: Question[]): Question[] {
     }
     return q;
   });
+}
+
+function selectRoundQuestions(baseQuestions: Question[], seedKey: string): Question[] {
+  const seed = dateSeed(`${seedKey}-questions`);
+  const rng = seededRandom(seed);
+  const deduped = [...new Map([...baseQuestions, ...FALLBACK_QUESTIONS].map((q) => [q.prompt, q])).values()];
+  const shuffled = [...deduped].sort(() => rng() - 0.5);
+  return swapAnswerPositions(shuffled.slice(0, 5), `${seedKey}-answers`);
 }
 
 interface ThisOrThatGameProps {
@@ -187,6 +195,7 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
   const [showResult, setShowResult] = useState<{ correct: boolean; correctAnswer: string } | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<AnswerChoice | null>(null);
   const [done, setDone] = useState(false);
+  const seedKey = roundId ?? todayDate();
 
   useEffect(() => {
     let cancelled = false;
@@ -195,29 +204,36 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
       try {
         const today = todayDate();
 
-        // Try fetching from DB first
-        const { data: cached } = await supabase
+        const cacheQuery = supabase
           .from('daily_thisorthat')
-          .select('questions')
-          .eq('run_date', today)
-          .single();
+          .select('questions');
+
+        const { data: cached } = roundId
+          ? await cacheQuery.eq('round_id', roundId).maybeSingle()
+          : await cacheQuery.eq('run_date', today).maybeSingle();
 
         if (cached?.questions && (cached.questions as unknown as any[]).length >= 5) {
           if (!cancelled) {
-            setQuestions(swapAnswerPositions(cached.questions as unknown as Question[]));
+            setQuestions(
+              roundId
+                ? (cached.questions as unknown as Question[])
+                : selectRoundQuestions(cached.questions as unknown as Question[], seedKey)
+            );
             setLoading(false);
           }
           return;
         }
 
         // Generate via edge function
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('generate-thisorthat');
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('generate-thisorthat', {
+          body: roundId ? { roundId } : {},
+        });
 
         if (fnError) throw fnError;
 
         if (fnData?.questions && fnData.questions.length >= 5) {
           if (!cancelled) {
-            setQuestions(swapAnswerPositions(fnData.questions as Question[]));
+            setQuestions(fnData.questions as Question[]);
             setLoading(false);
           }
           return;
@@ -227,15 +243,22 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
       } catch (err) {
         console.error('Failed to fetch This or That questions, using fallback:', err);
         if (!cancelled) {
-          setQuestions(pickFallbackQuestions());
+          setQuestions(pickFallbackQuestions(seedKey));
           setLoading(false);
         }
       }
     }
 
+    setLoading(true);
+    setQuestions(null);
+    setCurrentQ(0);
+    setAnswers([]);
+    setShowResult(null);
+    setSelectedChoice(null);
+    setDone(false);
     fetchQuestions();
     return () => { cancelled = true; };
-  }, []);
+  }, [seedKey, roundId]);
 
   const handleAnswer = useCallback(async (choice: AnswerChoice) => {
     if (!questions || selectedChoice || showResult) return;

@@ -73,13 +73,13 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
   const submitScore = useSubmitMinigameScore();
 
   const { solved, puzzle } = useMemo(() => {
-    const seed = dateSeed(todayDate());
+    const seed = dateSeed(roundId ?? todayDate());
     const rng = seededRandom(seed + 2);
     const s = generateSolved(rng);
     // Medium: remove 18 of 36 cells
     const p = createPuzzle(s, rng, 18);
     return { solved: s, puzzle: p };
-  }, []);
+  }, [roundId]);
 
   const [grid, setGrid] = useState<Grid>(() => puzzle.map(r => [...r]));
   const [selectedCell, setSelectedCell] = useState<{ r: number; c: number } | null>(null);

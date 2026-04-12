@@ -17,14 +17,18 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const today = new Date().toISOString().slice(0, 10);
+    const roundId = typeof body?.roundId === "string" && body.roundId.length > 0 ? body.roundId : null;
 
-    // Check if already generated today
-    const { data: existing } = await supabase
+    // Check if already generated for this round, otherwise fall back to daily cache mode.
+    const existingQuery = supabase
       .from("daily_thisorthat")
-      .select("questions")
-      .eq("run_date", today)
-      .single();
+      .select("questions");
+
+    const { data: existing } = roundId
+      ? await existingQuery.eq("round_id", roundId).maybeSingle()
+      : await existingQuery.eq("run_date", today).maybeSingle();
 
     if (existing?.questions && (existing.questions as any[]).length >= 5) {
       return new Response(JSON.stringify({ questions: existing.questions, cached: true }), {
@@ -35,8 +39,8 @@ Deno.serve(async (req) => {
     // Fetch recent questions to avoid repetition
     const { data: recentRows } = await supabase
       .from("daily_thisorthat")
-      .select("questions, run_date")
-      .order("run_date", { ascending: false })
+      .select("questions, run_date, created_at")
+      .order("created_at", { ascending: false })
       .limit(7);
 
     const recentPrompts: string[] = [];
@@ -143,7 +147,12 @@ Deno.serve(async (req) => {
     // Upsert into DB
     const { error: upsertErr } = await supabase
       .from("daily_thisorthat")
-      .upsert({ run_date: today, questions }, { onConflict: "run_date" });
+      .upsert(
+        roundId
+          ? { run_date: today, round_id: roundId, questions }
+          : { run_date: today, questions },
+        { onConflict: roundId ? "round_id" : "run_date" }
+      );
 
     if (upsertErr) {
       console.error("Upsert error:", upsertErr);

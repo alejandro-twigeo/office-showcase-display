@@ -125,7 +125,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     setMobileView('image');
     setLoading(true);
     try {
-      const img = await fetchMapillaryCity(city.lat, city.lng);
+      const img = await fetchMapillaryCity(city.lat, city.lng, `${roundId ?? 'no-round'}-${city.name}`);
       setImage(img);
     } catch (e) {
       console.error('Failed to load city image', e);

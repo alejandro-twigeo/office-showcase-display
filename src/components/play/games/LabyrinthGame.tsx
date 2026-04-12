@@ -190,9 +190,9 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const submitScore = useSubmitMinigameScore();
 
   const puzzle = useMemo(() => {
-    const seed = dateSeed(todayDate());
+    const seed = dateSeed(roundId ?? todayDate());
     return generateZipPuzzle(seededRandom(seed + 4));
-  }, []);
+  }, [roundId]);
 
   const [path, setPath] = useState<[number, number][]>([]);
   const [started, setStarted] = useState(false);
@@ -308,7 +308,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       setDone(true);
       clearInterval(timerRef.current);
       const time = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
-      const score = Math.max(1, Math.round(settings.labyrinth_max_points / (1 + time / settings.labyrinth_time_param)));
+      const score = Math.max(1, Math.round(settings.labyrinth_max_points / (1 + time / (settings.labyrinth_time_param * 2))));
       await submitScore.mutateAsync({
         game_id: GAME_ID,
         player_name: playerName,

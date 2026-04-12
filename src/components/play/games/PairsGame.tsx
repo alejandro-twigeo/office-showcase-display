@@ -23,10 +23,10 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
   const submitScore = useSubmitMinigameScore();
 
   const tiles = useMemo(() => {
-    const seed = dateSeed(todayDate());
+    const seed = dateSeed(roundId ?? todayDate());
     const pairs = [...EMOJIS, ...EMOJIS]; // 20 tiles = 10 pairs
     return seededShuffle(pairs, seed);
-  }, []);
+  }, [roundId]);
 
   const [revealed, setRevealed] = useState<number[]>([]);
   const [matched, setMatched] = useState<Set<number>>(new Set());
