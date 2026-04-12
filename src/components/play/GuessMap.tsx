@@ -44,6 +44,13 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
+function distanceScalePercent(distanceKm: number): number {
+  const maxDistance = 20000;
+  const normalized = Math.log10(Math.min(Math.max(distanceKm, 0), maxDistance) + 1) / Math.log10(maxDistance + 1);
+  const closeness = 1 - normalized;
+  return Math.round(12 + closeness * 88);
+}
+
 /** Pure Leaflet map */
 function LeafletMap({
   onMapClick,
@@ -263,10 +270,10 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   }, [difficulty, isMobile]);
 
   useEffect(() => {
-    if (!canGuess && !showLocation) {
+    if (!isMobile && !canGuess && !showLocation) {
       setShowLocation(true);
     }
-  }, [canGuess, showLocation]);
+  }, [canGuess, showLocation, isMobile]);
 
   useEffect(() => {
     if (previousCanGuessRef.current === true && !canGuess) {
@@ -367,9 +374,14 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
           </Button>
         </>
       ) : (
-        <div className="text-center py-3 space-y-2">
-          <Check className="h-8 w-8 text-primary mx-auto" />
-          <p className="text-sm font-medium">No more guesses!</p>
+        <div className="flex items-center gap-3 rounded-lg border bg-secondary/30 px-3 py-2">
+          <div className="flex shrink-0 items-center gap-2 text-primary">
+            <Check className="h-5 w-5" />
+            <span className="text-sm font-medium whitespace-nowrap">No more guesses</span>
+          </div>
+          <div className="min-w-0 text-xs text-muted-foreground">
+            Solution is shown on the map.
+          </div>
         </div>
       )}
 
@@ -378,14 +390,18 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
           <p className="text-xs text-muted-foreground font-medium">Your guesses:</p>
           {userGuesses.map((guess, i) => {
             const score = calculateScore(guess.distance_km, guess.guess_number, settings);
-            const attemptIdx = (guess.guess_number ?? 1) - 1;
-            const multiplier = settings.attempt_multipliers[Math.min(attemptIdx, settings.attempt_multipliers.length - 1)];
             const distanceText = guess.distance_km < 1
               ? `${Math.round(guess.distance_km * 1000)} m away`
               : `${Math.round(guess.distance_km).toLocaleString('en-US')} km away`;
+            const scaleWidth = distanceScalePercent(guess.distance_km);
             return (
-              <div key={guess.id} className="text-xs bg-secondary/50 px-2 py-1.5 rounded">
-                <div className="flex justify-between items-center">
+              <div key={guess.id} className="relative overflow-hidden rounded bg-secondary/50 px-2 py-1.5 text-xs">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 rounded-r border-r border-sky-600/55 bg-sky-500/45"
+                  style={{ width: `${scaleWidth}%` }}
+                />
+                <div className="relative z-10 flex justify-between items-center">
                   <span className="font-medium">#{i + 1} · {distanceText}</span>
                   <span className="font-mono font-semibold text-accent">{score} pts</span>
                 </div>
