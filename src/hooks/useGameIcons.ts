@@ -1,10 +1,14 @@
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export type GameIcons = Record<string, string>; // gameId -> public URL
 export const LEADERBOARD_PLAYER_COUNT_KEY = '__leaderboard_player_count';
 export const SUDOKU_HINT_PENALTY_KEY = '__sudoku_hint_penalty';
+export const TV_FEATURE_MODE_KEY = '__tv_feature_mode';
+export const TV_FLOW_FULLSCREEN_KEY = '__tv_flow_fullscreen';
 const DEFAULT_LEADERBOARD_PLAYER_COUNT = 3;
+const DEFAULT_TV_FEATURE_MODE = 'polls';
 
 function stripReservedKeys(rawIcons: GameIcons): GameIcons {
   return Object.fromEntries(
@@ -14,6 +18,22 @@ function stripReservedKeys(rawIcons: GameIcons): GameIcons {
 
 export function useGameIcons() {
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`game_icons_rt_${Math.random()}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scoring_settings' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['game_icons'] });
+        queryClient.invalidateQueries({ queryKey: ['leaderboard_player_count'] });
+        queryClient.invalidateQueries({ queryKey: ['tv_feature_mode'] });
+        queryClient.invalidateQueries({ queryKey: ['tv_flow_fullscreen'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const query = useQuery({
     queryKey: ['game_icons'],
@@ -90,6 +110,37 @@ export function useLeaderboardPlayerCount() {
       const rawIcons = ((data as any)?.game_icons ?? {}) as Record<string, unknown>;
       const count = Number(rawIcons[LEADERBOARD_PLAYER_COUNT_KEY] ?? DEFAULT_LEADERBOARD_PLAYER_COUNT);
       return Number.isFinite(count) && count > 0 ? count : DEFAULT_LEADERBOARD_PLAYER_COUNT;
+    },
+  });
+}
+
+export function useTvFeatureMode() {
+  return useQuery({
+    queryKey: ['tv_feature_mode'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('scoring_settings' as any)
+        .select('game_icons')
+        .eq('id', 1)
+        .single();
+      const rawIcons = ((data as any)?.game_icons ?? {}) as Record<string, unknown>;
+      const mode = rawIcons[TV_FEATURE_MODE_KEY];
+      return mode === 'flow' ? 'flow' : DEFAULT_TV_FEATURE_MODE;
+    },
+  });
+}
+
+export function useTvFlowFullscreen() {
+  return useQuery({
+    queryKey: ['tv_flow_fullscreen'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('scoring_settings' as any)
+        .select('game_icons')
+        .eq('id', 1)
+        .single();
+      const rawIcons = ((data as any)?.game_icons ?? {}) as Record<string, unknown>;
+      return rawIcons[TV_FLOW_FULLSCREEN_KEY] === true;
     },
   });
 }

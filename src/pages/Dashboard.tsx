@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { StreetViewDisplay } from "@/components/dashboard/StreetViewDisplay";
 import { NewsDisplay } from "@/components/dashboard/NewsDisplay";
-import { PollDisplay } from "@/components/dashboard/PollDisplay";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { PositiveMessagesBanner } from "@/components/dashboard/PositiveMessagesBanner";
 import { PlantStatus } from "@/components/dashboard/PlantStatus";
+import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { usePresenceTrack } from "@/hooks/usePresenceCount";
+import { useTvFeatureMode, useTvFlowFullscreen } from "@/hooks/useGameIcons";
 
 /**
  * When "Desktop mode" is active on a small screen we render the full
@@ -43,6 +44,9 @@ export default function Dashboard() {
   const deviceId = useDeviceId();
   const [forceDesktop, setForceDesktop] = useState(false);
   const zoom = useDesktopZoom(forceDesktop);
+  const { data: tvFeatureMode = "polls" } = useTvFeatureMode();
+  const { data: tvFlowFullscreen = false } = useTvFlowFullscreen();
+  const showFlowFullscreen = tvFeatureMode === "flow" && tvFlowFullscreen;
 
   usePresenceTrack("app", {
     deviceId,
@@ -90,16 +94,22 @@ export default function Dashboard() {
               </div>
             </header>
 
-            <div className="min-h-0 grid grid-rows-[1fr_1fr] gap-3">
-              <div className="min-h-0 grid grid-cols-3 gap-3">
-                <div className="min-h-0 overflow-hidden rounded-xl"><YouTubeDisplay /></div>
-                <div className="min-h-0 overflow-hidden rounded-xl"><NewsDisplay /></div>
-                <div className="min-h-0 overflow-hidden rounded-xl"><PollDisplay /></div>
-              </div>
+            {showFlowFullscreen ? (
               <div className="min-h-0 overflow-hidden rounded-xl">
-                <StreetViewDisplay forceDesktop />
+                <TvFeatureDisplay mode="flow" fullscreen />
               </div>
-            </div>
+            ) : (
+              <div className="min-h-0 grid grid-rows-[1fr_1fr] gap-3">
+                <div className="min-h-0 grid grid-cols-3 gap-3">
+                  <div className="min-h-0 overflow-hidden rounded-xl"><YouTubeDisplay /></div>
+                  <div className="min-h-0 overflow-hidden rounded-xl"><NewsDisplay /></div>
+                  <div className="min-h-0 overflow-hidden rounded-xl"><TvFeatureDisplay mode={tvFeatureMode} /></div>
+                </div>
+                <div className="min-h-0 overflow-hidden rounded-xl">
+                  <StreetViewDisplay forceDesktop />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -148,16 +158,22 @@ export default function Dashboard() {
 
           {/* Main grid */}
           <div className="min-h-0 overflow-y-auto lg:overflow-hidden">
-            <div className="h-auto lg:h-full flex flex-col lg:grid lg:grid-rows-[1fr_1fr] gap-3 lg:gap-[clamp(12px,1.2vw,20px)] lg:min-h-0">
-              <div className="min-h-0 flex flex-col lg:grid lg:grid-cols-3 gap-3 lg:gap-[clamp(12px,1.2vw,20px)]">
-                <div className="min-h-0 lg:h-full overflow-hidden rounded-xl"><YouTubeDisplay /></div>
-                <div className="min-h-0 overflow-hidden rounded-xl"><NewsDisplay /></div>
-                <div className="min-h-0 overflow-hidden rounded-xl"><PollDisplay /></div>
+            {showFlowFullscreen ? (
+              <div className="h-auto lg:h-full min-h-0 overflow-hidden rounded-xl">
+                <TvFeatureDisplay mode="flow" fullscreen />
               </div>
-              <div className="min-h-0 overflow-hidden rounded-xl">
-                <StreetViewDisplay />
+            ) : (
+              <div className="h-auto lg:h-full flex flex-col lg:grid lg:grid-rows-[1fr_1fr] gap-3 lg:gap-[clamp(12px,1.2vw,20px)] lg:min-h-0">
+                <div className="min-h-0 flex flex-col lg:grid lg:grid-cols-3 gap-3 lg:gap-[clamp(12px,1.2vw,20px)]">
+                  <div className="min-h-0 lg:h-full overflow-hidden rounded-xl"><YouTubeDisplay /></div>
+                  <div className="min-h-0 overflow-hidden rounded-xl"><NewsDisplay /></div>
+                  <div className="min-h-0 overflow-hidden rounded-xl"><TvFeatureDisplay mode={tvFeatureMode} /></div>
+                </div>
+                <div className="min-h-0 overflow-hidden rounded-xl">
+                  <StreetViewDisplay />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

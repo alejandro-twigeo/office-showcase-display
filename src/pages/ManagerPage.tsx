@@ -11,7 +11,15 @@ import { useScoring, type DifficultyWeights } from '@/hooks/useScoring';
 import { useRoundSchedule } from '@/hooks/useRoundSchedule';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceSnapshot } from '@/hooks/usePresenceCount';
-import { LEADERBOARD_PLAYER_COUNT_KEY, SUDOKU_HINT_PENALTY_KEY, useGameIcons } from '@/hooks/useGameIcons';
+import {
+  LEADERBOARD_PLAYER_COUNT_KEY,
+  SUDOKU_HINT_PENALTY_KEY,
+  TV_FEATURE_MODE_KEY,
+  TV_FLOW_FULLSCREEN_KEY,
+  useGameIcons,
+  useTvFeatureMode,
+  useTvFlowFullscreen,
+} from '@/hooks/useGameIcons';
 import { fetchMapillaryRound } from '@/lib/mapillary';
 import { UsageAnalytics } from '@/components/manager/UsageAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -62,6 +70,8 @@ export default function ManagerPage() {
   const onlinePresence = usePresenceSnapshot('app', { deviceId, page: 'manager' }, { excludeSelf: true });
   const onlineUsers = onlinePresence.count;
   const { icons, uploadIcon, removeIcon } = useGameIcons();
+  const { data: tvFeatureMode = 'polls' } = useTvFeatureMode();
+  const { data: tvFlowFullscreen = false } = useTvFlowFullscreen();
 
   // Scoring edit state
   const [editDistParam, setEditDistParam] = useState('');
@@ -72,6 +82,8 @@ export default function ManagerPage() {
   const [editMaxGuesses, setEditMaxGuesses] = useState<string>('');
   const [guessLimitEnabled, setGuessLimitEnabled] = useState(false);
   const [editLeaderboardPlayers, setEditLeaderboardPlayers] = useState('3');
+  const [editTvFeatureMode, setEditTvFeatureMode] = useState<'polls' | 'flow'>('polls');
+  const [editTvFlowFullscreen, setEditTvFlowFullscreen] = useState(false);
 
   // Mini game settings
   const [editCityDistParam, setEditCityDistParam] = useState('200');
@@ -104,6 +116,14 @@ export default function ManagerPage() {
     setGuessLimitEnabled(settings.max_guesses_per_challenge != null);
     setEditMaxGuesses(String(settings.max_guesses_per_challenge ?? 5));
   }, [settings]);
+
+  useEffect(() => {
+    setEditTvFeatureMode(tvFeatureMode === 'flow' ? 'flow' : 'polls');
+  }, [tvFeatureMode]);
+
+  useEffect(() => {
+    setEditTvFlowFullscreen(tvFlowFullscreen);
+  }, [tvFlowFullscreen]);
 
   useEffect(() => {
     const updateDebugInfo = () => {
@@ -225,6 +245,8 @@ export default function ManagerPage() {
         ...existingGameIcons,
         [LEADERBOARD_PLAYER_COUNT_KEY]: leaderboardPlayers,
         [SUDOKU_HINT_PENALTY_KEY]: sudokuHintPenalty,
+        [TV_FEATURE_MODE_KEY]: editTvFeatureMode,
+        [TV_FLOW_FULLSCREEN_KEY]: editTvFlowFullscreen,
       },
     } as never).eq('id', 1);
   };
@@ -500,6 +522,37 @@ export default function ManagerPage() {
               {schedule?.last_auto_reset_at && (
                 <p className="text-[10px] text-muted-foreground">Last: {new Date(schedule.last_auto_reset_at).toLocaleString()}</p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">TV Display</CardTitle>
+            <p className="text-xs text-muted-foreground">Choose what the TV shows in the feature tile, and whether Flow should take over the full dashboard content area.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium">Feature tile mode</p>
+              <Select value={editTvFeatureMode} onValueChange={(value: 'polls' | 'flow') => setEditTvFeatureMode(value)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="polls">Polls</SelectItem>
+                  <SelectItem value="flow">Live Flow</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Flow fullscreen</p>
+                <p className="text-xs text-muted-foreground">
+                  When Live Flow is enabled, let Flow replace more of the dashboard layout instead of staying in one tile.
+                </p>
+              </div>
+              <Switch checked={editTvFlowFullscreen} onCheckedChange={setEditTvFlowFullscreen} />
             </div>
           </CardContent>
         </Card>
