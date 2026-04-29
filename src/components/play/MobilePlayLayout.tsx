@@ -135,7 +135,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/tv')}
               className="flex items-center gap-1 px-2 py-1.5 rounded-full border border-primary/50 text-primary text-xs font-medium active:bg-primary/10 transition-colors"
             >
               <Monitor className="h-3.5 w-3.5" />
