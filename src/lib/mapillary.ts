@@ -134,7 +134,7 @@ function pickRandom<T>(arr: T[]): T {
 const TILE_SPREAD: Record<Difficulty, number> = {
   1: 0,
   2: 2,
-  3: 8,
+  3: 3,
 };
 
 /* ── City-scoped fetch (for City Guess game) ─────────────── */

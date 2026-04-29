@@ -12,6 +12,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const PLANT_GOOD_ICON = `${import.meta.env.BASE_URL}good.png`;
+const PLANT_MEDIUM_ICON = `${import.meta.env.BASE_URL}medium.png`;
+const PLANT_BAD_ICON = `${import.meta.env.BASE_URL}bad.png`;
+const WATER_ICON = `${import.meta.env.BASE_URL}water.png`;
+
 export function PlantStatus({ playerName }: { playerName?: string }) {
   const [plantId, setPlantId] = useState<string | null>(null);
   const [lastWatered, setLastWatered] = useState<Date | null>(null);
@@ -78,11 +83,11 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
     ? Math.floor((Date.now() - lastWatered.getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
-  let plantIcon = "/good.png";
+  let plantIcon = PLANT_GOOD_ICON;
   if (lastWatered) {
     const days = (Date.now() - lastWatered.getTime()) / (1000 * 60 * 60 * 24);
-    if (days >= 7 && days < 10) plantIcon = "/medium.png";
-    if (days >= 10) plantIcon = "/bad.png";
+    if (days >= 7 && days < 10) plantIcon = PLANT_MEDIUM_ICON;
+    if (days >= 10) plantIcon = PLANT_BAD_ICON;
   }
 
   const tooltip = (
@@ -128,7 +133,7 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
                     watering ? "scale-110" : ""
                   }`}
                 >
-                  <img src="/water.png" alt="Water plant" className="h-full w-auto" />
+                  <img src={WATER_ICON} alt="Water plant" className="h-full w-auto" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" align="center">
