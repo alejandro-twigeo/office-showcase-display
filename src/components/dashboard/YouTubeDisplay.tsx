@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, ListMusic } from "lucide-react";
+import { Youtube, ListMusic, Volume2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,9 @@ declare global {
 type YTPlayer = {
   loadVideoById: (videoId: string, startSeconds?: number) => void;
   playVideo: () => void;
+  mute: () => void;
+  unMute: () => void;
+  getPlayerState: () => number;
   getCurrentTime: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   setSize: (width: number, height: number) => void;
@@ -64,6 +67,29 @@ export function YouTubeDisplay() {
   const hasAdvancedRef = useRef(false);
   const currentVideoIdRef = useRef<string | undefined>(undefined);
   const pendingVideoIdRef = useRef<string | undefined>(undefined);
+  // True when the TV browser refused to autoplay with sound and we fell back to muted
+  const [soundBlocked, setSoundBlocked] = useState(false);
+
+  // TV browsers often block autoplay with sound when nobody has clicked the page.
+  // If playback hasn't started shortly after we ask, retry muted so the video at least runs.
+  const ensurePlaying = useCallback(() => {
+    setTimeout(() => {
+      const p = playerRef.current;
+      if (!p || !playerReadyRef.current) return;
+      const state = p.getPlayerState(); // 1 = playing, 3 = buffering
+      if (state !== 1 && state !== 3) {
+        p.mute();
+        p.playVideo();
+        setSoundBlocked(true);
+      }
+    }, 2500);
+  }, []);
+
+  const enableSound = useCallback(() => {
+    playerRef.current?.unMute();
+    playerRef.current?.playVideo();
+    setSoundBlocked(false);
+  }, []);
 
   const handleVideoEnd = useCallback(() => {
     if (hasAdvancedRef.current) return;
@@ -111,6 +137,7 @@ export function YouTubeDisplay() {
         playerRef.current.loadVideoById(videoId, resumeAt);
         // Explicitly call playVideo in case autoplay is blocked
         setTimeout(() => playerRef.current?.playVideo(), 300);
+        ensurePlaying();
         return;
       }
 
@@ -148,12 +175,17 @@ export function YouTubeDisplay() {
             playerReadyRef.current = true;
             // Explicitly start playback — autoplay param is often blocked by browser policy
             playerRef.current?.playVideo();
+            ensurePlaying();
             // If a new video was requested while player was initializing, load it now
             if (pendingVideoIdRef.current && pendingVideoIdRef.current !== videoId) {
               playerRef.current?.loadVideoById(pendingVideoIdRef.current);
               setTimeout(() => playerRef.current?.playVideo(), 300);
               pendingVideoIdRef.current = undefined;
             }
+          },
+          // Video removed, private or not embeddable: skip it instead of stalling the queue
+          onError: () => {
+            handleVideoEnd();
           },
           onStateChange: (event: { data: number }) => {
             // YT.PlayerState.ENDED === 0
@@ -239,6 +271,15 @@ export function YouTubeDisplay() {
                     ref={containerRef}
                     className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
                   />
+                  {soundBlocked && (
+                    <button
+                      onClick={enableSound}
+                      className="absolute bottom-[clamp(8px,0.8vw,16px)] left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-primary px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,12px)] text-primary-foreground font-semibold text-sm lg:text-[clamp(14px,1vw,20px)] shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <Volume2 className="h-4 w-4 lg:h-[clamp(16px,1.2vw,24px)] lg:w-[clamp(16px,1.2vw,24px)]" />
+                      Turn sound on
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="font-medium line-clamp-1 text-sm lg:text-[clamp(16px,1.2vw,24px)]">

@@ -43,9 +43,9 @@ function useAvatarMap() {
 }
 
 function rankBadge(rank: number) {
-  if (rank === 1) return <Trophy className="h-3.5 w-3.5 text-warning" />;
-  if (rank === 2) return <Medal className="h-3.5 w-3.5 text-muted-foreground" />;
-  return <Medal className="h-3.5 w-3.5 text-warning/60" />;
+  if (rank === 1) return <Trophy className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-warning" />;
+  if (rank === 2) return <Medal className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-muted-foreground" />;
+  return <Medal className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-warning/60" />;
 }
 
 function LeaderboardRows({
@@ -56,21 +56,21 @@ function LeaderboardRows({
   avatarMap: Map<string, string | null>;
 }) {
   if (rows.length === 0) {
-    return <p className="py-3 text-center text-xs text-muted-foreground">No scores yet</p>;
+    return <p className="py-3 text-center text-xs lg:text-[clamp(13px,0.9vw,18px)] text-muted-foreground">No scores yet</p>;
   }
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 lg:space-y-[clamp(2px,0.25vw,6px)]">
       {rows.map((row, index) => (
-        <div key={`${row.name}-${index}`} className="flex items-center gap-1 rounded-md bg-secondary/50 px-1.5 py-1">
-          <div className="flex w-4 shrink-0 items-center justify-center">
+        <div key={`${row.name}-${index}`} className="flex items-center gap-1 lg:gap-[clamp(4px,0.4vw,10px)] rounded-md bg-secondary/50 px-1.5 py-1 lg:px-[clamp(6px,0.5vw,12px)] lg:py-[clamp(4px,0.35vw,8px)]">
+          <div className="flex w-4 lg:w-[clamp(16px,1.1vw,24px)] shrink-0 items-center justify-center">
             {rankBadge(index + 1)}
           </div>
-          <span className="shrink-0 text-sm">{avatarMap.get(row.name) ?? "👤"}</span>
-          <span className="min-w-0 truncate text-[11px] font-medium text-foreground">{row.name}</span>
+          <span className="shrink-0 text-sm lg:text-[clamp(16px,1.2vw,26px)]">{avatarMap.get(row.name) ?? "👤"}</span>
+          <span className="min-w-0 truncate text-[11px] lg:text-[clamp(14px,1vw,22px)] font-medium text-foreground">{row.name}</span>
           <div className="ml-auto shrink-0 text-right leading-tight">
-            <div className="font-mono text-[11px] font-semibold text-accent">{row.score}</div>
-            {row.meta ? <div className="text-[9px] text-muted-foreground">{row.meta}</div> : null}
+            <div className="font-mono text-[11px] lg:text-[clamp(14px,1vw,22px)] font-semibold text-accent">{row.score}</div>
+            {row.meta ? <div className="text-[9px] lg:text-[clamp(11px,0.75vw,16px)] text-muted-foreground">{row.meta}</div> : null}
           </div>
         </div>
       ))}
@@ -92,7 +92,7 @@ function CompactBoardCard({
   return (
     <Card className="flex h-full min-h-0 flex-col">
       <CardHeader className="px-2 pb-1 pt-2">
-        <CardTitle className="flex items-center gap-1.5 text-sm">
+        <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(15px,1.1vw,24px)]">
           <span>{emoji}</span>
           <span className="truncate">{title}</span>
         </CardTitle>
@@ -245,7 +245,7 @@ function RotationCard({
   return <MinigameCompactCard gameId={item.gameId} title={item.title} emoji={item.emoji} />;
 }
 
-export function RotatingLeaderboard() {
+export function RotatingLeaderboard({ wide = false }: { wide?: boolean }) {
   const [rotation, setRotation] = useState(0);
   const [timeLeft, setTimeLeft] = useState(LEADERBOARD_ROTATE_SECONDS);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -264,7 +264,8 @@ export function RotatingLeaderboard() {
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  const pages = useMemo(() => chunkRotation(GAME_ROTATION, 4), []);
+  const pageSize = wide ? 8 : 4;
+  const pages = useMemo(() => chunkRotation(GAME_ROTATION, pageSize), [pageSize]);
   const currentPage = pages[rotation % pages.length] ?? [];
 
   return (
@@ -275,11 +276,13 @@ export function RotatingLeaderboard() {
           Leaderboards
         </CardTitle>
       </CardHeader>
-      <div className="px-2 md:px-3">
-        <Progress value={(timeLeft / LEADERBOARD_ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
-      </div>
+      {pages.length > 1 && (
+        <div className="px-2 md:px-3">
+          <Progress value={(timeLeft / LEADERBOARD_ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
+        </div>
+      )}
       <CardContent className="min-h-0 flex-1 p-2 md:p-3">
-        <div className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-2">
+        <div className={`grid h-full min-h-0 ${wide ? "grid-cols-4" : "grid-cols-2"} grid-rows-2 gap-2`}>
           {currentPage.map((item) => (
             <div key={`${item.type}-${"gameId" in item ? item.gameId : item.title}`} className="min-h-0 h-full">
               <RotationCard item={item} />
