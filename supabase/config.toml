@@ -12,3 +12,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.youtube-search]
 verify_jwt = false
+[functions.generate-daily-poll]
+verify_jwt = false

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Medal } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trophy } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { PlayQr } from "./JoinCard";
 import { Progress } from "@/components/ui/progress";
 import { useRounds } from "@/hooks/useRounds";
 import { useScoring, calculateScore, calculateWordleScore } from "@/hooks/useScoring";
@@ -42,42 +43,12 @@ function useAvatarMap() {
   return useMemo(() => new Map(players?.map((p) => [p.name, p.avatar]) ?? []), [players]);
 }
 
-function rankBadge(rank: number) {
-  if (rank === 1) return <Trophy className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-warning" />;
-  if (rank === 2) return <Medal className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-muted-foreground" />;
-  return <Medal className="h-3.5 w-3.5 lg:h-[clamp(14px,1vw,22px)] lg:w-[clamp(14px,1vw,22px)] text-warning/60" />;
-}
+type BoardRow = { name: string; score: number; meta?: string };
 
-function LeaderboardRows({
-  rows,
-  avatarMap,
-}: {
-  rows: { name: string; score: number; meta?: string }[];
-  avatarMap: Map<string, string | null>;
-}) {
-  if (rows.length === 0) {
-    return <p className="py-3 text-center text-xs lg:text-[clamp(13px,0.9vw,18px)] text-muted-foreground">No scores yet</p>;
-  }
-
-  return (
-    <div className="space-y-0.5 lg:space-y-[clamp(2px,0.25vw,6px)]">
-      {rows.map((row, index) => (
-        <div key={`${row.name}-${index}`} className="flex items-center gap-1 lg:gap-[clamp(4px,0.4vw,10px)] rounded-md bg-secondary/50 px-1.5 py-1 lg:px-[clamp(6px,0.5vw,12px)] lg:py-[clamp(4px,0.35vw,8px)]">
-          <div className="flex w-4 lg:w-[clamp(16px,1.1vw,24px)] shrink-0 items-center justify-center">
-            {rankBadge(index + 1)}
-          </div>
-          <span className="shrink-0 text-sm lg:text-[clamp(16px,1.2vw,26px)]">{avatarMap.get(row.name) ?? "👤"}</span>
-          <span className="min-w-0 truncate text-[11px] lg:text-[clamp(14px,1vw,22px)] font-medium text-foreground">{row.name}</span>
-          <div className="ml-auto shrink-0 text-right leading-tight">
-            <div className="font-mono text-[11px] lg:text-[clamp(14px,1vw,22px)] font-semibold text-accent">{row.score}</div>
-            {row.meta ? <div className="text-[9px] lg:text-[clamp(11px,0.75vw,16px)] text-muted-foreground">{row.meta}</div> : null}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
+/**
+ * One game's board, podium style: the leader gets the space, 2nd and 3rd sit underneath.
+ * Empty boards stay quiet so the games people actually play stand out.
+ */
 function CompactBoardCard({
   title,
   emoji,
@@ -86,20 +57,63 @@ function CompactBoardCard({
 }: {
   title: string;
   emoji: string;
-  rows: { name: string; score: number; meta?: string }[];
+  rows: BoardRow[];
   avatarMap: Map<string, string | null>;
 }) {
+  const [leader, ...rest] = rows;
+  const avatar = (name: string) => avatarMap.get(name) ?? "👤";
+
   return (
-    <Card className="flex h-full min-h-0 flex-col">
-      <CardHeader className="px-2 pb-1 pt-2">
-        <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(15px,1.1vw,24px)]">
-          <span>{emoji}</span>
-          <span className="truncate">{title}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col justify-center px-2 pb-2 pt-0">
-        <LeaderboardRows rows={rows} avatarMap={avatarMap} />
-      </CardContent>
+    <Card
+      className={`flex h-full min-h-0 flex-col overflow-hidden p-[clamp(8px,0.7vw,14px)] gap-[clamp(6px,0.5vw,10px)] ${
+        leader ? "" : "bg-secondary/40 shadow-none"
+      }`}
+    >
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-sm lg:text-[clamp(15px,1.1vw,24px)] leading-none">{emoji}</span>
+        <span className={`truncate font-semibold text-sm lg:text-[clamp(14px,1vw,22px)] leading-none ${leader ? "text-foreground" : "text-muted-foreground"}`}>
+          {title}
+        </span>
+      </div>
+
+      {!leader ? (
+        <div className="flex flex-1 min-h-0 items-center justify-center text-center">
+          <p className="text-muted-foreground text-xs lg:text-[clamp(12px,0.85vw,17px)] leading-snug">
+            No scores yet.
+            <br />
+            <span className="font-medium text-foreground/70">Be the first</span>
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-1 min-h-0 flex-col gap-[clamp(4px,0.35vw,8px)]">
+          {/* Leader */}
+          <div className="flex min-h-0 flex-1 items-center gap-[clamp(6px,0.6vw,12px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 px-[clamp(8px,0.6vw,12px)] py-[clamp(4px,0.4vw,8px)]">
+            <span className="shrink-0 leading-none text-[clamp(22px,1.9vw,44px)]">{avatar(leader.name)}</span>
+            <div className="min-w-0 flex-1 flex items-center gap-1">
+              <Trophy className="h-3.5 w-3.5 lg:h-[clamp(13px,0.95vw,20px)] lg:w-[clamp(13px,0.95vw,20px)] shrink-0 text-primary" />
+              <p className="truncate font-semibold text-foreground text-sm lg:text-[clamp(14px,1.1vw,24px)] leading-tight">{leader.name}</p>
+            </div>
+            <div className="shrink-0 text-right leading-none">
+              <div className="font-semibold tabular-nums text-primary text-base lg:text-[clamp(18px,1.5vw,34px)]">{leader.score}</div>
+              {leader.meta ? (
+                <div className="mt-0.5 text-muted-foreground text-[10px] lg:text-[clamp(10px,0.7vw,15px)]">{leader.meta}</div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* 2nd and 3rd */}
+          {rest.map((row, i) => (
+            <div key={`${row.name}-${i}`} className="flex items-center gap-[clamp(4px,0.4vw,8px)] px-[clamp(4px,0.4vw,8px)]">
+              <span className="w-[1.2em] shrink-0 text-center font-semibold tabular-nums text-muted-foreground text-[11px] lg:text-[clamp(12px,0.85vw,18px)]">
+                {i + 2}
+              </span>
+              <span className="shrink-0 text-[13px] lg:text-[clamp(14px,1vw,22px)] leading-none">{avatar(row.name)}</span>
+              <span className="min-w-0 flex-1 truncate text-foreground text-[11px] lg:text-[clamp(12px,0.9vw,19px)]">{row.name}</span>
+              <span className="shrink-0 font-medium tabular-nums text-foreground text-[11px] lg:text-[clamp(12px,0.9vw,19px)]">{row.score}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
@@ -245,7 +259,7 @@ function RotationCard({
   return <MinigameCompactCard gameId={item.gameId} title={item.title} emoji={item.emoji} />;
 }
 
-export function RotatingLeaderboard({ wide = false }: { wide?: boolean }) {
+export function RotatingLeaderboard({ wide = false, showQr = false }: { wide?: boolean; showQr?: boolean }) {
   const [rotation, setRotation] = useState(0);
   const [timeLeft, setTimeLeft] = useState(LEADERBOARD_ROTATE_SECONDS);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -270,19 +284,33 @@ export function RotatingLeaderboard({ wide = false }: { wide?: boolean }) {
 
   return (
     <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="px-2 pb-1 pt-2 md:px-3">
-        <CardTitle className="flex items-center gap-1.5 text-sm md:text-[clamp(20px,1.5vw,36px)]">
-          <Trophy className="h-4 w-4 text-primary md:h-[clamp(18px,1.2vw,24px)] md:w-[clamp(18px,1.2vw,24px)]" />
-          Leaderboards
-        </CardTitle>
-      </CardHeader>
+      <div className="flex items-center gap-[clamp(8px,0.8vw,16px)] px-[clamp(10px,0.9vw,18px)] pt-[clamp(10px,0.9vw,18px)] pb-[clamp(6px,0.5vw,10px)]">
+        <div className="min-w-0 flex-1">
+          <h3 className="flex items-center gap-1.5 font-semibold text-base lg:text-[clamp(20px,1.6vw,36px)] leading-none">
+            <Trophy className="h-4 w-4 lg:h-[clamp(18px,1.4vw,30px)] lg:w-[clamp(18px,1.4vw,30px)] text-primary" />
+            Today&rsquo;s leaders
+          </h3>
+        </div>
+        {showQr && (
+          <div className="hidden lg:flex items-center gap-[clamp(6px,0.5vw,10px)] shrink-0">
+            <span className="text-right text-muted-foreground leading-tight text-[clamp(12px,0.85vw,17px)]">
+              Scan to
+              <br />
+              <span className="font-semibold text-foreground">join in</span>
+            </span>
+            <div className="rounded-[clamp(4px,0.3vw,6px)] bg-white p-[3px] ring-2 ring-primary">
+              <PlayQr className="h-[clamp(40px,3.2vw,68px)] w-[clamp(40px,3.2vw,68px)]" />
+            </div>
+          </div>
+        )}
+      </div>
       {pages.length > 1 && (
         <div className="px-2 md:px-3">
           <Progress value={(timeLeft / LEADERBOARD_ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
         </div>
       )}
-      <CardContent className="min-h-0 flex-1 p-2 md:p-3">
-        <div className={`grid h-full min-h-0 ${wide ? "grid-cols-4" : "grid-cols-2"} grid-rows-2 gap-2`}>
+      <CardContent className="min-h-0 flex-1 p-[clamp(8px,0.7vw,14px)] pt-0">
+        <div className={`grid h-full min-h-0 ${wide ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2"} lg:grid-rows-2 gap-[clamp(6px,0.6vw,12px)]`}>
           {currentPage.map((item) => (
             <div key={`${item.type}-${"gameId" in item ? item.gameId : item.title}`} className="min-h-0 h-full">
               <RotationCard item={item} />

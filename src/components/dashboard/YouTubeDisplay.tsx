@@ -3,7 +3,6 @@ import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import { Youtube, ListMusic, Volume2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
@@ -90,6 +89,24 @@ export function YouTubeDisplay() {
     playerRef.current?.playVideo();
     setSoundBlocked(false);
   }, []);
+
+  // Briefly spotlight a video when someone adds it to the queue
+  const [spotlight, setSpotlight] = useState<(typeof queue)[number] | null>(null);
+  const seenQueueIdsRef = useRef(new Set<string>());
+  const mountedAtRef = useRef(Date.now());
+  const spotlightTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    const seen = seenQueueIdsRef.current;
+    const added = [...queue].reverse().find((q) => !seen.has(q.id));
+    queue.forEach((q) => seen.add(q.id)); // only ever grows, so refetch blips don't count as new
+    // Whatever is in the queue when the TV loads isn't "just added"
+    if (!added || Date.now() - mountedAtRef.current < 8000) return;
+    setSpotlight(added);
+    clearTimeout(spotlightTimerRef.current);
+    spotlightTimerRef.current = setTimeout(() => setSpotlight(null), 10_000);
+  }, [queue]);
+  useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
+  const sidebarWidth = queue.length === 0 ? "0px" : spotlight ? "clamp(180px,12vw,270px)" : "clamp(64px,5vw,110px)";
 
   const handleVideoEnd = useCallback(() => {
     if (hasAdvancedRef.current) return;
@@ -251,7 +268,10 @@ export function YouTubeDisplay() {
       </CardHeader>
 
       <CardContent className="flex-1 min-h-0">
-        <div className="h-full flex flex-col lg:grid lg:grid-cols-[3fr_1fr] gap-2 lg:gap-[clamp(8px,0.8vw,16px)]">
+        <div
+          className="h-full flex flex-col lg:grid gap-2 lg:gap-[clamp(8px,0.8vw,16px)] transition-[grid-template-columns] duration-500 ease-out"
+          style={{ gridTemplateColumns: `minmax(0,1fr) ${sidebarWidth}` }}
+        >
           {/* Left — video + info */}
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
@@ -295,7 +315,7 @@ export function YouTubeDisplay() {
             )}
           </div>
 
-          {/* Right — queue sidebar (compact on mobile/tablet, full on desktop) */}
+          {/* Right — queue. Hidden when empty, big for a moment when someone adds a video, then a slim thumbnail strip */}
           {queue.length > 0 && (
             <div className="flex lg:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
               <ListMusic className="h-3.5 w-3.5" />
@@ -303,42 +323,45 @@ export function YouTubeDisplay() {
               <span className="truncate">— Next: {queue[0]?.title}</span>
             </div>
           )}
-          <div className="hidden lg:flex min-h-0 flex-col border-l border-border pl-[clamp(8px,0.8vw,16px)]">
-            <h4 className="flex items-center gap-1.5 text-[clamp(14px,1vw,20px)] font-medium mb-2 shrink-0">
-              <ListMusic className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)]" />
-              Queue
-              {queue.length > 0 && (
-                <span className="text-muted-foreground font-normal">({queue.length})</span>
-              )}
-            </h4>
-            <ScrollArea className="flex-1 min-h-0">
-              {queue.length === 0 ? (
-                <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] text-center mt-4">
-                  Queue empty
-                </p>
-              ) : (
-                <div className="space-y-[clamp(6px,0.5vw,12px)] pr-2">
-                  {queue.map((item, i) => (
-                    <div key={item.id} className="flex gap-[clamp(6px,0.5vw,10px)] items-start">
-                      {item.thumbnail_url ? (
-                        <img
-                          src={item.thumbnail_url}
-                          alt=""
-                          className="w-[clamp(48px,4vw,80px)] aspect-video rounded object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="w-[clamp(48px,4vw,80px)] aspect-video rounded bg-secondary shrink-0" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[clamp(12px,0.85vw,16px)] font-medium line-clamp-2 leading-tight">
-                          {i + 1}. {item.title}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+          <div
+            className="hidden lg:flex min-h-0 flex-col overflow-hidden transition-opacity duration-500"
+            style={{ opacity: queue.length ? 1 : 0 }}
+          >
+            {spotlight ? (
+              <div
+                key={spotlight.id}
+                className="flex h-full min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 p-[clamp(8px,0.7vw,14px)] animate-in fade-in slide-in-from-right-4 duration-500"
+              >
+                <span className="font-semibold text-primary text-[clamp(12px,0.85vw,18px)]">Just added</span>
+                {spotlight.thumbnail_url ? (
+                  <img src={spotlight.thumbnail_url} alt="" className="w-full aspect-video rounded-[clamp(6px,0.5vw,10px)] object-cover" />
+                ) : (
+                  <div className="w-full aspect-video rounded-[clamp(6px,0.5vw,10px)] bg-secondary" />
+                )}
+                <p className="font-semibold leading-snug line-clamp-2 text-[clamp(13px,0.95vw,20px)]">{spotlight.title}</p>
+                <p className="text-muted-foreground text-[clamp(12px,0.8vw,17px)]">by {spotlight.queued_by}</p>
+                {queue.length > 1 && (
+                  <p className="mt-auto text-muted-foreground text-[clamp(11px,0.75vw,16px)]">{queue.length} in the queue</p>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)]">
+                <span className="flex items-center gap-1 text-muted-foreground text-[clamp(11px,0.75vw,16px)] font-medium">
+                  <ListMusic className="h-[clamp(12px,0.85vw,18px)] w-[clamp(12px,0.85vw,18px)]" />
+                  {queue.length}
+                </span>
+                {queue.slice(0, 4).map((item) =>
+                  item.thumbnail_url ? (
+                    <img key={item.id} src={item.thumbnail_url} alt={item.title} title={item.title} className="w-full aspect-video rounded-[clamp(4px,0.4vw,8px)] object-cover" />
+                  ) : (
+                    <div key={item.id} className="w-full aspect-video rounded-[clamp(4px,0.4vw,8px)] bg-secondary" />
+                  )
+                )}
+                {queue.length > 4 && (
+                  <span className="text-center text-muted-foreground text-[clamp(11px,0.75vw,16px)]">+{queue.length - 4}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

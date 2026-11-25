@@ -7,6 +7,7 @@ import { PlantStatus } from "@/components/dashboard/PlantStatus";
 import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
 import { useAutoReload } from "@/hooks/useAutoReload";
+import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const showFlowFullscreen = tvFeatureMode === "flow" && tvFlowFullscreen;
 
   useAutoReload();
+  useDailyPoll();
 
   usePresenceTrack("app", {
     deviceId,
