@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Globe, Binoculars, Brain } from "lucide-react";
+import { Binoculars, Brain } from "lucide-react";
+import { JoinCard } from "./JoinCard";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
 
@@ -28,9 +29,10 @@ const DIFFICULTY_ICON: Record<string, { icon: typeof Binoculars; colorClass: str
   Hard: { icon: Brain, colorClass: "text-destructive" },
 };
 
-function MysteryCard({ difficulty, label, fillHeight }: { difficulty: number; label: string; fillHeight: boolean }) {
+type ActiveLocation = ReturnType<typeof useActiveLocation>["activeLocation"];
+
+function MysteryCard({ activeLocation, label, fillHeight }: { activeLocation: ActiveLocation; label: string; fillHeight: boolean }) {
   const iconInfo = DIFFICULTY_ICON[label];
-  const { activeLocation } = useActiveLocation(difficulty);
 
   const meta = useMemo(() => {
     if (!activeLocation?.id) return null;
@@ -58,18 +60,35 @@ function MysteryCard({ difficulty, label, fillHeight }: { difficulty: number; la
           )}
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Globe className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-            <p className="text-[clamp(12px,0.8vw,16px)] text-muted-foreground">No active {label.toLowerCase()} round</p>
-          </div>
-        </div>
+        <JoinCard />
       )}
     </Card>
   );
 }
 
 export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boolean }) {
+  const { activeLocation: easy, isLoading: easyLoading } = useActiveLocation(1);
+  const { activeLocation: hard, isLoading: hardLoading } = useActiveLocation(3);
+  const noRounds = !easyLoading && !hardLoading && !easy?.pano_id && !hard?.pano_id;
+
+  // No GeoGuessr rounds running: one invite card, leaderboards take the freed space
+  if (noRounds) {
+    return (
+      <div
+        className={`${
+          forceDesktop ? "h-full min-h-0 grid grid-cols-3" : "h-full min-h-0 flex flex-col lg:grid lg:grid-cols-3"
+        } gap-3 lg:gap-[clamp(12px,1vw,18px)]`}
+      >
+        <Card className={`${forceDesktop ? "h-full" : "h-[220px] lg:h-full"} min-h-0 flex flex-col p-0 overflow-hidden`}>
+          <JoinCard />
+        </Card>
+        <div className={`${forceDesktop ? "h-full min-h-0" : "min-h-[220px] lg:h-full lg:min-h-0"} lg:col-span-2 ${forceDesktop ? "col-span-2" : ""}`}>
+          <RotatingLeaderboard wide />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`${
@@ -78,8 +97,8 @@ export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boo
           : "h-full min-h-0 flex flex-col lg:grid lg:grid-cols-3"
       } gap-3 lg:gap-[clamp(12px,1vw,18px)]`}
     >
-      <MysteryCard difficulty={1} label="Easy" fillHeight={forceDesktop} />
-      <MysteryCard difficulty={3} label="Hard" fillHeight={forceDesktop} />
+      <MysteryCard activeLocation={easy} label="Easy" fillHeight={forceDesktop} />
+      <MysteryCard activeLocation={hard} label="Hard" fillHeight={forceDesktop} />
       <div className={`${forceDesktop ? "h-full min-h-0" : "min-h-[220px] lg:h-full lg:min-h-0"}`}>
         <RotatingLeaderboard />
       </div>

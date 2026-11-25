@@ -5,6 +5,8 @@ import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { PositiveMessagesBanner } from "@/components/dashboard/PositiveMessagesBanner";
 import { PlantStatus } from "@/components/dashboard/PlantStatus";
 import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
+import { Clock } from "@/components/dashboard/Clock";
+import { useAutoReload } from "@/hooks/useAutoReload";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
@@ -48,6 +50,8 @@ export default function Dashboard() {
   const { data: tvFlowFullscreen = false } = useTvFlowFullscreen();
   const showFlowFullscreen = tvFeatureMode === "flow" && tvFlowFullscreen;
 
+  useAutoReload();
+
   usePresenceTrack("app", {
     deviceId,
     page: "tv",
@@ -76,6 +80,7 @@ export default function Dashboard() {
                 <PositiveMessagesBanner />
               </div>
               <div className="flex items-center gap-2 ml-auto">
+                <Clock />
                 <button
                   onClick={() => setForceDesktop(false)}
                   className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-border text-muted-foreground hover:bg-muted transition-colors text-sm font-medium"
@@ -143,6 +148,10 @@ export default function Dashboard() {
                 <Monitor className="h-4 w-4" />
                 Desktop
               </button>
+
+              <div className="hidden lg:block">
+                <Clock />
+              </div>
 
               <PlantStatus />
 
