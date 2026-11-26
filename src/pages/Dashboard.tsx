@@ -167,6 +167,13 @@ function DashboardContent() {
                 <Monitor className="h-4 w-4" />
                 Mobile
               </button>
+              <button
+                onClick={() => navigate("/play")}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+              >
+                <Gamepad2 className="h-4 w-4" />
+                Play
+              </button>
             </header>
             <LiveMoments variant="line" />
             {showFlowFullscreen ? (
