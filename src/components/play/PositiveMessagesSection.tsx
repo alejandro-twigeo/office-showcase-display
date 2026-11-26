@@ -175,11 +175,13 @@ export function PositiveMessagesSection({ playerName }: Props) {
             <p className="flex-1 text-xs leading-snug">
               <span className="font-semibold">Sent! Watch the TV 🎉</span>
               <br />
-              {copied ? "Copied. Paste it in Bob under Give kudos." : "Want it in Bob too? We copy the text and open Bob for you."}
+              {copied
+                ? "✓ Your message is copied. In Bob, tap Give kudos and paste it."
+                : "Want it in Bob too? This copies your message and opens Bob, so you only need to paste."}
             </p>
             <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => shareToBob(lastSent)}>
               <ExternalLink className="h-3.5 w-3.5" />
-              Post in Bob
+              {copied ? "Open Bob again" : "Copy & open Bob"}
             </Button>
           </div>
         )}

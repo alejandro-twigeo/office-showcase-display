@@ -6,6 +6,15 @@ import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock } from 'lucide-react';
 
+/** Tiny vibration on phones that support it; silently does nothing elsewhere. */
+const buzz = (pattern: number | number[]) => {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* not supported */
+  }
+};
+
 const GAME_ID = 'pairs';
 
 const EMOJIS = ['🌸', '🌊', '🔥', '⭐', '🎵', '🍕', '🚀', '🎨', '🌙', '🍀'];
@@ -34,40 +43,11 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [done, setDone] = useState(false);
+  const [shaking, setShaking] = useState<number[]>([]);
+  const [justMatched, setJustMatched] = useState<number[]>([]);
+  const [finalScore, setFinalScore] = useState<number | null>(null);
   const lockRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
-
-  const handleTilePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (isMobile) return;
-    const tile = event.currentTarget;
-    const rect = tile.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const px = x / rect.width;
-    const py = y / rect.height;
-    const rotateY = (px - 0.5) * 10;
-    const rotateX = (0.5 - py) * 10;
-    const magnetX = (px - 0.5) * 10;
-    const magnetY = (py - 0.5) * 10;
-
-    tile.style.setProperty('--pairs-rotate-x', `${rotateX.toFixed(2)}deg`);
-    tile.style.setProperty('--pairs-rotate-y', `${rotateY.toFixed(2)}deg`);
-    tile.style.setProperty('--pairs-shift-x', `${magnetX.toFixed(2)}px`);
-    tile.style.setProperty('--pairs-shift-y', `${magnetY.toFixed(2)}px`);
-    tile.style.setProperty('--pairs-spotlight-x', `${x.toFixed(1)}px`);
-    tile.style.setProperty('--pairs-spotlight-y', `${y.toFixed(1)}px`);
-    tile.style.setProperty('--pairs-spotlight-opacity', '1');
-  };
-
-  const resetTilePointer = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (isMobile) return;
-    const tile = event.currentTarget;
-    tile.style.setProperty('--pairs-rotate-x', '0deg');
-    tile.style.setProperty('--pairs-rotate-y', '0deg');
-    tile.style.setProperty('--pairs-shift-x', '0px');
-    tile.style.setProperty('--pairs-shift-y', '0px');
-    tile.style.setProperty('--pairs-spotlight-opacity', '0');
-  };
 
   useEffect(() => {
     if (startTime && !done) {
@@ -82,6 +62,7 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
 
     const newRevealed = [...revealed, idx];
     setRevealed(newRevealed);
+    buzz(8);
 
     if (newRevealed.length === 2) {
       setMoves(m => m + 1);
@@ -91,9 +72,15 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
         const newMatched = new Set(matched);
         newMatched.add(a);
         newMatched.add(b);
-        setMatched(newMatched);
-        setRevealed([]);
-        lockRef.current = false;
+        // Let the second card finish turning before it celebrates
+        setTimeout(() => {
+          setMatched(newMatched);
+          setRevealed([]);
+          setJustMatched([a, b]);
+          buzz([12, 40, 18]);
+          setTimeout(() => setJustMatched([]), 700);
+          lockRef.current = false;
+        }, 320);
 
         // Check win
         if (newMatched.size === tiles.length) {
@@ -103,6 +90,7 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
           const timeScore = Math.round(settings.pairs_max_points / (1 + time / settings.pairs_time_param));
           const movePenalty = Math.max(0, (totalMoves - EMOJIS.length) * settings.pairs_move_penalty); // one move per pair is perfect
           const score = Math.max(1, timeScore - movePenalty);
+          setTimeout(() => setFinalScore(score), 700);
           await submitScore.mutateAsync({
             game_id: GAME_ID,
             player_name: playerName,
@@ -113,17 +101,23 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
           });
         }
       } else {
+        // Show both cards, shake "no", then turn them back
         setTimeout(() => {
+          setShaking([a, b]);
+          buzz(30);
+        }, 450);
+        setTimeout(() => {
+          setShaking([]);
           setRevealed([]);
           lockRef.current = false;
-        }, 800);
+        }, 950);
       }
     }
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  if (todayScore) {
+  if (todayScore && !done) {
     return (
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-lg">🃏 Pairs</CardTitle></CardHeader>
@@ -138,79 +132,66 @@ export function PairsGame({ playerName, roundId }: PairsGameProps) {
     );
   }
 
+  const pairsFound = matched.size / 2;
+
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">🃏 Pairs</CardTitle>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</span>
           <span>{moves} moves</span>
-          <span className="ml-auto">{matched.size / 2}/{EMOJIS.length} pairs</span>
+          <span className="ml-auto">{pairsFound}/{EMOJIS.length} pairs</span>
+        </div>
+        {/* progress */}
+        <div className="h-1 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+            style={{ width: `${(pairsFound / EMOJIS.length) * 100}%` }}
+          />
         </div>
       </CardHeader>
-      <CardContent className={isMobile ? 'px-0' : 'px-1 lg:px-3'}>
-        <style>{`
-          .pairs-magic-tile {
-            transform:
-              perspective(900px)
-              translate3d(var(--pairs-shift-x, 0px), var(--pairs-shift-y, 0px), 0)
-              rotateX(var(--pairs-rotate-x, 0deg))
-              rotateY(var(--pairs-rotate-y, 0deg))
-              scale3d(1, 1, 1);
-            transform-style: preserve-3d;
-            transition:
-              transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
-              background-color 180ms ease,
-              border-color 180ms ease;
-            will-change: transform;
-          }
-
-          .pairs-magic-tile::before {
-            content: '';
-            position: absolute;
-            inset: -18%;
-            pointer-events: none;
-            background:
-              radial-gradient(
-                190px circle at var(--pairs-spotlight-x, 50%) var(--pairs-spotlight-y, 50%),
-                rgba(249, 115, 22, 0.28) 0%,
-                rgba(251, 146, 60, 0.18) 24%,
-                rgba(251, 146, 60, 0.08) 42%,
-                transparent 66%
-              );
-            opacity: var(--pairs-spotlight-opacity, 0);
-            transition: opacity 180ms ease;
-            z-index: 0;
-          }
-
-          .pairs-magic-tile > * {
-            position: relative;
-            z-index: 1;
-          }
-        `}</style>
-        <div className={`grid grid-cols-4 gap-1 lg:gap-2 w-full ${isMobile ? '' : 'max-w-md lg:max-w-[22rem] mx-auto'}`}>
+      <CardContent className={`relative ${isMobile ? 'px-2' : 'px-3'}`}>
+        <div className={`grid grid-cols-4 gap-2 w-full ${isMobile ? '' : 'max-w-md lg:max-w-[22rem] mx-auto'}`}>
           {tiles.map((emoji, i) => {
-            const isRevealed = revealed.includes(i) || matched.has(i);
+            const isMatched = matched.has(i);
+            const isOpen = revealed.includes(i) || isMatched;
             return (
               <button
                 key={i}
                 onClick={() => handleFlip(i)}
-                onPointerMove={handleTilePointerMove}
-                onPointerLeave={resetTilePointer}
-                onPointerCancel={resetTilePointer}
-                className={`pairs-magic-tile relative overflow-hidden aspect-square rounded-xl text-[clamp(2rem,5.2vw,2.7rem)] lg:text-[clamp(1.65rem,1.95vw,2.05rem)] flex items-center justify-center transition-all duration-200
-                  ${matched.has(i) ? 'bg-primary/20 border-2 border-primary scale-95' :
-                    isRevealed ? 'bg-secondary border-2 border-accent' :
-                    'bg-muted border-2 border-border active:bg-muted/70 cursor-pointer'}`}
+                aria-label={isOpen ? emoji : 'Hidden card'}
+                className={`pairs-card aspect-square ${shaking.includes(i) ? 'pairs-shake' : ''} ${justMatched.includes(i) ? 'pairs-pop' : ''}`}
+                disabled={isMatched || done}
               >
-                {isRevealed ? emoji : <span className="text-[clamp(1.3rem,3.6vw,1.9rem)] lg:text-[clamp(1.15rem,1.3vw,1.45rem)] text-muted-foreground font-bold">?</span>}
+                <span className={`pairs-inner ${isOpen ? 'is-open' : ''}`}>
+                  <span className="pairs-face pairs-back" aria-hidden />
+                  <span
+                    className={`pairs-face pairs-front text-[clamp(1.9rem,9vw,2.6rem)] lg:text-[clamp(1.6rem,1.9vw,2rem)] ${
+                      isMatched ? 'is-matched' : shaking.includes(i) ? 'is-wrong' : ''
+                    }`}
+                  >
+                    {emoji}
+                  </span>
+                </span>
               </button>
             );
           })}
         </div>
+
         {done && (
-          <p className="text-center font-semibold text-primary mt-3">🎉 All matched!</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-background/85 animate-in fade-in duration-500">
+            <div className="text-center animate-in zoom-in-95 duration-500">
+              <p className="text-4xl">🎉</p>
+              <p className="mt-2 text-lg font-semibold">All {EMOJIS.length} pairs!</p>
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {moves} moves · {formatTime(elapsed)}
+              </p>
+              {finalScore !== null && (
+                <p className="mt-3 text-3xl font-bold text-primary tabular-nums animate-in zoom-in-50 duration-500">{finalScore} pts</p>
+              )}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
