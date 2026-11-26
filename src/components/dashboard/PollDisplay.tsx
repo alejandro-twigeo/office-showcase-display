@@ -145,7 +145,7 @@ export function PollDisplay() {
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No answers yet. Add yours from the Play page</p>
           ) : (
-            <div className="mt-auto min-h-0 flex flex-col gap-[clamp(5px,0.45vw,10px)] overflow-hidden">
+            <div className="min-h-0 flex flex-col gap-[clamp(5px,0.45vw,10px)] overflow-hidden">
               {rows.map(({ key, label, count }) => {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const leading = count > 0 && count === topCount;

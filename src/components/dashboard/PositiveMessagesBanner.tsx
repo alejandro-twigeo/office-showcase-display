@@ -200,7 +200,7 @@ export function KudosTile() {
               {ago(latest.created_at)}
             </p>
           </div>
-          <div className="mt-auto flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden">
+          <div className="flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden pt-[clamp(2px,0.2vw,4px)]">
             {earlier.length === 0 && (
               <p className="text-muted-foreground text-[clamp(13px,0.95vw,20px)]">💛 Who helped you this week? Tag them with @ on the Play page.</p>
             )}
