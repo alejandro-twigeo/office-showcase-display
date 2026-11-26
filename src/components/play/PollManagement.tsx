@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePolls, type PollType } from '@/hooks/usePolls';
+import { useIsAdmin } from '@/hooks/usePlayer';
 import { Plus, Trash2, Edit2, X, Check, MessageSquare, List, Clock, RefreshCw } from 'lucide-react';
 
 interface PollManagementProps {
@@ -11,7 +12,8 @@ interface PollManagementProps {
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function PollManagement({ playerName }: PollManagementProps) {
-  const DELETE_POLL_PASSWORD = '1234';
+  // Closing polls is for the admin (checked by the database, no shared password)
+  const { data: isAdmin = false } = useIsAdmin();
   const { activePolls, createPoll, closePoll, updatePoll, extendPoll } = usePolls();
   const [showCreate, setShowCreate] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
@@ -72,12 +74,7 @@ export function PollManagement({ playerName }: PollManagementProps) {
   };
 
   const handleDeletePoll = (pollId: string) => {
-    const enteredPassword = window.prompt('Enter password to delete this poll');
-    if (enteredPassword === null) return;
-    if (enteredPassword !== DELETE_POLL_PASSWORD) {
-      window.alert('Incorrect password. Poll was not deleted.');
-      return;
-    }
+    if (!isAdmin || !window.confirm('Close this poll?')) return;
     closePoll.mutate({ pollId, closedBy: playerName });
   };
 
@@ -124,15 +121,17 @@ export function PollManagement({ playerName }: PollManagementProps) {
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Extend 7 days
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs text-destructive hover:text-destructive"
-                    onClick={() => handleDeletePoll(poll.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Close poll
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs text-destructive hover:text-destructive"
+                      onClick={() => handleDeletePoll(poll.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Close poll
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -302,15 +301,18 @@ export function PollManagement({ playerName }: PollManagementProps) {
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeletePoll(poll.id)}
-                        disabled={closePoll.isPending}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePoll(poll.id)}
+                          disabled={closePoll.isPending}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          aria-label="Close poll"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {poll.poll_type === 'choice' && (
