@@ -29,8 +29,9 @@ type YTPlayer = {
   destroy: () => void;
 };
 
+// The TV isn't logged in, so it only changes the queue through two database functions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ytQueue = () => (supabase as any).from("youtube_queue");
+const tvRpc = (fn: string, args: Record<string, unknown>) => (supabase as any).rpc(fn, args);
 
 const ytAPIReadyCallbacks: Array<() => void> = [];
 let ytAPILoaded = false;
@@ -61,7 +62,7 @@ function loadYouTubeAPI(onReady: () => void) {
 /* ── Component ──────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
-  const { currentVideo, queue, advanceQueue } = useYoutubeQueue();
+  const { currentVideo, queue } = useYoutubeQueue();
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
     onPlayingChange?.(!!currentVideo);
@@ -115,11 +116,13 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
   const sidebarWidth = queue.length === 0 ? "0px" : spotlight ? "clamp(180px,12vw,270px)" : "clamp(64px,5vw,110px)";
 
+  // Next song: the TV isn't logged in, so it uses the database function made for exactly this.
+  // The queue updates itself through realtime afterwards.
   const handleVideoEnd = useCallback(() => {
     if (hasAdvancedRef.current) return;
     hasAdvancedRef.current = true;
-    advanceQueue.mutate(currentVideoIdRef.current);
-  }, [advanceQueue]);
+    tvRpc("tv_advance_queue", { p_current: currentVideoIdRef.current ?? null });
+  }, []);
 
   // Keep currentVideoIdRef in sync so the stale-closure-safe callback always has the latest id
   useEffect(() => {
@@ -250,7 +253,8 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
       if (!playerRef.current || !playerReadyRef.current) return;
       try {
         const seconds = Math.floor(playerRef.current.getCurrentTime());
-        await ytQueue().update({ current_time_seconds: seconds }).eq("id", id);
+        // only saves the position of the video that is playing
+        await tvRpc("tv_save_position", { p_id: id, p_seconds: seconds });
       } catch { /* ignore */ }
     }, 5000);
     return () => clearInterval(interval);
