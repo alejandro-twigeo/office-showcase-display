@@ -277,22 +277,23 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           {/* Left — video + info */}
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
-              <div className="text-center flex-1 min-h-0 flex flex-col items-center justify-center">
-                {/* The musicians fill the tile. Multiply blends the video's white into the tile colour. */}
+              // Nothing playing: musicians and text side by side, so the tile stays short
+              <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-[clamp(16px,1.6vw,36px)] text-center lg:text-left">
+                {/* Multiply blends the video's white into the tile colour */}
                 <video
                   src={partitureVideo}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="h-28 lg:h-0 lg:flex-1 min-h-0 w-full object-contain mix-blend-multiply scale-[1.35] mb-1 lg:mb-[clamp(4px,0.4vw,8px)]"
+                  className="h-28 lg:h-[clamp(96px,8vw,180px)] aspect-square w-auto object-contain mix-blend-multiply scale-[1.3]"
                 />
-                <p className="text-muted-foreground text-xs lg:text-[clamp(14px,1vw,20px)]">
-                  No video playing
-                </p>
-                <p className="text-muted-foreground text-[10px] lg:text-[clamp(12px,0.8vw,16px)] mt-0.5 lg:mt-1">
-                  Queue one from the Play page!
-                </p>
+                <div>
+                  <p className="font-medium text-xs lg:text-[clamp(16px,1.2vw,25px)]">No video playing</p>
+                  <p className="text-muted-foreground text-[10px] lg:text-[clamp(13px,0.9vw,19px)] mt-0.5 lg:mt-1">
+                    Queue one from the Play page
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col flex-1 min-h-0 gap-1 lg:gap-[clamp(8px,0.6vw,16px)]">
