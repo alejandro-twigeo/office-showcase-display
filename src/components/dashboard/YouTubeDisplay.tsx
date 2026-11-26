@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { Youtube, ListMusic, Volume2 } from "lucide-react";
+import { ListMusic, Volume2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -259,15 +259,10 @@ export function YouTubeDisplay() {
   }, []);
 
   return (
-    <Card className="h-full min-h-0 flex flex-col">
-      <CardHeader className="pb-1 pt-3 px-3 lg:pb-2 lg:pt-6 lg:px-6">
-        <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(20px,1.5vw,28px)]">
-          <Youtube className="h-4 w-4 lg:h-[clamp(18px,1.2vw,26px)] lg:w-[clamp(18px,1.2vw,26px)] text-destructive" />
-          Now Playing
-        </CardTitle>
-      </CardHeader>
+    <Card className="h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
+      <span className="tile-label">Now playing</span>
 
-      <CardContent className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0">
         <div
           className="h-full flex flex-col lg:grid gap-2 lg:gap-[clamp(8px,0.8vw,16px)] transition-[grid-template-columns] duration-500 ease-out"
           style={{ gridTemplateColumns: `minmax(0,1fr) ${sidebarWidth}` }}
@@ -289,7 +284,7 @@ export function YouTubeDisplay() {
                 <div className="flex-1 min-h-0 relative">
                   <div
                     ref={containerRef}
-                    className="absolute inset-0 bg-secondary rounded-lg overflow-hidden"
+                    className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden"
                   />
                   {soundBlocked && (
                     <button
@@ -302,7 +297,7 @@ export function YouTubeDisplay() {
                   )}
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="font-medium line-clamp-1 text-sm lg:text-[clamp(16px,1.2vw,24px)]">
+                  <h4 className="font-semibold tracking-tight line-clamp-1 text-sm lg:text-[clamp(17px,1.3vw,28px)]">
                     {currentVideo.title}
                   </h4>
                   {currentVideo.channel_title && (
@@ -364,7 +359,7 @@ export function YouTubeDisplay() {
             )}
           </div>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
