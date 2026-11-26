@@ -1,7 +1,7 @@
 import { Component, type ReactNode, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { useIsMobile } from '../hooks/use-mobile';
-import { PlayerAuth, LinkEmailPrompt } from '../components/play/PlayerAuth';
+import { PlayerAuth } from '../components/play/PlayerAuth';
 import { MobilePlayLayout } from '../components/play/MobilePlayLayout';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
@@ -51,8 +51,7 @@ class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasErr
 }
 
 export default function PlayPage() {
-  const { player, isLoading, loginWithEmail, claimProfile, signupWithEmail, needsEmail, linkEmail, logout, updateProfile } = usePlayer();
-  const [skipEmail, setSkipEmail] = useState(false);
+  const { player, isLoading, setup, sendCode, verifyCode, claimProfile, createProfile, logout, updateProfile } = usePlayer();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const deviceId = useDeviceId();
@@ -74,12 +73,7 @@ export default function PlayPage() {
   }
 
   if (!player) {
-    return <PlayerAuth onEmail={loginWithEmail} onClaim={claimProfile} onSignup={signupWithEmail} />;
-  }
-
-  // Logged in from before email login: ask once per visit for the work email ("Later" skips it)
-  if (needsEmail && !skipEmail) {
-    return <LinkEmailPrompt name={player.name} onLink={linkEmail} onSkip={() => setSkipEmail(true)} />;
+    return <PlayerAuth setup={setup} onSendCode={sendCode} onVerify={verifyCode} onClaim={claimProfile} onCreate={createProfile} />;
   }
 
   if (isMobile) {
