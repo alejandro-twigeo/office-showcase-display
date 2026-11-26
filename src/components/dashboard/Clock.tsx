@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { VaporClock } from "@/components/ui/vapor-clock";
 
-const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dateFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
-/** Office clock for the TV header. Ticks on the minute so it never drifts. */
+/**
+ * Office clock for the TV header. The time is the vapor clock (each minute the changing digits
+ * dissolve and re-form); the date ticks on the minute so it never drifts.
+ */
 export function Clock() {
   const [now, setNow] = useState(() => new Date());
 
@@ -19,14 +22,9 @@ export function Clock() {
   }, []);
 
   return (
-    <div className="shrink-0 flex items-baseline gap-[clamp(8px,0.8vw,16px)]">
-      <time
-        dateTime={now.toISOString()}
-        className="font-semibold tabular-nums tracking-tight text-foreground leading-none text-[clamp(28px,2.6vw,56px)]"
-      >
-        {timeFmt.format(now)}
-      </time>
-      <span className="text-muted-foreground leading-none text-[clamp(13px,1vw,20px)]">{dateFmt.format(now)}</span>
+    <div className="shrink-0 flex items-center gap-[clamp(8px,0.8vw,16px)]">
+      <VaporClock className="text-[clamp(32px,3vw,66px)]" />
+      <span className="text-muted-foreground leading-tight text-[clamp(13px,1vw,20px)]">{dateFmt.format(now)}</span>
     </div>
   );
 }
