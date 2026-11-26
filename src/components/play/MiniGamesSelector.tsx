@@ -9,6 +9,12 @@ import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
 import { RiddleGame } from './games/RiddleGame';
 import riddleIcon from '@/assets/riddle-icon.svg';
+import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
+import { TeamRiddleGame } from './games/TeamRiddleGame';
+import { PlayHub } from './PlayHub';
+
+/** Built-in icons for games that don't have one uploaded in Manager yet */
+const LOCAL_ICONS: Record<string, string> = { riddle: riddleIcon, team_riddle: teamRiddleIcon };
 import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 export { MINI_GAMES };
@@ -52,12 +58,18 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
         {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'riddle' && <RiddleGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'team_riddle' && <TeamRiddleGame playerName={playerName} roundId={roundId} />}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <PlayHub
+        playerName={playerName}
+        roundId={roundId}
+        onOpenGame={(id) => (id === 'geo' ? onSelectGeoGuessr?.() : selectGame(id))}
+      />
       <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-2.5">
@@ -83,8 +95,8 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
                 className="min-w-0 flex flex-col items-center justify-start gap-1.5 px-2 pt-3 pb-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:-translate-y-0.5 active:scale-[0.97] transition-all text-center"
               >
                 <div className="flex w-[78%] max-w-[4.5rem] aspect-square min-h-0 items-center justify-center overflow-hidden">
-                  {icons[game.id] || (game.id === 'riddle' && riddleIcon) ? (
-                    <img src={icons[game.id] ?? riddleIcon} alt={game.name} className="h-full w-full object-contain" />
+                  {icons[game.id] || LOCAL_ICONS[game.id] ? (
+                    <img src={icons[game.id] ?? LOCAL_ICONS[game.id]} alt={game.name} className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl sm:text-[2rem]">{game.emoji}</span>
                   )}

@@ -14,4 +14,5 @@ export const MINI_GAMES: MiniGame[] = [
   { id: 'pairs', name: 'Pairs', emoji: '🃏', description: 'Memory card matching game' },
   { id: 'labyrinth', name: 'Zip', emoji: '🌀', description: 'Connect all cells in order' },
   { id: 'riddle', name: 'Riddle', emoji: '🧩', description: 'Riddle of the day' },
+  { id: 'team_riddle', name: 'Team riddle', emoji: '🧠', description: 'Crack the weekly riddle together' },
 ];
