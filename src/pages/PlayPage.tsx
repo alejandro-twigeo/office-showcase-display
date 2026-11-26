@@ -1,7 +1,7 @@
 import { Component, type ReactNode, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { useIsMobile } from '../hooks/use-mobile';
-import { PlayerAuth } from '../components/play/PlayerAuth';
+import { PlayerAuth, LinkEmailPrompt } from '../components/play/PlayerAuth';
 import { MobilePlayLayout } from '../components/play/MobilePlayLayout';
 import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
@@ -51,7 +51,8 @@ class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasErr
 }
 
 export default function PlayPage() {
-  const { player, isLoading, login, signup, logout, updateProfile } = usePlayer();
+  const { player, isLoading, loginWithEmail, claimProfile, signupWithEmail, needsEmail, linkEmail, logout, updateProfile } = usePlayer();
+  const [skipEmail, setSkipEmail] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const deviceId = useDeviceId();
@@ -73,7 +74,12 @@ export default function PlayPage() {
   }
 
   if (!player) {
-    return <PlayerAuth onLogin={login} onSignup={signup} />;
+    return <PlayerAuth onEmail={loginWithEmail} onClaim={claimProfile} onSignup={signupWithEmail} />;
+  }
+
+  // Logged in from before email login: ask once per visit for the work email ("Later" skips it)
+  if (needsEmail && !skipEmail) {
+    return <LinkEmailPrompt name={player.name} onLink={linkEmail} onSkip={() => setSkipEmail(true)} />;
   }
 
   if (isMobile) {
@@ -191,7 +197,7 @@ export default function PlayPage() {
                 { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
                 { value: 'youtube' as const, icon: Youtube, label: 'Music' },
                 { value: 'news' as const, icon: Newspaper, label: 'News' },
-                { value: 'vibes' as const, icon: Heart, label: 'Vibes' },
+                { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
               ]).map(({ value, icon: Icon, label }) => (
                 <button
                   type="button"
@@ -257,7 +263,7 @@ export default function PlayPage() {
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
             { value: 'youtube' as const, icon: Youtube, label: 'Music' },
             { value: 'news' as const, icon: Newspaper, label: 'News' },
-            { value: 'vibes' as const, icon: Heart, label: 'Vibes' },
+            { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
           ]).map(({ value, icon: Icon, label }) => (
             <button
               type="button"
