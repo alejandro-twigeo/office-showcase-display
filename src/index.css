@@ -444,3 +444,13 @@
 @media (prefers-reduced-motion: reduce) {
   .map-pin, .grow-x { animation: none; }
 }
+
+/* ── Weekly champion crown ───────────────────────────────────────────── */
+@keyframes crown-bob {
+  0%, 100% { transform: translate(-50%, 0) rotate(-6deg); }
+  50% { transform: translate(-50%, -3px) rotate(6deg); }
+}
+.crown-bob { animation: crown-bob 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .crown-bob { animation: none; }
+}
