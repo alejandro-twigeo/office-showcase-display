@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-const PLAYER_KEY = 'twigeo-player';
+/** Key the old name-and-password login used. Cleared on load: everyone logs in again once. */
+const OLD_PLAYER_KEY = 'twigeo-player';
 
 export interface Player {
   id: string;
@@ -9,15 +11,11 @@ export interface Player {
   office: string;
   avatar: string;
   created_at: string;
+  department?: string | null;
+  is_admin?: boolean;
 }
 
-interface StoredPlayer {
-  id: string;
-  name: string;
-  email?: string;
-}
-
-/** A profile someone could claim when they log in with their email for the first time */
+/** A profile someone could claim on their first login */
 export interface ClaimablePlayer {
   id: string;
   name: string;
@@ -27,170 +25,145 @@ export interface ClaimablePlayer {
   likely: boolean;
 }
 
-export type EmailLoginResult =
-  | { status: "ok" }
-  | { status: "new"; suggestedName: string; claimable: ClaimablePlayer[] }
-  | { status: "error"; error: string };
+/** First login: what we know about this person, to claim a profile or make one */
+export interface ProfileSetup {
+  email: string;
+  suggestedName: string;
+  office: string | null;
+  department: string | null;
+  claimable: ClaimablePlayer[];
+}
 
 /**
- * Login is by work email (@twigeo.com), no password.
- * The email is kept in the players table's old `password_text` column, so no database change
- * is needed: when someone links their profile, their old password is replaced by their email.
- * Profiles still holding an old password are "unclaimed" and can be picked once by email.
+ * Login is a 6-digit code sent to your @twigeo.com email (Supabase Auth).
+ * After that, the database links your account to your profile. On your very first login
+ * you either claim your existing profile or make a new one. The database checks every
+ * score, vote and kudos against the logged-in person, so nobody can post as someone else.
  */
 export const EMAIL_DOMAIN = "twigeo.com";
 export const isWorkEmail = (email: string) => /^[a-z0-9._%+-]+@twigeo\.com$/i.test(email.trim());
 const normalize = (email: string) => email.trim().toLowerCase();
 
-/** "alejandro.garcia@twigeo.com" → "Alejandro" */
-export function nameFromEmail(email: string) {
-  const first = normalize(email).split("@")[0].split(/[._+-]/)[0] ?? "";
-  return first ? first[0].toUpperCase() + first.slice(1) : "";
-}
-
-const PUBLIC_COLUMNS = "id, name, office, avatar, created_at";
-// Untyped access for the email queries: the generated types still call this column password_text
+// The login functions aren't in the generated types yet
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const playersTable = () => (supabase as any).from("players");
+const rpc = (fn: string, args?: Record<string, unknown>) => (supabase as any).rpc(fn, args);
+
+const friendly = (message?: string) => {
+  const m = message ?? '';
+  if (m.includes('twigeo_only')) return `Only @${EMAIL_DOMAIN} emails can play`;
+  if (m.includes('taken')) return 'That profile was just taken. Pick another one';
+  if (m.includes('players_name_key') || m.includes('duplicate key')) return 'That name is taken. Add your last initial?';
+  if (m.toLowerCase().includes('token') || m.toLowerCase().includes('otp')) return "That code didn't work. Check it, or send a new one";
+  if (m.toLowerCase().includes('rate')) return 'Too many tries. Wait a minute and try again';
+  return m || 'Something went wrong';
+};
 
 export function usePlayer(): {
   player: Player | null;
   isLoading: boolean;
-  loginWithEmail: (email: string) => Promise<EmailLoginResult>;
-  claimProfile: (playerId: string, email: string) => Promise<{ ok: boolean; error?: string }>;
-  signupWithEmail: (email: string, name: string, office: string, avatar: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Logged in from before email login, with no email linked yet */
-  needsEmail: boolean;
-  linkEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Logged in, but no profile yet: claim one or create one */
+  setup: ProfileSetup | null;
+  sendCode: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  verifyCode: (email: string, code: string) => Promise<{ ok: boolean; error?: string }>;
+  claimProfile: (playerId: string) => Promise<{ ok: boolean; error?: string }>;
+  createProfile: (name: string, office: string, avatar: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (updates: { name?: string; office?: string; avatar?: string }) => Promise<{ ok: boolean; error?: string }>;
 } {
   const [player, setPlayer] = useState<Player | null>(null);
+  const [setup, setSetup] = useState<ProfileSetup | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [needsEmail, setNeedsEmail] = useState(false);
 
-  // Restore session on mount
-  useEffect(() => {
-    const restore = async () => {
-      try {
-        const raw = localStorage.getItem(PLAYER_KEY);
-        if (!raw) { setIsLoading(false); return; }
-        const stored: StoredPlayer = JSON.parse(raw);
-
-        const { data } = await supabase
-          .from('players')
-          .select(PUBLIC_COLUMNS)
-          .eq('id', stored.id)
-          .single();
-
-        if (data) {
-          setPlayer(data as Player);
-          // Sessions from before email login: ask once for the work email
-          const { count } = await playersTable()
-            .select('id', { count: 'exact', head: true })
-            .eq('id', stored.id)
-            .ilike('password_text', '%@%');
-          setNeedsEmail(!count);
-        } else {
-          localStorage.removeItem(PLAYER_KEY);
-        }
-      } catch {
-        localStorage.removeItem(PLAYER_KEY);
-      }
-      setIsLoading(false);
-    };
-    restore();
-  }, []);
-
-  const remember = (p: Player, email: string) => {
-    setPlayer(p);
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ id: p.id, name: p.name, email } satisfies StoredPlayer));
-  };
-
-  const loginWithEmail = useCallback(async (rawEmail: string): Promise<EmailLoginResult> => {
-    const email = normalize(rawEmail);
-    if (!isWorkEmail(email)) return { status: "error", error: `Use your @${EMAIL_DOMAIN} email` };
-
-    const { data: found, error } = await playersTable()
-      .select(PUBLIC_COLUMNS)
-      .eq('password_text', email)
-      .maybeSingle();
-    if (error) return { status: "error", error: "Couldn't check right now. Try again" };
-    if (found) {
-      remember(found as Player, email);
-      return { status: "ok" };
-    }
-
-    // First time with this email: offer the profiles nobody has claimed yet (no email on them)
-    const { data: open } = await playersTable()
-      .select('id, name, office, avatar')
-      .not('password_text', 'ilike', '%@%')
-      .order('name');
-    const suggestedName = nameFromEmail(email);
-    const first = suggestedName.toLowerCase();
-    const claimable: ClaimablePlayer[] = ((open ?? []) as Omit<ClaimablePlayer, "likely">[])
-      .map((p) => ({ ...p, likely: !!first && p.name.toLowerCase().startsWith(first.slice(0, 3)) }))
-      .sort((a, b) => Number(b.likely) - Number(a.likely) || a.name.localeCompare(b.name));
-    return { status: "new", suggestedName, claimable };
-  }, []);
-
-  const claimProfile = useCallback(async (playerId: string, rawEmail: string) => {
-    const email = normalize(rawEmail);
-    if (!isWorkEmail(email)) return { ok: false, error: `Use your @${EMAIL_DOMAIN} email` };
-    const { data: taken } = await playersTable().select('name').eq('password_text', email).maybeSingle();
-    if (taken) return { ok: false, error: `That email is already linked to ${taken.name}` };
-    const { data, error } = await playersTable()
-      .update({ password_text: email })
-      .eq('id', playerId)
-      // only if nobody has linked an email to it in the meantime
-      .not('password_text', 'ilike', '%@%')
-      .select(PUBLIC_COLUMNS)
-      .maybeSingle();
-    if (error || !data) return { ok: false, error: "That profile was just taken. Pick another one" };
-    remember(data as Player, email);
-    return { ok: true };
-  }, []);
-
-  const signupWithEmail = useCallback(async (rawEmail: string, name: string, office: string, avatar: string) => {
-    const email = normalize(rawEmail);
-    if (!isWorkEmail(email)) return { ok: false, error: `Use your @${EMAIL_DOMAIN} email` };
-    const { data, error } = await playersTable()
-      .insert({ name: name.trim(), password_text: email, office, avatar })
-      .select(PUBLIC_COLUMNS)
-      .single();
-
+  // Link the logged-in account to its profile (or learn what's needed to make one)
+  const link = useCallback(async (email: string) => {
+    const { data, error } = await rpc('link_my_player');
     if (error) {
-      if (error.code === '23505') return { ok: false, error: 'That name is taken. Add your last initial?' };
-      return { ok: false, error: error.message };
+      setPlayer(null);
+      setSetup(null);
+      return { ok: false, error: friendly(error.message) };
     }
-    remember(data as Player, email);
+    if (data?.status === 'ok') {
+      setPlayer(data.player as Player);
+      setSetup(null);
+      return { ok: true };
+    }
+    const suggestedName: string = data?.suggested_name ?? '';
+    const first = suggestedName.toLowerCase().slice(0, 3);
+    const claimable: ClaimablePlayer[] = ((data?.claimable ?? []) as Omit<ClaimablePlayer, 'likely'>[])
+      .map((p) => ({ ...p, likely: !!first && p.name.toLowerCase().startsWith(first) }))
+      .sort((a, b) => Number(b.likely) - Number(a.likely) || a.name.localeCompare(b.name));
+    setPlayer(null);
+    setSetup({ email, suggestedName, office: data?.office ?? null, department: data?.department ?? null, claimable });
     return { ok: true };
   }, []);
 
-  const linkEmail = useCallback(async (rawEmail: string) => {
-    if (!player) return { ok: false, error: 'Not logged in' };
+  // Restore the session, and follow logins and logouts
+  useEffect(() => {
+    try { localStorage.removeItem(OLD_PLAYER_KEY); } catch { /* ignore */ }
+    let cancelled = false;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const email = data.session?.user.email;
+      if (email && !cancelled) await link(email);
+      if (!cancelled) setIsLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setPlayer(null);
+        setSetup(null);
+      }
+      // A login link opened in this browser also lands here
+      if (event === 'SIGNED_IN' && session?.user.email) link(session.user.email);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, [link]);
+
+  const sendCode = useCallback(async (rawEmail: string) => {
     const email = normalize(rawEmail);
     if (!isWorkEmail(email)) return { ok: false, error: `Use your @${EMAIL_DOMAIN} email` };
-    const { data: taken } = await playersTable().select('name').eq('password_text', email).maybeSingle();
-    if (taken) return { ok: false, error: `That email is already linked to ${taken.name}` };
-    const { error } = await playersTable().update({ password_text: email }).eq('id', player.id);
-    if (error) return { ok: false, error: "Couldn't save right now. Try again" };
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ id: player.id, name: player.name, email } satisfies StoredPlayer));
-    setNeedsEmail(false);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/#/play` },
+    });
+    return error ? { ok: false, error: friendly(error.message) } : { ok: true };
+  }, []);
+
+  const verifyCode = useCallback(async (rawEmail: string, code: string) => {
+    const email = normalize(rawEmail);
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' });
+    if (error) return { ok: false, error: friendly(error.message) };
+    return link(email);
+  }, [link]);
+
+  const claimProfile = useCallback(async (playerId: string) => {
+    const { data, error } = await rpc('claim_player', { p_id: playerId });
+    if (error) return { ok: false, error: friendly(error.message) };
+    setPlayer(data as Player);
+    setSetup(null);
     return { ok: true };
-  }, [player]);
+  }, []);
+
+  const createProfile = useCallback(async (name: string, office: string, avatar: string) => {
+    const { data, error } = await rpc('create_my_player', { p_name: name.trim(), p_office: office, p_avatar: avatar });
+    if (error) return { ok: false, error: friendly(error.message) };
+    setPlayer(data as Player);
+    setSetup(null);
+    return { ok: true };
+  }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(PLAYER_KEY);
+    supabase.auth.signOut();
     setPlayer(null);
-    setNeedsEmail(false);
+    setSetup(null);
   }, []);
 
   const updateProfile = useCallback(async (updates: { name?: string; office?: string; avatar?: string }) => {
     if (!player) return { ok: false, error: 'Not logged in' };
     const { error } = await supabase
       .from('players')
-      .update(updates as any)
+      .update(updates)
       .eq('id', player.id);
 
     if (error) {
@@ -199,18 +172,24 @@ export function usePlayer(): {
     }
 
     setPlayer(prev => prev ? { ...prev, ...updates } : null);
-    if (updates.name) {
-      const raw = localStorage.getItem(PLAYER_KEY);
-      if (raw) {
-        const stored = JSON.parse(raw);
-        stored.name = updates.name;
-        localStorage.setItem(PLAYER_KEY, JSON.stringify(stored));
-      }
-    }
     return { ok: true };
   }, [player]);
 
-  return { player, isLoading, loginWithEmail, claimProfile, signupWithEmail, needsEmail, linkEmail, logout, updateProfile };
+  return { player, isLoading, setup, sendCode, verifyCode, claimProfile, createProfile, logout, updateProfile };
+}
+
+/** Is the logged-in person the admin? Asked of the database, so it can't be faked in the browser. */
+export function useIsAdmin() {
+  return useQuery({
+    queryKey: ['is-admin'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: s } = await supabase.auth.getSession();
+      if (!s.session) return false;
+      const { data, error } = await rpc('is_admin');
+      return !error && data === true;
+    },
+  });
 }
 
 export const AVATAR_OPTIONS = [
