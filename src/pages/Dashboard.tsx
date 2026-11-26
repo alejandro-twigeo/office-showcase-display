@@ -8,6 +8,7 @@ import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
 import { useAutoReload } from "@/hooks/useAutoReload";
 import { GameSpotlightProvider } from "@/components/dashboard/GameSpotlight";
+import { LiveMoments } from "@/components/dashboard/LiveMoments";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
@@ -47,6 +48,7 @@ export default function Dashboard() {
   return (
     <GameSpotlightProvider>
       <DashboardContent />
+      <LiveMoments />
     </GameSpotlightProvider>
   );
 }

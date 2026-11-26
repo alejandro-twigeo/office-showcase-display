@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { useDailyNews, NewsItem } from "@/hooks/useDailyNews";
 import { usePollRotations } from "@/contexts/pollRotation";
 import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
+import { ThisWeekCard } from "./WeekTiles";
 
 export function NewsDisplay() {
   const { news, isLoading } = useDailyNews();
@@ -28,6 +29,22 @@ export function NewsDisplay() {
   }, [news?.run_date]);
 
   const item = items[index];
+
+  // Every minute, swap to "This week" (offset by 30 s from the GeoGuessr/riddle swap). ?week shows it first.
+  const [showWeek, setShowWeek] = useState(() => new URLSearchParams(window.location.search).has("week"));
+  useEffect(() => {
+    let id: ReturnType<typeof setInterval>;
+    const start = setTimeout(() => {
+      setShowWeek((v) => !v);
+      id = setInterval(() => setShowWeek((v) => !v), 60_000);
+    }, 30_000);
+    return () => {
+      clearTimeout(start);
+      clearInterval(id);
+    };
+  }, []);
+
+  if (!isLoading && (!item || showWeek)) return <ThisWeekCard />;
 
   return (
     <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">

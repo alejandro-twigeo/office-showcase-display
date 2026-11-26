@@ -7,6 +7,7 @@ import { RIDDLES } from "@/lib/riddles";
 import { JoinCard } from "./JoinCard";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
+import { TeamRiddleCard } from "./WeekTiles";
 
 type ActiveLocation = ReturnType<typeof useActiveLocation>["activeLocation"];
 
@@ -105,12 +106,18 @@ export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boo
   const hasRound = !!easy?.pano_id || !!hard?.pano_id;
   const showJoinCard = !easyLoading && !hardLoading && !hasRound;
 
-  // Every minute the first tile swaps between GeoGuessr and the riddle (?riddle starts on the riddle)
-  const [showRiddle, setShowRiddle] = useState(() => new URLSearchParams(window.location.search).has("riddle"));
+  // Every minute the first tile moves on: GeoGuessr → riddle of the day → team riddle.
+  // ?riddle or ?teamriddle in the address starts on that one.
+  const [slot, setSlot] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    return q.has("teamriddle") ? 2 : q.has("riddle") ? 1 : 0;
+  });
   useEffect(() => {
-    const id = setInterval(() => setShowRiddle((v) => !v), SWITCH_EVERY_MS);
+    const id = setInterval(() => setSlot((s) => (s + 1) % 3), SWITCH_EVERY_MS);
     return () => clearInterval(id);
   }, []);
+  const showRiddle = slot === 1;
+  const showTeamRiddle = slot === 2;
 
   return (
     <div
@@ -118,7 +125,9 @@ export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boo
         forceDesktop ? "h-full min-h-0 grid grid-cols-3" : "h-full min-h-0 flex flex-col lg:grid lg:grid-cols-3"
       } gap-3 lg:gap-[clamp(12px,1vw,18px)]`}
     >
-      {showRiddle ? (
+      {showTeamRiddle ? (
+        <TeamRiddleCard fillHeight={forceDesktop} />
+      ) : showRiddle ? (
         <RiddleCard fillHeight={forceDesktop} />
       ) : showJoinCard ? (
         <Card className={`${forceDesktop ? "h-full" : "h-[220px] lg:h-full"} min-h-0 flex flex-col p-0 overflow-hidden`}>
@@ -129,7 +138,7 @@ export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boo
       )}
       <div className={`${forceDesktop ? "h-full min-h-0 col-span-2" : "min-h-[220px] lg:h-full lg:min-h-0 lg:col-span-2"}`}>
         {/* When the big QR card isn't showing, the leaderboard carries a small one */}
-        <RotatingLeaderboard wide showQr={showRiddle || !showJoinCard} />
+        <RotatingLeaderboard wide showQr={slot !== 0 || !showJoinCard} />
       </div>
     </div>
   );
