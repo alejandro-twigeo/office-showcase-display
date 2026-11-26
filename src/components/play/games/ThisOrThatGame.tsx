@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { buzz } from '@/lib/haptics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
@@ -269,9 +270,11 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
     const newAnswers = [...answers, { choice, correct: isCorrect }];
     setSelectedChoice(choice);
 
+    buzz(6);
     window.setTimeout(() => {
       setAnswers(newAnswers);
       setShowResult({ correct: isCorrect, correctAnswer });
+      buzz(isCorrect ? [10, 40, 14] : 60);
     }, ANSWER_ANIMATION_MS);
 
     window.setTimeout(async () => {
@@ -328,6 +331,8 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
   }
 
   const q = questions[currentQ];
+  let streak = 0;
+  for (let i = answers.length - 1; i >= 0 && answers[i].correct; i--) streak++;
 
   return (
     <Card>
@@ -350,10 +355,11 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
             100% { transform: translate(calc(var(--goo-dx) * 0.82), calc(var(--goo-dy) * 0.82)) scale(0.9); opacity: 0.84; }
           }
         `}</style>
+        <div key={currentQ} className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
         <p className={isMobile ? 'text-lg font-semibold text-center py-2 leading-snug' : 'text-base font-semibold text-center py-2 leading-snug'}>{q.prompt}</p>
 
         {showResult ? (
-          <div className={`text-center py-4 rounded-lg border-2 ${showResult.correct ? 'border-green-500 bg-green-500/10' : 'border-destructive bg-destructive/10'}`}>
+          <div className={`text-center py-4 rounded-lg border-2 animate-in zoom-in-95 fade-in duration-300 ${showResult.correct ? 'border-green-500 bg-green-500/10' : 'border-destructive bg-destructive/10 wordle-shake'}`}>
             {showResult.correct ? (
               <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-1" />
             ) : (
@@ -385,14 +391,19 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
           </div>
         )}
 
-        <div className="flex gap-1 justify-center">
+        </div>
+
+        <div className="flex items-center gap-1 justify-center">
           {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className={`w-2 h-2 rounded-full ${
+            <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === currentQ && i >= answers.length ? 'w-5' : 'w-2'} ${
               i < answers.length
                 ? answers[i].correct ? 'bg-green-500' : 'bg-destructive'
                 : i === currentQ ? 'bg-primary' : 'bg-muted'
             }`} />
           ))}
+          {streak >= 2 && (
+            <span key={streak} className="ml-2 text-xs font-semibold text-primary animate-in zoom-in-50 duration-300">🔥 {streak} in a row</span>
+          )}
         </div>
       </CardContent>
     </Card>
