@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 
 /**
- * VaporClock: the current time (HH:MM) drawn as grains. When a digit changes, the old one
- * sublimates into grains drifting up on a curl-noise wind and the new one condenses from the
- * same cloud. Adapted from the "vapor digits" countdown: same physics, but a clock with
- * 4 digits, a colon, and one transition a minute. A real <time> element underneath keeps it
- * readable for screen readers, and it shows plain digits when reduced motion is on.
+ * VaporClock: the current time (HH:MM). Normally the digits are crisp text. When one changes,
+ * that digit turns into grains: the old one sublimates and drifts up on a curl-noise wind, the
+ * new one condenses from the same cloud, and as the grains land the crisp digit fades back in.
+ * Adapted from the "vapor digits" countdown: same physics, but a clock with 4 digits, a colon,
+ * and one transition a minute. A real <time> element keeps it readable for screen readers,
+ * and with reduced motion on it simply changes the digits.
  *
  * Preview: add ?vapor to the address to make the minutes tick every 4 seconds.
  */
@@ -36,7 +37,7 @@ const DIGITS = 4;
 const FLOATS = 6; // grains: x, y, vx, vy, hx, hy · vapor: x, y, vx, vy, age, life
 const MAX_GRAINS = 2500; // per digit
 const SAMPLE_STRIDE = 2; // px between samples on the glyph raster (denser than the original, the clock is smaller)
-const GRAIN = 1.8; // px grain size
+const GRAIN = 1.5; // px grain size (only visible while a digit changes)
 const SPRING_K = 90;
 const ZETA = 0.55;
 const DRAG = 0.92;
@@ -103,6 +104,7 @@ export function VaporClock({ className = "" }: { className?: string }) {
     let raf = 0;
     let last = 0;
     const dampC = 2 * ZETA * Math.sqrt(SPRING_K);
+    const fadeTimers: ReturnType<typeof setTimeout>[] = [];
     const half = GRAIN / 2;
 
     const loop = (t: number) => {
@@ -118,14 +120,8 @@ export function VaporClock({ className = "" }: { className?: string }) {
         const g = slot.g;
         const v = slot.v;
 
-        if (!slot.active) {
-          ctx.globalAlpha = 0.95;
-          for (let i = 0; i < slot.gc; i++) {
-            const o = i * FLOATS;
-            ctx.fillRect(g[o] - half, g[o + 1] - half, GRAIN, GRAIN);
-          }
-          continue;
-        }
+        // settled digits are the crisp text; nothing to draw
+        if (!slot.active) continue;
         anyActive = true;
         let settled = true;
 
@@ -203,6 +199,7 @@ export function VaporClock({ className = "" }: { className?: string }) {
             g[o + 3] = 0;
           }
           slot.active = false;
+          digitEls[s].style.opacity = "1"; // crisp digit fades back in over the settled grains
         }
       }
       ctx.globalAlpha = 1;
@@ -234,6 +231,16 @@ export function VaporClock({ className = "" }: { className?: string }) {
         vc++;
       }
       slot.vc = vc;
+      // hand this digit over to the grains while it changes, and bring the crisp digit back
+      // while the last grains are still landing, so there's no gap between the two
+      const el = digitEls[s];
+      el.style.transitionDuration = "0ms";
+      el.style.opacity = "0";
+      if (fadeTimers[s]) clearTimeout(fadeTimers[s]);
+      fadeTimers[s] = setTimeout(() => {
+        el.style.transitionDuration = "";
+        el.style.opacity = "1";
+      }, 750);
       const homes = glyphs[d];
       const cell = cells[s];
       const n = homes.length / 2;
@@ -338,8 +345,10 @@ export function VaporClock({ className = "" }: { className?: string }) {
           slot.g[o + 5] = hy;
         }
       }
-      wake();
     };
+
+    // the text is what you see when nothing is changing
+    digitEls.forEach((el) => (el.style.opacity = "1"));
 
     // tick on each minute boundary (every 4 s in preview)
     const schedule = () => {
@@ -400,6 +409,7 @@ export function VaporClock({ className = "" }: { className?: string }) {
     return () => {
       disposed = true;
       if (timer) clearTimeout(timer);
+      fadeTimers.forEach((t) => t && clearTimeout(t));
       cancelAnimationFrame(raf);
       raf = 0;
       ro?.disconnect();
@@ -407,7 +417,7 @@ export function VaporClock({ className = "" }: { className?: string }) {
     };
   }, []);
 
-  const digit = "font-semibold leading-none tracking-tight text-foreground opacity-0 tabular-nums motion-reduce:opacity-100";
+  const digit = "font-semibold leading-none tracking-tight text-foreground tabular-nums transition-opacity duration-300";
 
   return (
     <div ref={rootRef} className={`relative inline-flex items-center select-none ${className}`}>
