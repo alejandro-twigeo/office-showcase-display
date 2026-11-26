@@ -97,7 +97,6 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
     setStep('code');
     setCode('');
     setResendIn(RESEND_AFTER_S);
-    setTimeout(() => codeRef.current?.focus(), 50);
   };
 
   const verify = async (value = code) => {
@@ -224,7 +223,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
 
   if (step === 'code') {
     return (
-      <Shell icon={<KeyRound className="h-7 w-7 text-primary" />} title="Check your email" subtitle={`We sent a 6-digit code to ${fullEmail(email)}`}>
+      <Shell icon={<KeyRound className="h-7 w-7 text-primary" />} title="Check your email" subtitle={`We sent a login email to ${fullEmail(email)}. Open it and tap Log in. The first time, it says Verify Email instead.`}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -232,6 +231,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
           }}
           className="space-y-4"
         >
+          <p className="text-center text-xs text-muted-foreground">Got a 6-digit code instead? Type it here:</p>
           <Input
             ref={codeRef}
             type="text"
@@ -245,19 +245,21 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
               setError('');
               if (v.length === 6) verify(v);
             }}
-            className="h-14 text-center text-3xl tracking-[0.4em] tabular-nums"
+            className="h-12 text-center text-2xl tracking-[0.4em] tabular-nums"
             disabled={loading}
           />
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
-          <Button type="submit" className="w-full h-11" disabled={code.length < 6 || loading}>
-            {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Checking…</> : 'Log in'}
-          </Button>
+          {code.length > 0 && (
+            <Button type="submit" className="w-full h-11" disabled={code.length < 6 || loading}>
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Checking…</> : 'Log in'}
+            </Button>
+          )}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <button type="button" className="flex items-center gap-1 hover:underline underline-offset-2" onClick={() => { setStep('email'); setError(''); }}>
               <ArrowLeft className="h-3.5 w-3.5" /> Other email
             </button>
             <button type="button" className="hover:underline underline-offset-2 disabled:no-underline disabled:opacity-60" disabled={resendIn > 0 || loading} onClick={() => send()}>
-              {resendIn > 0 ? `Send again in ${resendIn}s` : 'Send a new code'}
+              {resendIn > 0 ? `Send again in ${resendIn}s` : 'Send it again'}
             </button>
           </div>
         </form>
@@ -266,12 +268,12 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
   }
 
   return (
-    <Shell icon={<Mail className="h-7 w-7 text-primary" />} title="Welcome!" subtitle="Log in with your work email. We'll send you a code.">
+    <Shell icon={<Mail className="h-7 w-7 text-primary" />} title="Welcome!" subtitle="Log in with your work email. We'll send you a login link.">
       <form onSubmit={send} className="space-y-4">
         <WorkEmailInput value={email} onChange={(v) => { setEmail(v); setError(''); }} disabled={loading} />
         {error && <p className="text-sm text-destructive text-center">{error}</p>}
         <Button type="submit" className="w-full h-11" disabled={!email.trim() || loading}>
-          {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending…</> : 'Send me a code'}
+          {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Sending…</> : 'Send me a login link'}
         </Button>
       </form>
     </Shell>
