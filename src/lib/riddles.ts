@@ -71,17 +71,38 @@ export const RIDDLES: Riddle[] = [
   { question: "What is easy to get into but hard to get out of?", answers: ["trouble", "debt", "bed"], hint: "You don't want to be in it" },
 ];
 
-/** Lowercase, drop punctuation and leading a/an/the, trim plural "s" so "Towels!" matches "towel". */
-export function normaliseAnswer(s: string): string {
+// Too vague to count as a partial answer on their own ("letter" for "the letter M")
+const VAGUE = new Set(["letter", "thing", "object", "item", "word", "part", "piece", "stuff", "something", "person", "place"]);
+
+// Filler words people add around an answer ("I think it's a towel")
+const FILLER = new Set([
+  "a", "an", "the", "my", "your", "of", "it", "its", "is", "it's", "thats", "that", "this", "i", "think", "maybe",
+  "answer", "probably", "obviously", "dont", "know", "idk", "no", "yes", "guess", "some", "kind", "type", "sort", "just", "like", "you", "are", "be", "am", "um",
+]);
+
+/** Lowercase, strip accents and punctuation, drop filler words, singularise. Returns the words. */
+export function answerWords(s: string): string[] {
   return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
     .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\b(a|an|the|my|your)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/(\w{3,})s\b/g, "$1");
+    .split(/\s+/)
+    .filter((w) => w && !FILLER.has(w))
+    .map(singular);
+}
+
+function singular(w: string): string {
+  if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+  if (w.length > 4 && /(ches|shes|xes|sses)$/.test(w)) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+  return w;
+}
+
+/** Kept for anything that still wants a single normalised string. */
+export function normaliseAnswer(s: string): string {
+  return answerWords(s).join(" ");
 }
 
 function editDistance(a: string, b: string): number {
@@ -93,15 +114,48 @@ function editDistance(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 
-/** Right if it matches an accepted answer, allowing one typo on longer words. */
+/** Same word, allowing typos when the answer word is long enough: 1 for 5+ letters, 2 for 8+. */
+function sameWord(answerWord: string, guessWord: string): boolean {
+  if (answerWord === guessWord) return true;
+  if (answerWord.length < 5 || guessWord.length < 4) return false;
+  return editDistance(answerWord, guessWord) <= (answerWord.length >= 8 ? 2 : 1);
+}
+
+/**
+ * Right if the guess means one of the accepted answers. Forgiving on purpose:
+ * - wording, plurals, filler and typos don't matter ("Towels!", "a towl", "it's a towel")
+ * - the whole answer inside a longer guess counts ("I'd say a teapot")
+ * - part of a multi-word answer counts, as long as that part isn't just repeating the question:
+ *   "rubber" is right for "rubber band" in "What kind of band never plays music?", "band" isn't.
+ */
 export function isRightAnswer(guess: string, riddle: Riddle): boolean {
-  const g = normaliseAnswer(guess);
-  if (!g) return false;
+  const g = answerWords(guess);
+  if (!g.length) return false;
+  const questionWords = new Set(answerWords(riddle.question));
+
   return riddle.answers.some((ans) => {
-    const a = normaliseAnswer(ans);
-    if (g === a) return true;
-    if (a.length >= 5 && editDistance(g, a) <= 1) return true;
-    // "it's a towel" style answers: the accepted word appears on its own
-    return a.length >= 4 && new RegExp(`(^| )${a}( |$)`).test(g);
+    const a = answerWords(ans);
+    if (!a.length) return false;
+
+    // Same letters, ignoring spaces ("rubberband", "tea pot")
+    if (g.join("") === a.join("")) return true;
+
+    // Whole answer, in order, somewhere in the guess
+    for (let start = 0; start + a.length <= g.length; start++) {
+      if (a.every((w, k) => sameWord(w, g[start + k]))) return true;
+    }
+    // Every answer word appears in the guess, any order ("cards deck" for "deck of cards")
+    if (a.every((w) => g.some((x) => sameWord(w, x)))) return true;
+
+    // Part of a multi-word answer: each guess word must be in the answer, and at least one
+    // of them must say something the question doesn't already say
+    if (a.length > 1 && g.length < a.length) {
+      const inAnswer = g.every((x) => a.some((w) => sameWord(w, x)));
+      const addsSomething = g.some(
+        (x) => x.length >= 3 && !VAGUE.has(x) && ![...questionWords].some((q) => sameWord(q, x))
+      );
+      if (inAnswer && addsSomething) return true;
+    }
+    return false;
   });
 }

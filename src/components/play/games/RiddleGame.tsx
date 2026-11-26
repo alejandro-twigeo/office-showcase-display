@@ -203,6 +203,9 @@ export function RiddleGame({ playerName, roundId }: RiddleGameProps) {
               <div className="text-center">
                 <p className="text-3xl">🎉</p>
                 <p className="font-semibold">You got it{misses.length ? ` on try ${misses.length + 1}` : ' first time'}!</p>
+                <p className="text-sm text-muted-foreground">
+                  The answer: <span className="font-medium capitalize text-foreground">{riddle.answers[0]}</span>
+                </p>
                 <p className="mt-1 text-3xl font-bold text-primary tabular-nums animate-in zoom-in-50 duration-500">+{points} pts</p>
               </div>
             ) : (
