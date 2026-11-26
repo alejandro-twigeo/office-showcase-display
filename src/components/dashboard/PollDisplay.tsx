@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePollRotations } from "@/contexts/pollRotation";
 import { Card } from "@/components/ui/card";
 import { usePolls, useVotes } from "@/hooks/usePolls";
+import { CountUp } from "@/components/ui/count-up";
 
 export const ROTATE_SECONDS = 30;
 
@@ -155,7 +156,7 @@ export function PollDisplay() {
                         {label}
                       </span>
                       <span className={`shrink-0 tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
-                        {pct}%
+                        <CountUp value={pct} />%
                       </span>
                     </div>
                     <div className="mt-[clamp(4px,0.3vw,6px)] h-[clamp(5px,0.4vw,9px)] rounded-full bg-secondary overflow-hidden">

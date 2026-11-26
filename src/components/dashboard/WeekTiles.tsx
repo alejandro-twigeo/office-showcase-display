@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { CountUp } from "@/components/ui/count-up";
 import { Lock, CheckCircle2 } from "lucide-react";
 import {
   useOfficeActivity,
@@ -33,6 +35,15 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
   const goalDone = a.playsThisWeek >= OFFICE_GOAL;
   const maxOffice = Math.max(1, ...a.officePoints.map((o) => o.points));
 
+  // Every 10 games the bar gives a little pulse
+  const [pulse, setPulse] = useState(0);
+  const prevPlays = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevPlays.current;
+    prevPlays.current = a.playsThisWeek;
+    if (prev !== null && Math.floor(a.playsThisWeek / 10) > Math.floor(prev / 10)) setPulse((p) => p + 1);
+  }, [a.playsThisWeek]);
+
   return (
     <Card className="h-full min-h-0 flex flex-col justify-between overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700">
       <div className="flex items-baseline justify-between gap-3">
@@ -41,7 +52,7 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
       </div>
 
       {/* Champion */}
-      <div className="flex items-center gap-[clamp(10px,0.8vw,16px)]">
+      <div key={leader ?? "none"} className="flex items-center gap-[clamp(10px,0.8vw,16px)] animate-in fade-in slide-in-from-bottom-2 duration-700">
         <span className="relative shrink-0 leading-none text-[clamp(30px,2.6vw,56px)]">
           {leader ? avatarOf(a, leader) : "🏆"}
           {leader && <span className="absolute -top-[0.45em] left-1/2 -translate-x-1/2 text-[0.55em] crown-bob">👑</span>}
@@ -54,7 +65,7 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
         </div>
         {leader && (
           <span className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(18px,1.5vw,32px)]">
-            {leaderPts}
+            <CountUp value={leaderPts ?? 0} />
             <span className="ml-1 text-muted-foreground font-normal text-[clamp(11px,0.75vw,15px)]">pts</span>
           </span>
         )}
@@ -65,10 +76,10 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
         <div className="flex items-baseline justify-between gap-2 text-[clamp(13px,0.95vw,20px)]">
           <span className="font-medium">{goalDone ? `Goal reached: ${OFFICE_GOAL_REWARD}` : `Office goal: ${OFFICE_GOAL_REWARD}`}</span>
           <span className="tabular-nums text-muted-foreground">
-            {Math.min(a.playsThisWeek, OFFICE_GOAL)} / {OFFICE_GOAL} games
+            <CountUp value={Math.min(a.playsThisWeek, OFFICE_GOAL)} /> / {OFFICE_GOAL} games
           </span>
         </div>
-        <div className="h-[clamp(10px,0.75vw,16px)] overflow-hidden rounded-full bg-secondary">
+        <div key={pulse} className={`h-[clamp(10px,0.75vw,16px)] overflow-hidden rounded-full bg-secondary ${pulse ? "goal-pulse" : ""}`}>
           <div
             className={`h-full rounded-full transition-[width] duration-1000 ease-out ${goalDone ? "bg-green-600" : "bg-primary"}`}
             style={{ width: `${goalPct}%` }}
