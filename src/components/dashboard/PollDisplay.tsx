@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePollRotations } from "@/contexts/pollRotation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card } from "@/components/ui/card";
 import { usePolls, useVotes } from "@/hooks/usePolls";
-import { BarChart3, Clock, Users } from "lucide-react";
 
 export const ROTATE_SECONDS = 30;
 
@@ -110,119 +108,76 @@ export function PollDisplay() {
       .slice(0, 8); // show top 8 on TV
   }, [currentPoll, voteCounts]);
 
+  const isFreetext = (currentPoll as any)?.poll_type === "freetext";
+  const rows = !currentPoll
+    ? []
+    : isFreetext
+      ? sortedFreetextOptions.map(({ text, idx, count }) => ({ key: idx, label: text, count }))
+      : (currentPoll.options as string[]).map((label, idx) => ({ key: idx, label, count: voteCounts[idx] || 0 }));
+  const topCount = Math.max(0, ...rows.map((r) => r.count));
+  const byline = (currentPoll as any)?.created_by;
+
   return (
-    <Card className="h-full min-h-0 flex flex-col overflow-hidden">
-      <CardHeader className="pb-1 pt-3 px-3 lg:pb-2 lg:pt-6 lg:px-6">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-1.5 text-sm lg:text-[clamp(20px,1.5vw,28px)]">
-            <BarChart3 className="h-4 w-4 lg:h-[clamp(18px,1.2vw,26px)] lg:w-[clamp(18px,1.2vw,26px)] text-primary" />
-            Live Poll
-          </CardTitle>
-          {currentPoll && (
-            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground">
-              <Clock className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,28px)]" />
-              <span className="font-mono">{timeLeft}s</span>
-            </div>
-          )}
+    <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
+      <div className="flex items-center justify-between gap-3">
+        <span className="tile-label">Poll{byline === "Daily poll ✨" ? " of the day" : ""}</span>
+        {currentPoll && rows.length > 0 && (
+          <span className="tile-label tabular-nums">
+            {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <p className="m-auto text-muted-foreground text-[clamp(14px,1vw,20px)]">Loading…</p>
+      ) : !currentPoll ? (
+        <div className="m-auto text-center">
+          <p className="font-semibold text-[clamp(20px,1.6vw,34px)] leading-tight">No poll right now</p>
+          <p className="mt-1 text-muted-foreground text-[clamp(13px,0.9vw,18px)]">A new one arrives with the daily reset</p>
         </div>
-      </CardHeader>
+      ) : (
+        <div className="flex-1 min-h-0 flex flex-col gap-[clamp(10px,1vw,20px)] overflow-hidden">
+          <h3 className="font-semibold tracking-tight leading-[1.08] text-[clamp(22px,1.9vw,42px)] text-balance">
+            {currentPoll.question}
+          </h3>
 
-      <CardContent className="flex-1 min-h-0 overflow-y-auto">
-        {isLoading ? (
-          <div className="text-center flex flex-col items-center justify-center h-full">
-            <BarChart3 className="h-[clamp(32px,3vw,64px)] w-[clamp(32px,3vw,64px)] text-muted-foreground mb-3" />
-            <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">Loading polls…</p>
-          </div>
-        ) : !currentPoll ? (
-          <div className="text-center flex flex-col items-center justify-center h-full">
-            <BarChart3 className="h-[clamp(32px,3vw,64px)] w-[clamp(32px,3vw,64px)] text-muted-foreground mb-3" />
-            <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No active polls</p>
-            <p className="text-muted-foreground text-[clamp(12px,0.8vw,16px)] mt-1">Create one from the Play page!</p>
-          </div>
-        ) : (currentPoll as any).poll_type === "freetext" ? (
-          /* ── Freetext poll display ── */
-          <div className="space-y-[clamp(8px,0.8vw,16px)]">
-            <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
-            <h3 className="font-semibold text-[clamp(18px,1.4vw,28px)]">{currentPoll.question}</h3>
-            {sortedFreetextOptions.length === 0 ? (
-              <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">
-                No answers yet — submit one from the Play page!
-              </p>
-            ) : (
-              <div className="space-y-[clamp(4px,0.35vw,7px)]">
-                {sortedFreetextOptions.map(({ text, idx, count }) => {
-                  const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-
-                  return (
-                    <div key={idx} className="flex items-center gap-3">
-                      <div className="relative flex-1 h-[clamp(26px,1.9vw,38px)] bg-secondary rounded-md overflow-hidden">
-                        <div
-                          className="h-full bg-primary/80 transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        />
-                        <span className="absolute inset-0 flex items-center px-3 text-[clamp(12px,0.85vw,18px)] font-medium truncate">
-                          {text}
-                        </span>
-                      </div>
-
-                      <div className="shrink-0 text-muted-foreground text-[clamp(12px,0.85vw,18px)] tabular-nums">
-                        {count} ({Math.round(percentage)}%)
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
-              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
-              <span>
-                {totalVotes} vote{totalVotes !== 1 ? "s" : ""} · {(currentPoll.options as string[]).length} answers
-              </span>
-            </div>
-          </div>
-        ) : (
-          /* ── Choice poll display ── */
-          <div className="space-y-[clamp(8px,0.8vw,16px)]">
-            <div>
-              <Progress value={(timeLeft / ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
-            </div>
-
-            <h3 className="font-semibold text-[clamp(18px,1.4vw,28px)]">{currentPoll.question}</h3>
-
-            <div className="space-y-[clamp(6px,0.6vw,12px)]">
-              {(currentPoll.options as string[]).map((option, index) => {
-                const count = voteCounts[index] || 0;
-                const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-
+          {rows.length === 0 ? (
+            <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No answers yet. Add yours from the Play page</p>
+          ) : (
+            <div className="mt-auto flex flex-col gap-[clamp(8px,0.7vw,14px)]">
+              {rows.map(({ key, label, count }) => {
+                const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                const leading = count > 0 && count === topCount;
                 return (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="relative flex-1 h-[clamp(30px,2vw,40px)] bg-secondary rounded-md overflow-hidden">
-                      <div
-                        className="h-full bg-primary/80 transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                      <span className="absolute inset-0 flex items-center px-3 text-[clamp(14px,1vw,20px)] font-medium truncate">
-                        {option}
+                  <div key={key} className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className={`truncate text-[clamp(15px,1.1vw,24px)] ${leading ? "font-semibold" : "font-medium"}`}>
+                        {label}
+                      </span>
+                      <span className={`shrink-0 tabular-nums text-[clamp(15px,1.1vw,24px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
+                        {pct}%
                       </span>
                     </div>
-
-                    <div className="shrink-0 text-muted-foreground text-[clamp(12px,0.9vw,18px)] tabular-nums">
-                      {count} ({Math.round(percentage)}%)
+                    <div className="mt-[clamp(4px,0.3vw,6px)] h-[clamp(5px,0.4vw,9px)] rounded-full bg-secondary overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-[width] duration-700 ease-out ${leading ? "bg-primary" : "bg-foreground/35"}`}
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 );
               })}
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="flex items-center gap-2 text-[clamp(14px,1vw,20px)] text-muted-foreground pt-1">
-              <Users className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,22px)]" />
-              <span>
-                {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
-        )}
-      </CardContent>
+      {/* Rotation timer when several polls take turns */}
+      {currentPoll && activePolls.length > 1 && (
+        <div className="h-[2px] rounded-full bg-secondary overflow-hidden">
+          <div className="h-full bg-foreground/30 transition-[width] duration-1000 ease-linear" style={{ width: `${(timeLeft / ROTATE_SECONDS) * 100}%` }} />
+        </div>
+      )}
     </Card>
   );
 }

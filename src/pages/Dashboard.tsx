@@ -63,7 +63,7 @@ export default function Dashboard() {
   if (forceDesktop) {
     return (
       <div
-        className="bg-background"
+        className="tv-2027 bg-background text-foreground"
         style={{
           width: 1280,
           height: 720,
@@ -125,7 +125,7 @@ export default function Dashboard() {
 
   // Normal responsive mode
   return (
-    <div className="min-h-[100dvh] lg:h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden bg-background">
+    <div className="tv-2027 min-h-[100dvh] lg:h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden bg-background text-foreground">
       <div className="h-full w-full p-2 lg:p-[clamp(16px,1.6vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_1fr] gap-3 lg:gap-[clamp(12px,1.2vw,20px)]">
           {/* Header */}

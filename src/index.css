@@ -156,7 +156,7 @@
    Bump root font-size so every clamp() / vw-based size grows proportionally
    on screens typical of office display TVs (≥75").
    Laptop / phone / tablet breakpoints are unaffected (<1920px).
-   ────────────────────────────────────────────────────────────────────────── */
+   ────────────────────────────────────────────────────────────────────── */
 @media (min-width: 1920px) {
   :root {
     font-size: 120%;   /* 1080p FHD TV */
@@ -240,4 +240,68 @@
 
 .dialed-counter {
   font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TV theme (2027). Scoped to the TV page only, so Play and
+   Manager keep their look. Warm paper canvas, flat tiles without
+   borders or shadows, one typeface with character, and Twigeo
+   orange kept for accents.
+   ───────────────────────────────────────────────────────────── */
+.tv-2027 {
+  --background: 38 30% 93%;   /* warm paper */
+  --foreground: 30 14% 9%;    /* ink */
+  --card: 40 33% 98.5%;
+  --card-foreground: 30 14% 9%;
+  --secondary: 36 22% 89%;
+  --secondary-foreground: 30 14% 9%;
+  --muted: 36 22% 89%;
+  --muted-foreground: 30 7% 40%;
+  --border: 36 18% 85%;
+  --primary: 22 100% 56%;     /* Twigeo orange, a touch deeper */
+  --accent: 22 100% 56%;
+  --ring: 22 100% 56%;
+
+  font-family: "Familjen Grotesk Variable", "Familjen Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.005em;
+}
+
+/* Tiles: no outline, no shadow, bigger corners */
+.tv-2027 .bg-card {
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: clamp(16px, 1.4vw, 28px);
+}
+
+/* Tile labels: quiet, so the content carries the tile */
+.tv-2027 .tile-label {
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  font-size: clamp(14px, 0.95vw, 20px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Tiles inside tiles (leaderboard games) sit on paper, not white on white */
+.tv-2027 .bg-card .bg-card {
+  background: hsl(var(--background));
+  border-radius: clamp(12px, 1vw, 20px);
+}
+
+/* Wordle demo tile flip */
+@keyframes tile-flip {
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+@keyframes tile-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.tile-flip { animation: tile-flip 420ms ease-in-out both; }
+.tile-pop { animation: tile-pop 140ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .tile-flip, .tile-pop { animation: none; }
 }

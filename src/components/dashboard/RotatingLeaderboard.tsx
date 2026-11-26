@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayQr } from "./JoinCard";
+import { useGameSpotlight, GameDemoOverlay } from "./GameSpotlight";
 import { Progress } from "@/components/ui/progress";
 import { useRounds } from "@/hooks/useRounds";
 import { useScoring, calculateScore, calculateWordleScore } from "@/hooks/useScoring";
@@ -66,7 +67,7 @@ function CompactBoardCard({
   return (
     <Card
       className={`flex h-full min-h-0 flex-col overflow-hidden p-[clamp(8px,0.7vw,14px)] gap-[clamp(6px,0.5vw,10px)] ${
-        leader ? "" : "bg-secondary/40 shadow-none"
+        leader ? "" : "bg-transparent shadow-none border-dashed border-foreground/15"
       }`}
     >
       <div className="flex items-center gap-1.5 min-w-0">
@@ -88,7 +89,7 @@ function CompactBoardCard({
         <div className="flex flex-1 min-h-0 flex-col gap-[clamp(4px,0.35vw,8px)]">
           {/* Leader */}
           <div className="flex min-h-0 flex-1 items-center gap-[clamp(6px,0.6vw,12px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 px-[clamp(8px,0.6vw,12px)] py-[clamp(4px,0.4vw,8px)]">
-            <span className="shrink-0 leading-none text-[clamp(22px,1.9vw,44px)]">{avatar(leader.name)}</span>
+            <span className="shrink-0 leading-none text-[clamp(20px,1.6vw,38px)]">{avatar(leader.name)}</span>
             <div className="min-w-0 flex-1 flex items-center gap-1">
               <Trophy className="h-3.5 w-3.5 lg:h-[clamp(13px,0.95vw,20px)] lg:w-[clamp(13px,0.95vw,20px)] shrink-0 text-primary" />
               <p className="truncate font-semibold text-foreground text-sm lg:text-[clamp(14px,1.1vw,24px)] leading-tight">{leader.name}</p>
@@ -281,15 +282,13 @@ export function RotatingLeaderboard({ wide = false, showQr = false }: { wide?: b
   const pageSize = wide ? 8 : 4;
   const pages = useMemo(() => chunkRotation(GAME_ROTATION, pageSize), [pageSize]);
   const currentPage = pages[rotation % pages.length] ?? [];
+  const spotlight = useGameSpotlight();
 
   return (
-    <Card className="h-full min-h-0 flex flex-col">
-      <div className="flex items-center gap-[clamp(8px,0.8vw,16px)] px-[clamp(10px,0.9vw,18px)] pt-[clamp(10px,0.9vw,18px)] pb-[clamp(6px,0.5vw,10px)]">
+    <Card className="relative h-full min-h-0 flex flex-col">
+      <div className="flex items-center gap-[clamp(8px,0.8vw,16px)] px-[clamp(14px,1.3vw,28px)] pt-[clamp(14px,1.3vw,28px)] pb-[clamp(8px,0.7vw,14px)]">
         <div className="min-w-0 flex-1">
-          <h3 className="flex items-center gap-1.5 font-semibold text-base lg:text-[clamp(20px,1.6vw,36px)] leading-none">
-            <Trophy className="h-4 w-4 lg:h-[clamp(18px,1.4vw,30px)] lg:w-[clamp(18px,1.4vw,30px)] text-primary" />
-            Today&rsquo;s leaders
-          </h3>
+          <span className="tile-label">Today&rsquo;s leaders</span>
         </div>
         {showQr && (
           <div className="hidden lg:flex items-center gap-[clamp(6px,0.5vw,10px)] shrink-0">
@@ -309,15 +308,26 @@ export function RotatingLeaderboard({ wide = false, showQr = false }: { wide?: b
           <Progress value={(timeLeft / LEADERBOARD_ROTATE_SECONDS) * 100} className="h-[clamp(3px,0.2vw,6px)]" />
         </div>
       )}
-      <CardContent className="min-h-0 flex-1 p-[clamp(8px,0.7vw,14px)] pt-0">
+      <CardContent className="min-h-0 flex-1 p-[clamp(14px,1.3vw,28px)] pt-0">
         <div className={`grid h-full min-h-0 ${wide ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2"} lg:grid-rows-2 gap-[clamp(6px,0.6vw,12px)]`}>
-          {currentPage.map((item) => (
-            <div key={`${item.type}-${"gameId" in item ? item.gameId : item.title}`} className="min-h-0 h-full">
-              <RotationCard item={item} />
-            </div>
-          ))}
+          {currentPage.map((item) => {
+            const key = "gameId" in item ? item.gameId : item.type;
+            const lit = spotlight?.gameKey === key;
+            const dimmed = !!spotlight && !lit;
+            return (
+              <div
+                key={`${item.type}-${key}`}
+                className={`min-h-0 h-full rounded-[clamp(12px,1vw,20px)] transition-all duration-500 ${
+                  lit ? "relative z-10 scale-[1.04] ring-2 ring-primary ring-offset-2 ring-offset-card" : ""
+                } ${dimmed ? "opacity-35" : ""}`}
+              >
+                <RotationCard item={item} />
+              </div>
+            );
+          })}
         </div>
       </CardContent>
+      {spotlight?.phase === "demo" && <GameDemoOverlay key={spotlight.gameKey} gameKey={spotlight.gameKey} />}
     </Card>
   );
 }

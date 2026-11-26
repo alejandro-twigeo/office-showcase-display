@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Binoculars, Brain, Globe2 } from "lucide-react";
+import { Binoculars, Brain } from "lucide-react";
 import { JoinCard } from "./JoinCard";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
@@ -32,13 +32,10 @@ function GeoCard({ easy, hard, fillHeight }: { easy: ActiveLocation; hard: Activ
   ].filter(Boolean) as { location: NonNullable<ActiveLocation>; level: keyof typeof LEVELS }[];
 
   return (
-    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(10px,0.9vw,18px)] gap-[clamp(8px,0.7vw,14px)]`}>
+    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]`}>
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 font-semibold text-sm lg:text-[clamp(18px,1.4vw,30px)] leading-none">
-          <Globe2 className="h-4 w-4 lg:h-[clamp(18px,1.3vw,28px)] lg:w-[clamp(18px,1.3vw,28px)] text-primary" />
-          Where is this?
-        </h3>
-        <span className="text-muted-foreground text-xs lg:text-[clamp(12px,0.85vw,17px)]">GeoGuessr</span>
+        <span className="tile-label">Where is this?</span>
+        <span className="tile-label">GeoGuessr</span>
       </div>
       <div className={`flex-1 min-h-0 grid gap-[clamp(6px,0.5vw,10px)] ${photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
         {photos.map((p) => (
