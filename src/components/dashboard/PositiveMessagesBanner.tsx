@@ -7,6 +7,7 @@ import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { parseKudos, startOfWeekStockholm, type KudosSegment } from "@/lib/kudos";
 import { PlayQr } from "./JoinCard";
+import { Card } from "@/components/ui/card";
 
 const EMPTY_MSG = "Give someone kudos this week. Type @ and their name";
 const CELEBRATE_MS = 8000;
@@ -121,38 +122,8 @@ function KudosCelebration({ msg, avatars, playerNames }: { msg: PositiveMessage;
   );
 }
 
-/**
- * Header banner on the TV: this week's kudos, one at a time. Tagged people are highlighted,
- * and new kudos get a short celebration on screen. Older weeks drop off every Monday.
- */
-export function PositiveMessagesBanner() {
-  const { messages: all } = usePositiveMessages();
-  const avatars = usePlayers();
-  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
-
-  // Recompute the week boundary every few minutes so Monday resets on its own
-  const [weekStart, setWeekStart] = useState(() => startOfWeekStockholm());
-  useEffect(() => {
-    const id = setInterval(() => setWeekStart(startOfWeekStockholm()), 5 * 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const messages = useMemo(() => all.filter((m) => new Date(m.created_at) >= weekStart), [all, weekStart]);
-
-  const [index, setIndex] = useState(0);
-  const { rotations, pollTimeLeft } = usePollRotations();
-
-  useEffect(() => {
-    setIndex(0);
-  }, [messages.length]);
-
-  // advance every 2 poll rotations
-  useEffect(() => {
-    if (rotations > 0 && rotations % 2 === 0 && messages.length > 1) {
-      setIndex((i) => (i + 1) % messages.length);
-    }
-  }, [rotations, messages.length]);
-
-  // Celebrate kudos that arrive while the TV is on (not the ones already there when it loads)
+/** Celebrate kudos that arrive while the TV is on (not the ones already there when it loads). */
+function useCelebration(all: PositiveMessage[]) {
   const seenRef = useRef<Set<string> | null>(null);
   const [celebrating, setCelebrating] = useState<PositiveMessage | null>(null);
   const celebrateTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -177,6 +148,106 @@ export function PositiveMessagesBanner() {
     const t = setTimeout(() => all[0] && setCelebrating(all[0]), 2000);
     return () => clearTimeout(t);
   }, [all.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  return celebrating;
+}
+
+function useWeekStart() {
+  const [weekStart, setWeekStart] = useState(() => startOfWeekStockholm());
+  useEffect(() => {
+    const id = setInterval(() => setWeekStart(startOfWeekStockholm()), 5 * 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return weekStart;
+}
+
+const ago = (iso: string) => {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "yesterday" : `${d} days ago`;
+};
+
+/**
+ * Kudos as a tile (Together zone): the latest kudos large, the two before it underneath,
+ * and the full-screen celebration when a new one arrives. Only this week's kudos.
+ */
+export function KudosTile() {
+  const { messages: all } = usePositiveMessages();
+  const avatars = usePlayers();
+  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
+  const weekStart = useWeekStart();
+  const messages = useMemo(() => all.filter((m) => new Date(m.created_at) >= weekStart), [all, weekStart]);
+  const celebrating = useCelebration(all);
+  const [latest, ...earlier] = messages;
+
+  return (
+    <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)]">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="tile-label">Kudos · {messages.length} this week</span>
+        <span className="tile-label">Give one on the Play page</span>
+      </div>
+      {latest ? (
+        <>
+          <div key={latest.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <p className="font-semibold tracking-tight leading-[1.2] text-balance text-[clamp(18px,1.55vw,34px)] line-clamp-3">
+              <Rendered segments={parseKudos(latest.message, playerNames).segments} avatars={avatars} />
+            </p>
+            <p className="mt-[clamp(4px,0.4vw,8px)] text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
+              {latest.created_by && <>from {avatars.get(latest.created_by) ?? ""} {latest.created_by} · </>}
+              {ago(latest.created_at)}
+            </p>
+          </div>
+          <div className="mt-auto flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden">
+            {earlier.length === 0 && (
+              <p className="text-muted-foreground text-[clamp(13px,0.95vw,20px)]">💛 Who helped you this week? Tag them with @ on the Play page.</p>
+            )}
+            {earlier.slice(0, 2).map((m) => (
+              <p key={m.id} className="truncate text-[clamp(13px,0.95vw,20px)]">
+                💛 <Rendered segments={parseKudos(m.message, playerNames).segments} avatars={avatars} />
+                {m.created_by && <span className="text-muted-foreground"> · {m.created_by}</span>}
+              </p>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="m-auto text-center text-muted-foreground text-[clamp(14px,1.05vw,22px)]">{EMPTY_MSG} ✨</p>
+      )}
+      {celebrating && <KudosCelebration msg={celebrating} avatars={avatars} playerNames={playerNames} />}
+    </Card>
+  );
+}
+
+/**
+ * Header banner on the TV: this week's kudos, one at a time. Tagged people are highlighted,
+ * and new kudos get a short celebration on screen. Older weeks drop off every Monday.
+ */
+export function PositiveMessagesBanner() {
+  const { messages: all } = usePositiveMessages();
+  const avatars = usePlayers();
+  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
+
+  // Recompute the week boundary every few minutes so Monday resets on its own
+  const weekStart = useWeekStart();
+  const messages = useMemo(() => all.filter((m) => new Date(m.created_at) >= weekStart), [all, weekStart]);
+
+  const [index, setIndex] = useState(0);
+  const { rotations, pollTimeLeft } = usePollRotations();
+
+  useEffect(() => {
+    setIndex(0);
+  }, [messages.length]);
+
+  // advance every 2 poll rotations
+  useEffect(() => {
+    if (rotations > 0 && rotations % 2 === 0 && messages.length > 1) {
+      setIndex((i) => (i + 1) % messages.length);
+    }
+  }, [rotations, messages.length]);
+
+  const celebrating = useCelebration(all);
 
   const current = messages.length > 0 ? messages[index % messages.length] : null;
 

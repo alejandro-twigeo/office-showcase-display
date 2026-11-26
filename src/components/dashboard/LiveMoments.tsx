@@ -17,10 +17,17 @@ const STREAK_MILESTONES = new Set([3, 5, 10, 15, 20, 30]);
  * "Just happened" on the TV: a small card at the bottom of the screen when someone takes a lead,
  * hits a streak, sends or beats a challenge, or cracks the team riddle. One at a time.
  */
-export function LiveMoments() {
+export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" }) {
   const a = useOfficeActivity();
   const [queue, setQueue] = useState<Moment[]>([]);
   const [current, setCurrent] = useState<Moment | null>(null);
+  // The line keeps showing the last moment (with its age) after it has had its turn
+  const [last, setLast] = useState<{ m: Moment; at: number } | null>(null);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   // What we have already seen, so only new things become moments
   const seen = useRef<{ plays: Map<string, string>; leaders: Map<string, string>; challenges: Map<string, string>; solves: number } | null>(null);
@@ -81,6 +88,7 @@ export function LiveMoments() {
     if (current || !queue.length) return;
     const [next, ...rest] = queue;
     setCurrent(next);
+    setLast({ m: next, at: Date.now() });
     setQueue(rest);
     const t = setTimeout(() => setCurrent(null), SHOW_MS);
     return () => clearTimeout(t);
@@ -95,6 +103,26 @@ export function LiveMoments() {
     );
     return () => clearTimeout(t);
   }, []);
+
+  if (variant === "line") {
+    const shown = current ?? last?.m ?? null;
+    const mins = last ? Math.round((Date.now() - last.at) / 60_000) : 0;
+    return (
+      <div className="flex min-w-0 items-center gap-[clamp(8px,0.7vw,14px)] text-[clamp(14px,1.1vw,23px)]">
+        <span className="tile-label shrink-0">Just now</span>
+        {shown ? (
+          <span key={shown.id} className={`flex min-w-0 items-center gap-[clamp(6px,0.5vw,10px)] ${current ? "animate-in fade-in slide-in-from-left-2 duration-500" : ""}`}>
+            <span className="leading-none text-[1.2em]">{shown.avatar}</span>
+            <span className="truncate font-semibold">{shown.title}</span>
+            {shown.detail && <span className="truncate text-muted-foreground">{shown.detail}</span>}
+            {!current && <span className="shrink-0 text-muted-foreground text-[0.8em]">· {mins < 1 ? "just now" : `${mins} min ago`}</span>}
+          </span>
+        ) : (
+          <span className="truncate text-muted-foreground">Play a game, give kudos or queue a song and it shows up here.</span>
+        )}
+      </div>
+    );
+  }
 
   if (!current) return null;
   const toneDot = {
