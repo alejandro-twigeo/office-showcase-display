@@ -60,8 +60,12 @@ function loadYouTubeAPI(onReady: () => void) {
 
 /* ── Component ──────────────────────────────────────────────────────────── */
 
-export function YouTubeDisplay() {
+export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
   const { currentVideo, queue, advanceQueue } = useYoutubeQueue();
+  // Lets the layout give Now playing more room while something is actually playing
+  useEffect(() => {
+    onPlayingChange?.(!!currentVideo);
+  }, [currentVideo, onPlayingChange]);
   const gameSpotlight = useSpotlight();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
