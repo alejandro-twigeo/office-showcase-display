@@ -305,3 +305,14 @@
 @media (prefers-reduced-motion: reduce) {
   .tile-flip, .tile-pop { animation: none; }
 }
+
+/* Map pin drop in the GeoGuessr / City Guess demos */
+@keyframes pin-drop {
+  0% { transform: translateY(-14px) scale(0.6); opacity: 0; }
+  70% { transform: translateY(1px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+.pin-drop { animation: pin-drop 420ms cubic-bezier(.2,.8,.2,1) both; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .pin-drop { animation: none; }
+}
