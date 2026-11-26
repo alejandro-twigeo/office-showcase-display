@@ -100,6 +100,27 @@ function RiddleCard({ fillHeight }: { fillHeight: boolean }) {
 
 const SWITCH_EVERY_MS = 60_000;
 
+/**
+ * Bottom of the Play zone: one tile that moves on every minute, riddle of the day → GeoGuessr photos → team riddle.
+ * ?riddle, ?geo or ?teamriddle in the address starts on that one.
+ */
+export function PlaySideTile() {
+  const { activeLocation: easy } = useActiveLocation(1);
+  const { activeLocation: hard } = useActiveLocation(3);
+  const hasGeo = !!easy?.pano_id || !!hard?.pano_id;
+  const [slot, setSlot] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    return q.has("teamriddle") ? 2 : q.has("geo") ? 1 : 0;
+  });
+  useEffect(() => {
+    const id = setInterval(() => setSlot((s) => (s + 1) % 3), SWITCH_EVERY_MS);
+    return () => clearInterval(id);
+  }, []);
+  if (slot === 2) return <TeamRiddleCard fillHeight />;
+  if (slot === 1 && hasGeo) return <GeoCard easy={easy} hard={hard} fillHeight />;
+  return <RiddleCard fillHeight />;
+}
+
 export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boolean }) {
   const { activeLocation: easy, isLoading: easyLoading } = useActiveLocation(1);
   const { activeLocation: hard, isLoading: hardLoading } = useActiveLocation(3);

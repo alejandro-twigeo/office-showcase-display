@@ -25,7 +25,7 @@ function isRevealTime(now = new Date()) {
  * This week at a glance: who's leading, the office goal, and the office race.
  * Shown in the news tile when there's no news, and every other minute when there is.
  */
-export function ThisWeekCard() {
+export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
   const a = useOfficeActivity();
   const [leader, leaderPts] = a.weekRanking[0] ?? [];
   const reveal = isRevealTime();
@@ -76,8 +76,8 @@ export function ThisWeekCard() {
         </div>
       </div>
 
-      {/* Office race */}
-      <div className="flex flex-col gap-[clamp(5px,0.45vw,9px)]">
+      {/* Office race (in the header in the new layout, so the compact card leaves it out) */}
+      <div className={`flex flex-col gap-[clamp(5px,0.45vw,9px)] ${compact ? "hidden" : ""}`}>
         <p className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">Office race</p>
         {a.officePoints.map((o, i) => (
           <div key={o.office} className="grid grid-cols-[minmax(0,7.5em)_minmax(0,1fr)_3em] items-center gap-[clamp(8px,0.6vw,12px)] text-[clamp(13px,0.95vw,20px)]">
