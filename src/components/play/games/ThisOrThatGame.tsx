@@ -204,13 +204,13 @@ export function ThisOrThatGame({ playerName, roundId }: ThisOrThatGameProps) {
       try {
         const today = todayDate();
 
-        const cacheQuery = supabase
+        const cacheQuery: any = supabase
           .from('daily_thisorthat')
           .select('questions');
 
-        const { data: cached } = roundId
+        const { data: cached } = (roundId
           ? await cacheQuery.eq('round_id', roundId).maybeSingle()
-          : await cacheQuery.eq('run_date', today).maybeSingle();
+          : await cacheQuery.eq('run_date', today).maybeSingle()) as { data: { questions: unknown } | null };
 
         if (cached?.questions && (cached.questions as unknown as any[]).length >= 5) {
           if (!cancelled) {
