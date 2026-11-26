@@ -21,6 +21,33 @@ interface PlayerAuthProps {
 
 type Step = 'email' | 'claim' | 'signup';
 
+/** Only the part before the @: "@twigeo.com" is filled in. Pasting a full address also works. */
+const localPart = (v: string) => v.split('@')[0].replace(/\s/g, '').toLowerCase();
+const fullEmail = (local: string) => `${local}@${EMAIL_DOMAIN}`;
+
+function WorkEmailInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <div className="flex h-12 items-center rounded-md border border-input bg-background text-lg focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+      <input
+        type="text"
+        inputMode="email"
+        autoComplete="username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        placeholder="your.name"
+        value={value}
+        onChange={(e) => onChange(localPart(e.target.value))}
+        className="min-w-0 flex-1 bg-transparent pl-4 pr-0 text-right outline-none placeholder:text-muted-foreground"
+        autoFocus
+        disabled={disabled}
+        aria-label="Work email, the part before @twigeo.com"
+      />
+      <span className="shrink-0 pr-4 text-muted-foreground">@{EMAIL_DOMAIN}</span>
+    </div>
+  );
+}
+
 /**
  * Log in with your work email, no password.
  * 1. Email. Known email → straight in.
@@ -40,13 +67,13 @@ export function PlayerAuth({ onEmail, onClaim, onSignup }: PlayerAuthProps) {
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isWorkEmail(email)) {
-      setError(`Use your @${EMAIL_DOMAIN} email`);
+    if (!isWorkEmail(fullEmail(email))) {
+      setError('Type the part before @twigeo.com');
       return;
     }
     setLoading(true);
     setError('');
-    const res = await onEmail(email);
+    const res = await onEmail(fullEmail(email));
     setLoading(false);
     if (res.status === 'error') return setError(res.error);
     if (res.status === 'new') {
@@ -60,7 +87,7 @@ export function PlayerAuth({ onEmail, onClaim, onSignup }: PlayerAuthProps) {
   const claim = async (p: ClaimablePlayer) => {
     setLoading(true);
     setError('');
-    const res = await onClaim(p.id, email);
+    const res = await onClaim(p.id, fullEmail(email));
     setLoading(false);
     if (!res.ok) setError(res.error || 'Something went wrong');
   };
@@ -70,7 +97,7 @@ export function PlayerAuth({ onEmail, onClaim, onSignup }: PlayerAuthProps) {
     if (!name.trim()) return;
     setLoading(true);
     setError('');
-    const res = await onSignup(email, name, office, avatar);
+    const res = await onSignup(fullEmail(email), name, office, avatar);
     setLoading(false);
     if (!res.ok) setError(res.error || 'Something went wrong');
   };
@@ -99,19 +126,12 @@ export function PlayerAuth({ onEmail, onClaim, onSignup }: PlayerAuthProps) {
         <CardContent>
           {step === 'email' && (
             <form onSubmit={submitEmail} className="space-y-4">
-              <Input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                placeholder={`name@${EMAIL_DOMAIN}`}
+              <WorkEmailInput
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
+                onChange={(v) => {
+                  setEmail(v);
                   setError('');
                 }}
-                className="text-center text-lg h-12"
-                autoFocus
                 disabled={loading}
               />
               {error && <p className="text-sm text-destructive text-center">{error}</p>}
@@ -238,10 +258,10 @@ export function LinkEmailPrompt({ name, onLink, onSkip }: { name: string; onLink
   const [error, setError] = useState('');
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isWorkEmail(email)) return setError(`Use your @${EMAIL_DOMAIN} email`);
+    if (!isWorkEmail(fullEmail(email))) return setError('Type the part before @twigeo.com');
     setLoading(true);
     setError('');
-    const res = await onLink(email);
+    const res = await onLink(fullEmail(email));
     setLoading(false);
     if (!res.ok) setError(res.error || 'Something went wrong');
   };
@@ -257,18 +277,7 @@ export function LinkEmailPrompt({ name, onLink, onSkip }: { name: string; onLink
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
-            <Input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              placeholder={`name@${EMAIL_DOMAIN}`}
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(''); }}
-              className="text-center text-lg h-12"
-              autoFocus
-              disabled={loading}
-            />
+            <WorkEmailInput value={email} onChange={(v) => { setEmail(v); setError(''); }} disabled={loading} />
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
             <Button type="submit" className="w-full h-11" disabled={!email.trim() || loading}>
               {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : 'Save and continue'}
