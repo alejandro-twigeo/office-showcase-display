@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { usePositiveMessages } from "@/hooks/usePositiveMessages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Plus, Pencil, Trash2, Check, X, Shield } from "lucide-react";
+import { Heart, Plus, Pencil, Trash2, Check, X, Shield, ExternalLink } from "lucide-react";
 
 const MAX_LEN = 120;
 const ADMIN_PASSWORD = "5678";
+const BOB_URL = "https://app.hibob.com/home";
+
+/** "@sa" at the end of the text → "sa", so we can suggest players to tag. */
+const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
 
 interface Props {
   playerName: string;
@@ -20,6 +26,37 @@ export function PositiveMessagesSection({ playerName }: Props) {
   const [newMsg, setNewMsg] = useState("");
   const [newBy, setNewBy] = useState(playerName);
   const [addError, setAddError] = useState("");
+  const [lastSent, setLastSent] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Everyone who plays, for @-tagging
+  const { data: players = [] } = useQuery({
+    queryKey: ["players-avatars"],
+    queryFn: async () => {
+      const { data } = await supabase.from("players").select("name, avatar");
+      return data ?? [];
+    },
+  });
+  const query = mentionQuery(newMsg);
+  const suggestions = useMemo(() => {
+    if (query === undefined) return [];
+    const q = query.toLowerCase();
+    return players.filter((p) => p.name.toLowerCase().startsWith(q) && p.name !== playerName).slice(0, 6);
+  }, [players, query, playerName]);
+
+  function insertMention(name: string) {
+    setNewMsg((m) => (m.replace(/@([\p{L}\d'\-]*)$/u, `@${name} `)).slice(0, MAX_LEN));
+  }
+
+  async function shareToBob(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+    window.open(BOB_URL, "_blank", "noopener");
+  }
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,7 +80,10 @@ export function PositiveMessagesSection({ playerName }: Props) {
     if (err) { setAddError(err); return; }
     if (!newBy.trim()) { setAddError("Please add your name."); return; }
     setAddError("");
-    addMessage.mutate({ message: newMsg, created_by: newBy });
+    const text = newMsg.trim();
+    addMessage.mutate({ message: text, created_by: newBy });
+    setLastSent(text);
+    setCopied(false);
     setNewMsg("");
   }
 
@@ -78,7 +118,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Heart className="h-4 w-4 text-primary fill-primary" />
-          Positive Messages
+          Kudos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -86,7 +126,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
         {/* Add form */}
         <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
           <Textarea
-            placeholder="Share something positive… (max 120 chars)"
+            placeholder="Give someone kudos… type @ to tag them"
             value={newMsg}
             onChange={(e) => { setNewMsg(e.target.value.slice(0, MAX_LEN)); setAddError(""); }}
             className="resize-none text-sm min-h-[70px]"
@@ -109,8 +149,40 @@ export function PositiveMessagesSection({ playerName }: Props) {
               Add
             </Button>
           </div>
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => insertMention(p.name)}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium hover:bg-primary/20"
+                >
+                  <span>{p.avatar ?? "👤"}</span>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {query !== undefined && query.length > 1 && suggestions.length === 0 && (
+            <p className="text-xs text-muted-foreground">Not playing yet? Tag them anyway, the TV will invite them.</p>
+          )}
           {addError && <p className="text-xs text-destructive">{addError}</p>}
         </div>
+
+        {lastSent && (
+          <div className="flex items-center gap-3 rounded-lg bg-primary/10 p-3">
+            <p className="flex-1 text-xs leading-snug">
+              <span className="font-semibold">Sent! Watch the TV 🎉</span>
+              <br />
+              {copied ? "Copied. Paste it in Bob under Give kudos." : "Want it in Bob too? We copy the text and open Bob for you."}
+            </p>
+            <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => shareToBob(lastSent)}>
+              <ExternalLink className="h-3.5 w-3.5" />
+              Post in Bob
+            </Button>
+          </div>
+        )}
 
         {/* Messages list */}
         {isLoading ? (

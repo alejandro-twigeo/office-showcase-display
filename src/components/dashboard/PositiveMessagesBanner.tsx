@@ -1,44 +1,190 @@
-import { useEffect, useRef, useState } from "react";
-import { usePositiveMessages } from "@/hooks/usePositiveMessages";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
+import { usePositiveMessages, type PositiveMessage } from "@/hooks/usePositiveMessages";
 import { usePollRotations } from "@/contexts/pollRotation";
 import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
+import { supabase } from "@/integrations/supabase/client";
+import { parseKudos, startOfWeekStockholm, type KudosSegment } from "@/lib/kudos";
+import { PlayQr } from "./JoinCard";
 
-const DEFAULT_MSG = "Add your first positive message ✨";
-const INTERVAL = 60;
+const EMPTY_MSG = "Give someone kudos this week. Type @ and their name";
+const CELEBRATE_MS = 8000;
 
+function usePlayers() {
+  const { data } = useQuery({
+    queryKey: ["players-avatars"],
+    queryFn: async () => {
+      const { data } = await supabase.from("players").select("name, avatar");
+      return data ?? [];
+    },
+  });
+  return useMemo(() => new Map((data ?? []).map((p) => [p.name, p.avatar as string | null])), [data]);
+}
+
+/** A tagged name: orange with avatar if they play, outlined if they haven't joined yet. */
+function Tag({ name, known, avatar, big = false }: { name: string; known: boolean; avatar?: string | null; big?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-[0.25em] rounded-full px-[0.45em] py-[0.05em] align-baseline font-semibold whitespace-nowrap ${
+        known ? "bg-primary/15 text-foreground" : "border border-dashed border-foreground/35 text-foreground"
+      } ${big ? "" : ""}`}
+    >
+      {known && avatar ? <span className="leading-none">{avatar}</span> : null}
+      {name}
+    </span>
+  );
+}
+
+function Rendered({ segments, avatars }: { segments: KudosSegment[]; avatars: Map<string, string | null> }) {
+  return (
+    <>
+      {segments.map((s, i) =>
+        "text" in s ? <span key={i}>{s.text}</span> : <Tag key={i} name={s.name} known={s.known} avatar={avatars.get(s.name)} />
+      )}
+    </>
+  );
+}
+
+const CONFETTI_COLORS = ["hsl(22 100% 56%)", "#16a34a", "#eab308", "#ec4899", "#3b82f6", "#f97316"];
+
+function Confetti() {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 90 }, (_, i) => ({
+        left: Math.random() * 100,
+        delay: Math.random() * 1.4,
+        duration: 2.6 + Math.random() * 2.2,
+        size: 6 + Math.random() * 8,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        round: Math.random() > 0.6,
+        drift: (Math.random() - 0.5) * 160,
+      })),
+    []
+  );
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="confetti-piece absolute top-[-4%]"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.round ? p.size : p.size * 0.45,
+            background: p.color,
+            borderRadius: p.round ? "50%" : 2,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            ["--drift" as string]: `${p.drift}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Full-screen moment when new kudos lands: confetti, who it's for, and who sent it. */
+function KudosCelebration({ msg, avatars, playerNames }: { msg: PositiveMessage; avatars: Map<string, string | null>; playerNames: string[] }) {
+  const { segments, tagged } = parseKudos(msg.message, playerNames);
+  const newcomers = tagged.filter((t) => !t.known);
+  const headline = tagged.length ? tagged.map((t) => t.name).join(" & ") : "the team";
+
+  return createPortal(
+    <div className="tv-2027 fixed inset-0 z-[60] flex items-center justify-center bg-background/80 animate-in fade-in duration-300">
+      <Confetti />
+      <div className="relative mx-[6vw] max-w-[60vw] rounded-[clamp(18px,1.6vw,32px)] bg-[hsl(var(--card))] px-[clamp(28px,3vw,64px)] py-[clamp(24px,2.6vw,56px)] text-center shadow-[0_24px_80px_-24px_hsl(var(--foreground)/0.35)] animate-in zoom-in-90 fade-in duration-500">
+        <p className="tile-label">Kudos 🎉</p>
+        <h2 className="mt-[clamp(6px,0.6vw,12px)] font-semibold tracking-tight leading-[1.05] text-[clamp(32px,3.6vw,80px)]">
+          {tagged.length && avatars.get(tagged[0].name) ? <span className="mr-[0.2em]">{avatars.get(tagged[0].name)}</span> : null}
+          {headline}
+        </h2>
+        <p className="mx-auto mt-[clamp(10px,1vw,20px)] max-w-[40ch] leading-snug text-[clamp(18px,1.6vw,34px)]">
+          <Rendered segments={segments} avatars={avatars} />
+        </p>
+        {msg.created_by && <p className="mt-[clamp(8px,0.8vw,16px)] text-muted-foreground text-[clamp(14px,1.1vw,24px)]">from {msg.created_by}</p>}
+        {newcomers.length > 0 && (
+          <div className="mt-[clamp(14px,1.4vw,28px)] inline-flex items-center gap-[clamp(10px,0.9vw,18px)] rounded-[clamp(10px,0.9vw,18px)] bg-secondary px-[clamp(12px,1.1vw,22px)] py-[clamp(8px,0.7vw,14px)] text-left">
+            <div className="shrink-0 rounded-[6px] bg-white p-[3px] ring-2 ring-primary">
+              <PlayQr className="h-[clamp(48px,4vw,88px)] w-[clamp(48px,4vw,88px)]" />
+            </div>
+            <p className="leading-tight text-[clamp(14px,1.05vw,22px)]">
+              <span className="font-semibold">{newcomers.map((n) => n.name).join(" & ")}, you&rsquo;re not on the board yet.</span>
+              <br />
+              <span className="text-muted-foreground">Scan to join and give kudos back</span>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/**
+ * Header banner on the TV: this week's kudos, one at a time. Tagged people are highlighted,
+ * and new kudos get a short celebration on screen. Older weeks drop off every Monday.
+ */
 export function PositiveMessagesBanner() {
-  const { messages } = usePositiveMessages();
+  const { messages: all } = usePositiveMessages();
+  const avatars = usePlayers();
+  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
 
-  // no plants handled here any more
+  // Recompute the week boundary every few minutes so Monday resets on its own
+  const [weekStart, setWeekStart] = useState(() => startOfWeekStockholm());
+  useEffect(() => {
+    const id = setInterval(() => setWeekStart(startOfWeekStockholm()), 5 * 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const messages = useMemo(() => all.filter((m) => new Date(m.created_at) >= weekStart), [all, weekStart]);
 
   const [index, setIndex] = useState(0);
   const { rotations, pollTimeLeft } = usePollRotations();
 
-  // Reset index when messages change
   useEffect(() => {
     setIndex(0);
   }, [messages.length]);
 
   // advance every 2 poll rotations
   useEffect(() => {
-    if (rotations > 0 && rotations % 2 === 0) {
-      if (messages.length > 1) {
-        setIndex((i) => (i + 1) % messages.length);
-      }
+    if (rotations > 0 && rotations % 2 === 0 && messages.length > 1) {
+      setIndex((i) => (i + 1) % messages.length);
     }
   }, [rotations, messages.length]);
 
-  const current = messages.length > 0 ? messages[index] : null;
-  const displayMsg = current?.message ?? DEFAULT_MSG;
-  const displayBy = current?.created_by;
+  // Celebrate kudos that arrive while the TV is on (not the ones already there when it loads)
+  const seenRef = useRef<Set<string> | null>(null);
+  const [celebrating, setCelebrating] = useState<PositiveMessage | null>(null);
+  const celebrateTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    const ids = new Set(all.map((m) => m.id));
+    if (seenRef.current === null) {
+      if (all.length) seenRef.current = ids;
+      return;
+    }
+    const fresh = all.find((m) => !seenRef.current!.has(m.id));
+    ids.forEach((id) => seenRef.current!.add(id));
+    if (!fresh) return;
+    setCelebrating(fresh);
+    clearTimeout(celebrateTimer.current);
+    celebrateTimer.current = setTimeout(() => setCelebrating(null), CELEBRATE_MS);
+  }, [all]);
+  useEffect(() => () => clearTimeout(celebrateTimer.current), []);
+
+  // Preview: open the TV with ?kudos to see the celebration with the latest message
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("kudos")) return;
+    const t = setTimeout(() => all[0] && setCelebrating(all[0]), 2000);
+    return () => clearTimeout(t);
+  }, [all.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const current = messages.length > 0 ? messages[index % messages.length] : null;
 
   // Detect overflow to conditionally enable marquee
   const textRef = useRef<HTMLParagraphElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
-
   useEffect(() => {
-    // Small delay to let fonts/layout settle before measuring
     const id = requestAnimationFrame(() => {
       const el = textRef.current;
       const container = containerRef.current;
@@ -46,32 +192,39 @@ export function PositiveMessagesBanner() {
       setOverflows(el.scrollWidth > container.clientWidth + 2);
     });
     return () => cancelAnimationFrame(id);
-  }, [index, displayMsg, displayBy]);
+  }, [index, current?.id]);
 
-  // countdown computed from poll context
-  const totalElapsed = (rotations % 2 === 1 ? ROTATE_SECONDS : 0) +
-    (ROTATE_SECONDS - pollTimeLeft);
+  const totalElapsed = (rotations % 2 === 1 ? ROTATE_SECONDS : 0) + (ROTATE_SECONDS - pollTimeLeft);
   const countdown = ROTATE_SECONDS * 2 - totalElapsed;
+  const segments = current ? parseKudos(current.message, playerNames).segments : [];
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden w-full">
       <div className="px-[clamp(20px,1.8vw,40px)] py-[clamp(12px,1vw,24px)] flex flex-col items-center gap-1">
         <div ref={containerRef} className="w-full overflow-hidden">
           <p
             ref={textRef}
-            key={index}
-            className={`text-[clamp(16px,1.4vw,30px)] font-medium leading-snug whitespace-nowrap text-center ${overflows ? 'animate-marquee-if-needed' : ''}`}
+            key={current?.id ?? "empty"}
+            className={`text-[clamp(16px,1.4vw,30px)] font-medium leading-snug whitespace-nowrap text-center ${overflows ? "animate-marquee-if-needed" : ""}`}
           >
-            {displayMsg}{displayBy && <span className="text-muted-foreground font-normal ml-2">— {displayBy}</span>}
+            {current ? (
+              <>
+                <Rendered segments={segments} avatars={avatars} />
+                {current.created_by && <span className="text-muted-foreground font-normal ml-2">from {current.created_by}</span>}
+              </>
+            ) : (
+              <span className="text-muted-foreground">{EMPTY_MSG} ✨</span>
+            )}
           </p>
         </div>
 
         {messages.length > 1 && (
           <span className="text-[clamp(12px,0.85vw,18px)] text-muted-foreground tabular-nums">
-            {countdown}s · {index + 1}/{messages.length}
+            Kudos this week · {index % messages.length + 1}/{messages.length} · {countdown}s
           </span>
         )}
       </div>
+      {celebrating && <KudosCelebration msg={celebrating} avatars={avatars} playerNames={playerNames} />}
     </div>
   );
 }
