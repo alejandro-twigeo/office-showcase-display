@@ -48,13 +48,14 @@ export function ActivityMeter({ level, label }: { level: number; label?: string 
 function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => string; badges: (n: string) => JSX.Element | null }) {
   const ref = useFlip<HTMLDivElement>([rows.map((r) => r.player).join("|")]);
   return (
-    <div ref={ref} className="flex min-h-0 flex-1 flex-col gap-[clamp(4px,0.35vw,8px)] overflow-hidden">
+    // flex-wrap: a row that doesn't fit wraps out of view instead of showing half
+    <div ref={ref} className="flex min-h-0 flex-1 flex-col flex-wrap content-start gap-[clamp(4px,0.35vw,8px)] overflow-hidden">
       {rows.map((e, i) =>
         i === 0 ? (
           <div
             key={e.player}
             data-flip={e.player}
-            className="flex items-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-[hsl(var(--card))] px-[clamp(8px,0.6vw,12px)] py-[clamp(5px,0.4vw,9px)]"
+            className="flex w-full items-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-[hsl(var(--card))] px-[clamp(8px,0.6vw,12px)] py-[clamp(5px,0.4vw,9px)]"
           >
             <span className="leading-none text-[clamp(18px,1.4vw,30px)]">{av(e.player)}</span>
             <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(13px,1vw,21px)]">
@@ -67,7 +68,7 @@ function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => st
           <div
             key={e.player}
             data-flip={e.player}
-            className="flex flex-1 items-center gap-[clamp(5px,0.4vw,8px)] px-[clamp(4px,0.3vw,6px)] text-[clamp(12px,0.85vw,18px)]"
+            className="flex w-full items-center gap-[clamp(5px,0.4vw,8px)] px-[clamp(4px,0.3vw,6px)] py-[clamp(2px,0.25vw,5px)] text-[clamp(12px,0.85vw,18px)]"
           >
             <span className="w-[1.1em] text-center font-semibold text-muted-foreground tabular-nums">{i + 1}</span>
             <span className="leading-none">{av(e.player)}</span>
