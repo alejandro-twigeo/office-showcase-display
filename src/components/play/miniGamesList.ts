@@ -13,4 +13,5 @@ export const MINI_GAMES: MiniGame[] = [
   { id: 'sudoku', name: 'Sudoku', emoji: '🔢', description: '6×6 sudoku, hard mode' },
   { id: 'pairs', name: 'Pairs', emoji: '🃏', description: 'Memory card matching game' },
   { id: 'labyrinth', name: 'Zip', emoji: '🌀', description: 'Connect all cells in order' },
+  { id: 'riddle', name: 'Riddle', emoji: '🧩', description: 'Riddle of the day' },
 ];

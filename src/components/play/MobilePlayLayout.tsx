@@ -17,6 +17,8 @@ import { ThisOrThatGame } from './games/ThisOrThatGame';
 import { SudokuGame } from './games/SudokuGame';
 import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
+import { RiddleGame } from './games/RiddleGame';
+import riddleIcon from '@/assets/riddle-icon.svg';
 import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 import { useGameIcons } from '@/hooks/useGameIcons';
@@ -55,7 +57,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
     { value: 'polls', icon: BarChart3, label: 'Polls' },
     { value: 'youtube', icon: Youtube, label: 'Music' },
     { value: 'news', icon: Newspaper, label: 'News' },
-    { value: 'vibes', icon: Heart, label: 'Vibes' },
+    { value: 'vibes', icon: Heart, label: 'Kudos' },
   ];
 
   const renderGameContent = () => {
@@ -72,9 +74,9 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               onClick={() => setSelectedGame('geoguessr')}
               className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
             >
-              <div className="w-full aspect-square rounded-xl overflow-hidden">
+              <div className="w-full aspect-square rounded-xl overflow-hidden p-2">
                 {icons['geoguessr'] ? (
-                  <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-cover" />
+                  <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-secondary/30">
                     <Target className="h-7 w-7 text-primary" />
@@ -91,9 +93,9 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                 onClick={() => setSelectedGame(game.id)}
                 className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
               >
-                <div className="w-full aspect-square rounded-xl overflow-hidden">
-                  {icons[game.id] ? (
-                    <img src={icons[game.id]} alt={game.name} className="w-full h-full object-cover" />
+                <div className="w-full aspect-square rounded-xl overflow-hidden p-2">
+                  {icons[game.id] || (game.id === 'riddle' && riddleIcon) ? (
+                    <img src={icons[game.id] ?? riddleIcon} alt={game.name} className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary/30">
                       <span className="text-2xl">{game.emoji}</span>
@@ -121,6 +123,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {selectedGame === 'sudoku' && <SudokuGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'pairs' && <PairsGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'riddle' && <RiddleGame playerName={player.name} roundId={activeRound?.id} />}
       </div>
     );
   };

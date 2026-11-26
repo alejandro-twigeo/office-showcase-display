@@ -7,6 +7,8 @@ import { ThisOrThatGame } from './games/ThisOrThatGame';
 import { SudokuGame } from './games/SudokuGame';
 import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
+import { RiddleGame } from './games/RiddleGame';
+import riddleIcon from '@/assets/riddle-icon.svg';
 import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 export { MINI_GAMES };
@@ -49,6 +51,7 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
         {selectedGame === 'sudoku' && <SudokuGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'pairs' && <PairsGame playerName={playerName} roundId={roundId} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={playerName} roundId={roundId} />}
+        {selectedGame === 'riddle' && <RiddleGame playerName={playerName} roundId={roundId} />}
       </div>
     );
   }
@@ -57,36 +60,36 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
     <div className="space-y-4">
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-2.5">
             {includeGeoGuessr && (
               <button
                 onClick={onSelectGeoGuessr}
-                className="flex flex-col items-center justify-center gap-2 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center sm:min-h-[8.75rem]"
+                className="min-w-0 flex flex-col items-center justify-start gap-1.5 px-2 pt-3 pb-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:-translate-y-0.5 active:scale-[0.97] transition-all text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center overflow-visible sm:h-[4.1rem] sm:w-[4.1rem]">
+                <div className="flex w-[78%] max-w-[4.5rem] aspect-square min-h-0 items-center justify-center overflow-hidden">
                   {icons['geoguessr'] ? (
                     <img src={icons['geoguessr']} alt="GeoGuessr" className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl sm:text-[2rem]">🎯</span>
                   )}
                 </div>
-                <p className="font-medium text-[10px] leading-tight sm:text-xs">GeoGuessr</p>
+                <p className="flex min-h-[2.5em] w-full items-center justify-center font-medium text-xs leading-tight text-balance">GeoGuessr</p>
               </button>
             )}
             {MINI_GAMES.map((game) => (
               <button
                 key={game.id}
                 onClick={() => selectGame(game.id)}
-                className="flex flex-col items-center justify-center gap-2 p-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:scale-105 transition-all text-center sm:min-h-[8.75rem]"
+                className="min-w-0 flex flex-col items-center justify-start gap-1.5 px-2 pt-3 pb-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:-translate-y-0.5 active:scale-[0.97] transition-all text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center overflow-visible sm:h-[4.1rem] sm:w-[4.1rem]">
-                  {icons[game.id] ? (
-                    <img src={icons[game.id]} alt={game.name} className="h-full w-full object-contain" />
+                <div className="flex w-[78%] max-w-[4.5rem] aspect-square min-h-0 items-center justify-center overflow-hidden">
+                  {icons[game.id] || (game.id === 'riddle' && riddleIcon) ? (
+                    <img src={icons[game.id] ?? riddleIcon} alt={game.name} className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl sm:text-[2rem]">{game.emoji}</span>
                   )}
                 </div>
-                <p className="font-medium text-[10px] leading-tight sm:text-xs">{game.name}</p>
+                <p className="flex min-h-[2.5em] w-full items-center justify-center font-medium text-xs leading-tight text-balance">{game.name}</p>
               </button>
             ))}
           </div>
