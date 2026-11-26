@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useOfficeActivity, GAME_NAMES, type PlayEvent } from "@/hooks/useOfficeActivity";
 import { useSpotlight } from "./GameSpotlight";
+import { CountUp } from "@/components/ui/count-up";
+import { useFlip } from "@/hooks/useFlip";
 
 const GAME_EMOJI: Record<string, string> = {
   wordle: "🟩",
@@ -36,6 +38,48 @@ export function ActivityMeter({ level, label }: { level: number; label?: string 
         ))}
       </span>
     </span>
+  );
+}
+
+/**
+ * Top three of one game. Every row is the same element keyed by player, so when someone
+ * overtakes, the rows slide into their new places and the score counts up.
+ */
+function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => string; badges: (n: string) => JSX.Element | null }) {
+  const ref = useFlip<HTMLDivElement>([rows.map((r) => r.player).join("|")]);
+  return (
+    <div ref={ref} className="flex min-h-0 flex-1 flex-col gap-[clamp(4px,0.35vw,8px)] overflow-hidden">
+      {rows.map((e, i) =>
+        i === 0 ? (
+          <div
+            key={e.player}
+            data-flip={e.player}
+            className="flex items-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-[hsl(var(--card))] px-[clamp(8px,0.6vw,12px)] py-[clamp(5px,0.4vw,9px)]"
+          >
+            <span className="leading-none text-[clamp(18px,1.4vw,30px)]">{av(e.player)}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(13px,1vw,21px)]">
+              <span className="truncate">{e.player}</span>
+              {badges(e.player)}
+            </span>
+            <CountUp value={e.score} className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(15px,1.2vw,26px)]" />
+          </div>
+        ) : (
+          <div
+            key={e.player}
+            data-flip={e.player}
+            className="flex flex-1 items-center gap-[clamp(5px,0.4vw,8px)] px-[clamp(4px,0.3vw,6px)] text-[clamp(12px,0.85vw,18px)]"
+          >
+            <span className="w-[1.1em] text-center font-semibold text-muted-foreground tabular-nums">{i + 1}</span>
+            <span className="leading-none">{av(e.player)}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-1">
+              <span className="truncate">{e.player}</span>
+              {badges(e.player)}
+            </span>
+            <CountUp value={e.score} className="tabular-nums" />
+          </div>
+        )
+      )}
+    </div>
   );
 }
 
@@ -77,7 +121,9 @@ export function GamesTile() {
   return (
     <Card className="h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.8vw,16px)]">
       <div className="flex items-center justify-between gap-3">
-        <span className="tile-label">Games · {todayCount} played today</span>
+        <span className="tile-label">
+          Games · <CountUp value={todayCount} /> played today
+        </span>
         <ActivityMeter level={activityLevel(lastHour)} label="Activity" />
       </div>
 
@@ -107,29 +153,7 @@ export function GamesTile() {
                 {board.length > 0 && <span className="shrink-0 text-muted-foreground tabular-nums text-[clamp(11px,0.75vw,16px)]">{board.length} today</span>}
               </div>
               {lead ? (
-                <>
-                  <div className="flex items-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-[hsl(var(--card))] px-[clamp(8px,0.6vw,12px)] py-[clamp(5px,0.4vw,9px)]">
-                    <span className="leading-none text-[clamp(18px,1.4vw,30px)]">{av(lead.player)}</span>
-                    <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(13px,1vw,21px)]">
-                      <span className="truncate">{lead.player}</span>
-                      {badges(lead.player)}
-                    </span>
-                    <span className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(15px,1.2vw,26px)]">{lead.score}</span>
-                  </div>
-                  <div className="flex min-h-0 flex-col justify-around flex-1 overflow-hidden">
-                    {rest.slice(0, 2).map((e, i) => (
-                      <div key={e.player} className="flex items-center gap-[clamp(5px,0.4vw,8px)] px-[clamp(4px,0.3vw,6px)] text-[clamp(12px,0.85vw,18px)]">
-                        <span className="w-[1.1em] text-center font-semibold text-muted-foreground tabular-nums">{i + 2}</span>
-                        <span className="leading-none">{av(e.player)}</span>
-                        <span className="flex min-w-0 flex-1 items-center gap-1">
-                          <span className="truncate">{e.player}</span>
-                          {badges(e.player)}
-                        </span>
-                        <span className="tabular-nums">{e.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                <Podium rows={[lead, ...rest].slice(0, 3)} av={av} badges={badges} />
               ) : (
                 <p className="m-auto text-center text-muted-foreground text-[clamp(12px,0.85vw,17px)]">
                   No scores yet.

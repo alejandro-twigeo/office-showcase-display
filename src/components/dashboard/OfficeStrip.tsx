@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useOfficeActivity, OFFICES } from "@/hooks/useOfficeActivity";
+import { CountUp } from "@/components/ui/count-up";
 
 /** Where each office is, for weather and local time */
 const OFFICE_PLACES: Record<string, { lat: number; lon: number; tz: string }> = {
@@ -86,7 +87,7 @@ export function OfficeStrip() {
               </p>
             </div>
             <div className="ml-[clamp(4px,0.4vw,8px)] text-right leading-tight">
-              <p className="font-bold tabular-nums text-primary text-[clamp(15px,1.1vw,24px)]">{points}</p>
+              <p className="font-bold tabular-nums text-primary text-[clamp(15px,1.1vw,24px)]"><CountUp value={points} /></p>
               <p className="whitespace-nowrap text-muted-foreground text-[clamp(10px,0.68vw,14px)]">{rank > 0 ? `${ordinal(rank)} this week` : "this week"}</p>
             </div>
           </div>
