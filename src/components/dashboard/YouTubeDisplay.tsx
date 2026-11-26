@@ -5,6 +5,7 @@ import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpotlight, GameDemoOverlay } from "./GameSpotlight";
+import { parseQueuedBy } from "@/lib/dedication";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -307,6 +308,14 @@ export function YouTubeDisplay() {
                   )}
                 </div>
                 <div className="space-y-0.5">
+                  {(() => {
+                    const d = parseQueuedBy(currentVideo.queued_by);
+                    return d.to ? (
+                      <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-[clamp(10px,0.7vw,14px)] py-[clamp(2px,0.2vw,4px)] font-medium text-[clamp(12px,0.9vw,19px)] animate-in fade-in duration-700">
+                        🎵 For <strong>{d.to}</strong> <span className="text-muted-foreground">from {d.from}</span>
+                      </p>
+                    ) : null;
+                  })()}
                   <h4 className="font-semibold tracking-tight line-clamp-1 text-sm lg:text-[clamp(17px,1.3vw,28px)]">
                     {currentVideo.title}
                   </h4>
@@ -344,7 +353,17 @@ export function YouTubeDisplay() {
                   <div className="w-full aspect-video rounded-[clamp(6px,0.5vw,10px)] bg-secondary" />
                 )}
                 <p className="font-semibold leading-snug line-clamp-2 text-[clamp(13px,0.95vw,20px)]">{spotlight.title}</p>
-                <p className="text-muted-foreground text-[clamp(12px,0.8vw,17px)]">by {spotlight.queued_by}</p>
+                {(() => {
+                  const d = parseQueuedBy(spotlight.queued_by);
+                  return d.to ? (
+                    <p className="text-[clamp(12px,0.8vw,17px)]">
+                      🎵 For <strong>{d.to}</strong>
+                      <span className="block text-muted-foreground">from {d.from}</span>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground text-[clamp(12px,0.8vw,17px)]">by {d.from}</p>
+                  );
+                })()}
                 {queue.length > 1 && (
                   <p className="mt-auto text-muted-foreground text-[clamp(11px,0.75vw,16px)]">{queue.length} in the queue</p>
                 )}
