@@ -15,6 +15,13 @@
       "when": 1795725926408,
       "tag": "0001_01_email_login_character_exact",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795726794215,
+      "tag": "0002_02_lock_writes",
+      "breakpoints": true
     }
   ]
 }
