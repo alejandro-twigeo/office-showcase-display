@@ -22,6 +22,7 @@ import riddleIcon from '@/assets/riddle-icon.svg';
 import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
 import { TeamRiddleGame } from './games/TeamRiddleGame';
 import { PlayHub } from './PlayHub';
+import { TipPopup } from './TipPopup';
 
 /** Built-in icons for games that don't have one uploaded in Manager yet */
 const LOCAL_ICONS: Record<string, string> = { riddle: riddleIcon, team_riddle: teamRiddleIcon };
@@ -234,6 +235,15 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
           })}
         </div>
       </nav>
+
+      {/* Once per visit: a tip about something this person hasn't tried yet */}
+      <TipPopup
+        playerName={player.name}
+        onTry={(t) => {
+          setActiveTab(t.tab);
+          setSelectedGame(t.game ?? null);
+        }}
+      />
 
       {/* Profile editor */}
       {showProfile && (

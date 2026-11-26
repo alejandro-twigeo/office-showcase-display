@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { VaporClock } from "@/components/ui/vapor-clock";
 
-const dateFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+// Short date next to the clock: "Thu 26"
+const dateFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric" });
 
 /**
  * Office clock for the TV header. The time is the vapor clock (each minute the changing digits
