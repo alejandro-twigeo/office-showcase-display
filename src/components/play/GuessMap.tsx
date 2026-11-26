@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
@@ -11,6 +11,8 @@ import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } 
 import { MiniGamesSelector, type MiniGamesSelectorHandle } from "./MiniGamesSelector";
 import { useRounds } from "@/hooks/useRounds";
 import L from "leaflet";
+import { pinIcon } from "@/lib/mapPins";
+import { buzz } from "@/lib/haptics";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet default icon issue
@@ -51,19 +53,25 @@ function distanceScalePercent(distanceKm: number): number {
   return Math.round(12 + closeness * 88);
 }
 
+const NO_POINTS: { lat: number; lng: number }[] = [];
+
 /** Pure Leaflet map */
 function LeafletMap({
   onMapClick,
   markerPosition,
   centerOnMarker = false,
+  pastGuesses = NO_POINTS,
 }: {
   onMapClick: (lat: number, lng: number) => void;
   markerPosition: { lat: number; lng: number } | null;
   centerOnMarker?: boolean;
+  /** Shown with the solution: your guesses, joined to the real spot by dashed lines */
+  pastGuesses?: { lat: number; lng: number }[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const overlayRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -88,19 +96,36 @@ function LeafletMap({
   useEffect(() => {
     if (!mapRef.current) return;
     if (markerPosition) {
-      if (markerRef.current) {
-        markerRef.current.setLatLng([markerPosition.lat, markerPosition.lng]);
-      } else {
-        markerRef.current = L.marker([markerPosition.lat, markerPosition.lng]).addTo(mapRef.current);
-      }
+      // New marker each time so the drop animation plays
+      markerRef.current?.remove();
+      markerRef.current = L.marker([markerPosition.lat, markerPosition.lng], {
+        icon: pinIcon(centerOnMarker ? "answer" : "guess"),
+      }).addTo(mapRef.current);
       if (centerOnMarker) {
-        mapRef.current.setView([markerPosition.lat, markerPosition.lng], Math.max(mapRef.current.getZoom(), 5));
+        overlayRef.current?.remove();
+        const group = L.layerGroup().addTo(mapRef.current);
+        overlayRef.current = group;
+        pastGuesses.forEach((g) => {
+          L.polyline([[g.lat, g.lng], [markerPosition.lat, markerPosition.lng]], {
+            color: "#f97316",
+            weight: 2,
+            dashArray: "6 6",
+            opacity: 0.85,
+          }).addTo(group);
+          L.marker([g.lat, g.lng], { icon: pinIcon("past") }).addTo(group);
+        });
+        if (pastGuesses.length) {
+          const bounds = L.latLngBounds([[markerPosition.lat, markerPosition.lng], ...pastGuesses.map((g) => [g.lat, g.lng] as [number, number])]);
+          mapRef.current.flyToBounds(bounds.pad(0.25), { duration: 1.2, maxZoom: 8 });
+        } else {
+          mapRef.current.flyTo([markerPosition.lat, markerPosition.lng], Math.max(mapRef.current.getZoom(), 5), { duration: 1.2 });
+        }
       }
     } else if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
     }
-  }, [markerPosition, centerOnMarker]);
+  }, [markerPosition, centerOnMarker, pastGuesses]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
@@ -228,6 +253,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
     (lat: number, lng: number) => {
       if (settings.max_guesses_per_challenge == null || remainingGuesses > 0) {
         setSelectedPosition({ lat, lng });
+        buzz(6);
       }
     },
     [remainingGuesses, settings.max_guesses_per_challenge]
@@ -250,11 +276,15 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
         distance_km: distance,
         guess_number: guessNumber,
       },
-      { onSuccess: () => setSelectedPosition(null) }
+      { onSuccess: () => { setSelectedPosition(null); buzz([10, 40, 14]); } }
     );
   };
 
   const canGuess = settings.max_guesses_per_challenge == null || remainingGuesses > 0;
+  const pastGuessPoints = useMemo(
+    () => userGuesses.filter((g) => g.lat != null && g.lng != null).map((g) => ({ lat: g.lat as number, lng: g.lng as number })),
+    [userGuesses]
+  );
   const [showLocation, setShowLocation] = useState(false);
 
   useEffect(() => {
@@ -328,6 +358,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
               onMapClick={canGuess ? handleMapClick : () => {}}
               markerPosition={showLocation ? { lat: activeLocation.lat, lng: activeLocation.lng } : selectedPosition}
               centerOnMarker={showLocation}
+              pastGuesses={showLocation ? pastGuessPoints : undefined}
             />
             {showLocation && (
               <div className="absolute top-2 left-2 z-[1000] bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-semibold shadow-lg">
@@ -395,10 +426,10 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
               : `${Math.round(guess.distance_km).toLocaleString('en-US')} km away`;
             const scaleWidth = distanceScalePercent(guess.distance_km);
             return (
-              <div key={guess.id} className="relative overflow-hidden rounded bg-secondary/50 px-2 py-1.5 text-xs">
+              <div key={guess.id} className="relative overflow-hidden rounded bg-secondary/50 px-2 py-1.5 text-xs animate-in fade-in slide-in-from-top-1 duration-300">
                 <div
                   aria-hidden="true"
-                  className="absolute inset-y-0 left-0 rounded-r border-r border-sky-600/55 bg-sky-500/45"
+                  className="absolute inset-y-0 left-0 rounded-r border-r border-sky-600/55 bg-sky-500/45 grow-x"
                   style={{ width: `${scaleWidth}%` }}
                 />
                 <div className="relative z-10 flex justify-between items-center">
