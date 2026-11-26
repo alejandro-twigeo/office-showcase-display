@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { buzz } from '@/lib/haptics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, seededRandom } from '@/hooks/useMinigameScore';
@@ -209,6 +210,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const gridMetricsRef = useRef<GridMetrics | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
   const lastPointerCellRef = useRef<[number, number] | null>(null);
+  const [pulseCp, setPulseCp] = useState(0);
+  const [finalScore, setFinalScore] = useState<number | null>(null);
 
   // Start timer immediately when game loads
   useEffect(() => {
@@ -225,6 +228,28 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   useEffect(() => {
     pathRef.current = path;
   }, [path]);
+
+  // Feel: a tick for every new cell, a stronger beat (and a pulse) when you reach the next number
+  const prevLenRef = useRef(0);
+  useEffect(() => {
+    const grew = path.length > prevLenRef.current;
+    prevLenRef.current = path.length;
+    if (!grew || path.length === 0) return;
+    const [hr, hc] = path[path.length - 1];
+    const cp = puzzle.checkpoints[hr][hc];
+    if (cp > 0) {
+      setPulseCp(cp);
+      buzz([10, 30, 10]);
+      window.setTimeout(() => setPulseCp(0), 500);
+    } else {
+      buzz(4);
+    }
+  }, [path, puzzle]);
+
+  // Blocked move: shake the board (the class comes and goes with `error`) and buzz
+  useEffect(() => {
+    if (error) buzz(40);
+  }, [error]);
 
   useEffect(() => {
     return () => {
@@ -309,6 +334,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
       clearInterval(timerRef.current);
       const time = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
       const score = Math.max(1, Math.round(settings.labyrinth_max_points / (1 + time / (settings.labyrinth_time_param * 2))));
+      buzz([15, 50, 15, 50, 30]);
+      window.setTimeout(() => setFinalScore(score), 600);
       await submitScore.mutateAsync({
         game_id: GAME_ID,
         player_name: playerName,
@@ -511,7 +538,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     return map;
   }, [path]);
 
-  if (todayScore) {
+  if (todayScore && !done) {
     return (
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-lg">🌀 Zip</CardTitle></CardHeader>
@@ -551,6 +578,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
 
   // Color gradient along path progress
   const getPathColor = (idx: number) => {
+    if (done) return 'hsl(142, 62%, 48%)';
     const t = path.length <= 1 ? 0 : idx / (path.length - 1);
     // Orange → Coral → Pink gradient
     const h = Math.round(25 - t * 30); // 25 (orange) → -5 (pink/rose)
@@ -563,7 +591,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
   const total = puzzle.size * puzzle.size;
 
   return (
-    <Card className={error ? 'ring-2 ring-destructive/50 transition-all' : 'transition-all'}>
+    <Card className="transition-all">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">🌀 Zip</CardTitle>
@@ -602,7 +630,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            className="inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none"
+            className={`inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none ${error ? 'wordle-shake' : ''}`}
             style={{
               gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})`,
               backgroundColor: 'hsl(var(--muted))',
@@ -639,6 +667,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                         style={{
                           backgroundColor: cellColor,
                           borderRadius,
+                          transition: 'background-color 400ms ease',
                         }}
                       />
                     )}
@@ -666,8 +695,9 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
 
                     {/* Checkpoint badge */}
                     {cp > 0 && (
-                      <span className={`relative z-10 font-bold text-sm rounded-full w-7 h-7 flex items-center justify-center shadow-sm
-                        ${isOnPath ? 'bg-white text-primary' : 'bg-white/90 text-primary/70 border border-primary/20'}
+                      <span className={`relative z-10 font-bold text-sm rounded-full w-7 h-7 flex items-center justify-center shadow-sm transition-colors
+                        ${isOnPath ? (done ? 'bg-white text-green-600' : 'bg-white text-primary') : 'bg-white/90 text-primary/70 border border-primary/20'}
+                        ${pulseCp === cp ? 'pairs-pop' : ''}
                       `}>
                         {cp}
                       </span>
@@ -675,7 +705,7 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
 
                     {/* Head dot */}
                     {isHead && cp === 0 && (
-                      <span className="relative z-10 w-3.5 h-3.5 rounded-full bg-white shadow-sm" />
+                      <span className="relative z-10 w-3.5 h-3.5 rounded-full bg-white shadow-sm zip-head" />
                     )}
                   </div>
                 );
@@ -685,7 +715,12 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
         </div>
 
         {done && (
-          <p className="text-center font-semibold text-primary mt-3">🎉 Puzzle complete!</p>
+          <div className="text-center mt-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <p className="font-semibold">🎉 Every cell, in {formatTime(elapsed)}!</p>
+            {finalScore !== null && (
+              <p className="mt-1 text-3xl font-bold text-primary tabular-nums animate-in zoom-in-50 duration-500">{finalScore} pts</p>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
