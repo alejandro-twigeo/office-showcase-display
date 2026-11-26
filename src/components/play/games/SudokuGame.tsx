@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { buzz } from '@/lib/haptics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
@@ -90,6 +91,8 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
   const [hintCell, setHintCell] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const [flashCells, setFlashCells] = useState<Set<string>>(new Set());
+  const [finalScore, setFinalScore] = useState<number | null>(null);
 
   // Timer
   useEffect(() => {
@@ -102,6 +105,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
   const handleCellClick = (r: number, c: number) => {
     if (puzzle[r][c] !== null) return; // Fixed cell
     setSelectedCell({ r, c });
+    buzz(4);
     if (!startTime) setStartTime(Date.now());
   };
 
@@ -113,6 +117,33 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
     setGrid(newGrid);
     setHintMessage('');
     setHintCell(null);
+    buzz(6);
+
+    // A row, column or box that is now full and follows the rules gets a quick flash.
+    // (Rule check only, never compared with the answer, so it gives nothing away.)
+    if (num !== 0) {
+      const groups: [number, number][][] = [
+        Array.from({ length: 6 }, (_, i) => [r, i] as [number, number]),
+        Array.from({ length: 6 }, (_, i) => [i, c] as [number, number]),
+        (() => {
+          const br = Math.floor(r / 2) * 2;
+          const bc = Math.floor(c / 3) * 3;
+          const cells: [number, number][] = [];
+          for (let i = br; i < br + 2; i++) for (let j = bc; j < bc + 3; j++) cells.push([i, j]);
+          return cells;
+        })(),
+      ];
+      const lit = new Set<string>();
+      for (const g of groups) {
+        const vals = g.map(([i, j]) => newGrid[i][j]);
+        if (vals.every((v) => v !== null) && new Set(vals).size === 6) g.forEach(([i, j]) => lit.add(`${i}-${j}`));
+      }
+      if (lit.size) {
+        setFlashCells(lit);
+        buzz([10, 30, 10]);
+        window.setTimeout(() => setFlashCells(new Set()), 650);
+      }
+    }
 
     // Check completion
     const isComplete = newGrid.every((row, ri) => row.every((cell, ci) => cell === solved[ri][ci]));
@@ -121,6 +152,9 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
       const time = Math.floor((Date.now() - (startTime ?? Date.now())) / 1000);
       const baseScore = Math.round(settings.sudoku_max_points / (1 + time / settings.sudoku_time_param));
       const score = Math.max(1, baseScore - (hintUsed ? settings.sudoku_hint_penalty : 0));
+      setSelectedCell(null);
+      buzz([15, 50, 15, 50, 30]);
+      window.setTimeout(() => setFinalScore(score), 700);
       await submitScore.mutateAsync({
         game_id: GAME_ID,
         player_name: playerName,
@@ -157,7 +191,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  if (todayScore) {
+  if (todayScore && !done) {
     return (
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-lg">🔢 Sudoku 6×6</CardTitle></CardHeader>
@@ -186,19 +220,30 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
               const isFixed = puzzle[ri][ci] !== null;
               const isSelected = selectedCell?.r === ri && selectedCell?.c === ci;
               const isHintCell = hintCell === `${ri}-${ci}`;
+              const sel = selectedCell;
+              const selVal = sel ? grid[sel.r][sel.c] : null;
+              const isPeer =
+                !!sel && !isSelected &&
+                (sel.r === ri || sel.c === ci || (Math.floor(sel.r / 2) === Math.floor(ri / 2) && Math.floor(sel.c / 3) === Math.floor(ci / 3)));
+              const isSameNumber = selVal !== null && cell === selVal && !isSelected;
+              const isFlash = flashCells.has(`${ri}-${ci}`);
               const borderR = ci === 2 ? 'border-r-2 border-r-foreground' : 'border-r border-r-border';
               const borderB = ri === 1 || ri === 3 ? 'border-b-2 border-b-foreground' : 'border-b border-b-border';
               return (
                 <button
                   key={`${ri}-${ci}`}
                   onClick={() => handleCellClick(ri, ci)}
-                  className={`aspect-square flex items-center justify-center text-[clamp(1.1rem,3vw,2.3rem)] lg:text-[clamp(1rem,1.4vw,1.35rem)] font-bold transition-colors
+                  className={`relative aspect-square flex items-center justify-center text-[clamp(1.1rem,3vw,2.3rem)] lg:text-[clamp(1rem,1.4vw,1.35rem)] font-bold transition-colors duration-200
                     ${borderR} ${borderB}
-                    ${isFixed ? 'text-foreground bg-muted/50' : 'text-primary cursor-pointer active:bg-primary/10'}
-                    ${isHintCell ? 'bg-red-500 text-white' : ''}
-                    ${isSelected ? 'bg-primary/20 ring-2 ring-primary' : ''}`}
+                    ${isFixed ? 'text-foreground' : 'text-primary cursor-pointer'}
+                    ${isHintCell ? 'bg-red-500 text-white'
+                      : isSelected ? 'bg-primary/25 shadow-[inset_0_0_0_2px_hsl(var(--primary))]'
+                      : isFlash ? 'bg-green-500/25'
+                      : isSameNumber ? 'bg-primary/15'
+                      : isPeer ? 'bg-primary/[0.06]'
+                      : isFixed ? 'bg-muted/50' : ''}`}
                 >
-                  {cell ?? ''}
+                  {cell !== null && <span key={`${cell}`} className={isFixed ? '' : 'tile-pop'}>{cell}</span>}
                 </button>
               );
             }))}
@@ -207,7 +252,7 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
           {/* Number pad */}
           <div className={`flex gap-1.5 w-full justify-center ${isMobile ? '' : 'max-w-md lg:max-w-[22rem]'}`}>
             {[1, 2, 3, 4, 5, 6].map(n => (
-              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 lg:h-12 text-xl lg:text-lg font-bold p-0 rounded-xl"
+              <Button key={n} variant="outline" size="sm" className="flex-1 h-14 lg:h-12 text-xl lg:text-lg font-bold p-0 rounded-xl transition-transform active:scale-90"
                 onClick={() => handleNumberInput(n)} disabled={!selectedCell}>
                 {n}
               </Button>
@@ -233,8 +278,12 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
         </div>
 
         {done && (
-          <div className="text-center py-1">
-            <p className="font-semibold text-primary">🎉 Solved in {formatTime(elapsed)}!</p>
+          <div className="text-center py-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <p className="text-3xl">🎉</p>
+            <p className="font-semibold">Solved in {formatTime(elapsed)}!</p>
+            {finalScore !== null && (
+              <p className="mt-1 text-3xl font-bold text-primary tabular-nums animate-in zoom-in-50 duration-500">{finalScore} pts</p>
+            )}
           </div>
         )}
       </CardContent>

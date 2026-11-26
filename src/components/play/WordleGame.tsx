@@ -1,4 +1,5 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
+import { buzz } from '@/lib/haptics';
 import { useWordle, type LetterStatus } from '@/hooks/useWordle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -76,7 +77,48 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     existingScore,
     roundNumber,
   } = useWordle(playerName, roundId);
+  // Keep this session's finished board on screen after the score saves
+  // (saving makes the hook switch to "already played" and clear its guesses)
+  const [finishedGuesses, setFinishedGuesses] = useState<typeof guesses | null>(null);
+  useEffect(() => {
+    if (gameOver && guesses.length) setFinishedGuesses(guesses);
+  }, [gameOver, guesses]);
+  useEffect(() => setFinishedGuesses(null), [roundId]);
+  const shownGuesses = finishedGuesses ?? guesses;
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reveal a submitted guess one tile at a time, like the real thing
+  const FLIP_MS = 230;
+  const [revealRow, setRevealRow] = useState<number | null>(null);
+  const [revealedTiles, setRevealedTiles] = useState(5);
+  const prevGuessCount = useRef(shownGuesses.length);
+  useEffect(() => {
+    if (shownGuesses.length <= prevGuessCount.current) {
+      prevGuessCount.current = shownGuesses.length;
+      return;
+    }
+    const row = shownGuesses.length - 1;
+    prevGuessCount.current = shownGuesses.length;
+    setRevealRow(row);
+    setRevealedTiles(0);
+    const timers = [1, 2, 3, 4, 5].map((n) => window.setTimeout(() => setRevealedTiles(n), n * FLIP_MS));
+    timers.push(window.setTimeout(() => setRevealRow(null), 5 * FLIP_MS + 200));
+    return () => timers.forEach(window.clearTimeout);
+  }, [shownGuesses.length]);
+  const revealing = revealRow !== null;
+
+  // Shake the row when a guess is rejected
+  const [shakeKey, setShakeKey] = useState(0);
+  useEffect(() => {
+    if (!error) return;
+    setShakeKey((k) => k + 1);
+    buzz(40);
+  }, [error]);
+
+  // Little celebration when the word is found
+  useEffect(() => {
+    if (gameOver && won && !revealing) buzz([15, 50, 15, 50, 30]);
+  }, [gameOver, won, revealing]);
   const currentRowRef = useRef<HTMLDivElement>(null);
   const focusScrollTimeoutRef = useRef<number | null>(null);
   const scrollActiveRowIntoView = useCallback(() => {
@@ -92,7 +134,8 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
   }, [isMobile, scrollActiveRowIntoView]);
 
   const handleKeyPress = useCallback((key: string) => {
-    if (gameOver) return;
+    if (gameOver || revealing) return;
+    if (key !== 'enter') buzz(5);
     if (key === 'enter') {
       submitGuess();
     } else if (key === '⌫' || key === 'backspace') {
@@ -100,7 +143,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     } else if (/^[a-z]$/.test(key) && currentInput.length < 5) {
       setCurrentInput(prev => prev + key);
     }
-  }, [gameOver, submitGuess, setCurrentInput, currentInput.length]);
+  }, [gameOver, revealing, submitGuess, setCurrentInput, currentInput.length]);
 
   // Physical keyboard support
   useEffect(() => {
@@ -138,7 +181,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
   }, [isMobile, gameOver, scrollActiveRowIntoView]);
 
   const gridWidthClass = isMobile ? 'w-full' : 'w-full max-w-[26rem]';
-  const keyboardStatus = guesses.reduce<Record<string, LetterStatus>>((acc, guess) => {
+  const keyboardStatus = (revealing ? shownGuesses.slice(0, -1) : shownGuesses).reduce<Record<string, LetterStatus>>((acc, guess) => {
     guess.word.split('').forEach((letter, index) => {
       const nextStatus = guess.statuses[index];
       const currentStatus = acc[letter];
@@ -153,15 +196,15 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
   const gridRows = [];
   for (let row = 0; row < 6; row++) {
     const cells = [];
-    if (row < guesses.length) {
+    if (row < shownGuesses.length) {
       // Submitted guess
       for (let col = 0; col < 5; col++) {
         cells.push({
-          letter: guesses[row].word[col],
-          status: guesses[row].statuses[col],
+          letter: shownGuesses[row].word[col],
+          status: shownGuesses[row].statuses[col],
         });
       }
-    } else if (row === guesses.length && !gameOver) {
+    } else if (row === shownGuesses.length && !gameOver) {
       // Current input row
       for (let col = 0; col < 5; col++) {
         cells.push({
@@ -178,7 +221,8 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     gridRows.push(cells);
   }
 
-  const keyboard = !gameOver ? (
+  const showResult = gameOver && !revealing;
+  const keyboard = !showResult ? (
     <div className={`w-full ${isMobile ? '' : 'max-w-[17rem]'} space-y-2`} onClick={(e) => e.stopPropagation()}>
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div
@@ -224,7 +268,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     </div>
   ) : null;
 
-  if (alreadyPlayed && existingScore) {
+  if (alreadyPlayed && existingScore && !finishedGuesses) {
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -300,21 +344,36 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
                 aria-label="Wordle input"
               />
             )}
-            <div className={gridWidthClass}>
+            <div className={`${gridWidthClass} [&>*:last-child]:mb-0`}>
               {gridRows.map((row, ri) => (
                 <div
-                  key={ri}
-                  ref={ri === guesses.length && !gameOver ? currentRowRef : undefined}
-                  className="grid grid-cols-5 gap-2 w-full"
+                  key={ri === shownGuesses.length ? `row-${ri}-${shakeKey}` : `row-${ri}`}
+                  ref={ri === shownGuesses.length && !gameOver ? currentRowRef : undefined}
+                  className={`grid grid-cols-5 gap-2 w-full mb-2 ${ri === shownGuesses.length && shakeKey > 0 && error ? 'wordle-shake' : ''}`}
+                  style={{ perspective: 600 }}
                 >
-                  {row.map((cell, ci) => (
-                    <div
-                      key={ci}
-                      className={`aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded transition-colors ${getStatusColor(cell.status)}`}
-                    >
-                      {cell.letter}
-                    </div>
-                  ))}
+                  {row.map((cell, ci) => {
+                    const waiting = ri === revealRow && ci >= revealedTiles;
+                    const justFlipped = ri === revealRow && ci < revealedTiles;
+                    const winRow = showResult && won && ri === shownGuesses.length - 1;
+                    const shown = waiting ? ('empty' as LetterStatus) : cell.status;
+                    return (
+                      <div
+                        key={`${ci}-${cell.letter}-${waiting ? 'w' : 'r'}`}
+                        className={[
+                          'aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded-lg',
+                          getStatusColor(shown),
+                          cell.letter && shown === 'empty' ? 'border-foreground/45' : '',
+                          ri === shownGuesses.length && cell.letter ? 'tile-pop' : '',
+                          justFlipped ? 'tile-flip' : '',
+                          winRow ? 'wordle-bounce' : '',
+                        ].join(' ')}
+                        style={winRow ? { animationDelay: `${ci * 90}ms` } : undefined}
+                      >
+                        {cell.letter}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -327,13 +386,13 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
         {error && <p className="text-xs text-destructive text-center">{error}</p>}
 
         {/* Game over state */}
-        {gameOver && (
-          <div className="text-center py-2 space-y-1">
+        {showResult && (
+          <div className="text-center py-2 space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
             {won ? (
               <>
                 <div className="flex items-center justify-center gap-2">
                   <Trophy className="h-5 w-5 text-warning" />
-                  <span className="font-semibold text-foreground">You got it in {guesses.length}!</span>
+                  <span className="font-semibold text-foreground">You got it in {shownGuesses.length}!</span>
                 </div>
                 <p className="text-sm text-muted-foreground">+{earnedPoints} pts</p>
               </>
