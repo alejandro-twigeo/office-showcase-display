@@ -188,6 +188,27 @@ export type Database = {
           },
         ]
       }
+      people: {
+        Row: {
+          department: string
+          email: string
+          full_name: string
+          office: string | null
+        }
+        Insert: {
+          department: string
+          email: string
+          full_name: string
+          office?: string | null
+        }
+        Update: {
+          department?: string
+          email?: string
+          full_name?: string
+          office?: string | null
+        }
+        Relationships: []
+      }
       plant_watering_logs: {
         Row: {
           id: string
@@ -263,29 +284,41 @@ export type Database = {
         Row: {
           avatar: string
           created_at: string
+          department: string | null
+          email: string | null
           id: string
+          is_admin: boolean
           name: string
           office: string
-          password_text: string
+          password_text: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           avatar?: string
           created_at?: string
+          department?: string | null
+          email?: string | null
           id?: string
+          is_admin?: boolean
           name: string
           office?: string
-          password_text: string
+          password_text?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           avatar?: string
           created_at?: string
+          department?: string | null
+          email?: string | null
           id?: string
+          is_admin?: boolean
           name?: string
           office?: string
-          password_text?: string
+          password_text?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -799,6 +832,7 @@ export type Database = {
         Args: { p_option_text: string; p_poll_id: string }
         Returns: number
       }
+      claim_player: { Args: { p_id: string }; Returns: Json }
       close_poll: {
         Args: {
           p_closed_by?: string
@@ -806,6 +840,20 @@ export type Database = {
           p_reason: string
           p_source: string
         }
+        Returns: undefined
+      }
+      create_my_player: {
+        Args: { p_avatar: string; p_name: string; p_office: string }
+        Returns: Json
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_twigeo: { Args: never; Returns: boolean }
+      jwt_email: { Args: never; Returns: string }
+      link_my_player: { Args: never; Returns: Json }
+      my_player_name: { Args: never; Returns: string }
+      tv_advance_queue: { Args: { p_current?: string }; Returns: undefined }
+      tv_save_position: {
+        Args: { p_id: string; p_seconds: number }
         Returns: undefined
       }
     }
