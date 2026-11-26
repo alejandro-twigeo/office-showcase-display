@@ -272,8 +272,16 @@ export function YouTubeDisplay() {
           {/* Left — video + info */}
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
-              <div className="text-center flex-1 flex flex-col items-center justify-center">
-                <video src={partitureVideo} autoPlay loop muted playsInline className="h-16 lg:h-[clamp(128px,12vw,256px)] w-auto mb-2 lg:mb-3" />
+              <div className="text-center flex-1 min-h-0 flex flex-col items-center justify-center">
+                {/* The musicians fill the tile. Multiply blends the video's white into the tile colour. */}
+                <video
+                  src={partitureVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="h-28 lg:h-0 lg:flex-1 min-h-0 w-full object-contain mix-blend-multiply scale-[1.35] mb-1 lg:mb-[clamp(4px,0.4vw,8px)]"
+                />
                 <p className="text-muted-foreground text-xs lg:text-[clamp(14px,1vw,20px)]">
                   No video playing
                 </p>
