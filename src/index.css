@@ -454,3 +454,14 @@
 @media (prefers-reduced-motion: reduce) {
   .crown-bob { animation: none; }
 }
+
+/* ── Fika goal: a short glow each time the office passes another 10 games ── */
+@keyframes goal-pulse {
+  0% { box-shadow: 0 0 0 0 hsl(22 100% 56% / .55); transform: scaleY(1); }
+  35% { box-shadow: 0 0 0 8px hsl(22 100% 56% / 0); transform: scaleY(1.35); }
+  100% { box-shadow: 0 0 0 0 hsl(22 100% 56% / 0); transform: scaleY(1); }
+}
+.goal-pulse { animation: goal-pulse 1.2s cubic-bezier(.2,.8,.2,1) 2; }
+@media (prefers-reduced-motion: reduce) {
+  .goal-pulse { animation: none; }
+}

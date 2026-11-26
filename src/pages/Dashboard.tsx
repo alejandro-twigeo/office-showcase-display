@@ -212,11 +212,12 @@ function DashboardContent() {
 
               <PlantStatus />
 
+              {/* Play: for laptops (phones scan the QR) */}
               <button
                 onClick={() => navigate("/play")}
-                className="lg:hidden shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+                className="shrink-0 flex items-center gap-1.5 lg:gap-[clamp(6px,0.5vw,10px)] px-3 py-1.5 lg:px-[clamp(14px,1.1vw,22px)] lg:py-[clamp(7px,0.55vw,12px)] rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm lg:text-[clamp(14px,1.05vw,21px)] font-medium"
               >
-                <Gamepad2 className="h-4 w-4" />
+                <Gamepad2 className="h-4 w-4 lg:h-[clamp(16px,1.2vw,24px)] lg:w-[clamp(16px,1.2vw,24px)]" />
                 Play
               </button>
               <button
