@@ -1,4 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { dedicatedQueuedBy } from "@/lib/dedication";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +76,25 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   const [historyPage, setHistoryPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  // Dedicate the next song (Live Share only): it shows on the TV as "For Sara, from you"
+  const [dedicateTo, setDedicateTo] = useState<string | null>(null);
+  const [pickingDedication, setPickingDedication] = useState(false);
+  const { data: people = [] } = useQuery({
+    queryKey: ["players-avatars"],
+    queryFn: async () => {
+      const { data } = await supabase.from("players").select("name, avatar");
+      return data ?? [];
+    },
+  });
+  const queuedBy = mode === "live" ? dedicatedQueuedBy(playerName, dedicateTo) : playerName;
+  // One dedication per song: clear it once a song has been added
+  useEffect(() => {
+    if (liveQueue.playNow.isSuccess || liveQueue.addToQueue.isSuccess) {
+      setDedicateTo(null);
+      setPickingDedication(false);
+    }
+  }, [liveQueue.playNow.isSuccess, liveQueue.addToQueue.isSuccess]);
+
   const displayQueue = localQueue ?? queue;
   const isPending = playNow.isPending || addToQueue.isPending;
   const videoId = extractVideoId(videoUrl.trim());
@@ -90,14 +112,14 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
     setSelected(new Set());
   };
 
-  /* ── URL submit ─────────────────────────────────── */
+  /* ── URL submit ───────────────────────────────── */
   const handlePlayNow = () => {
     if (!videoId) return;
-    playNow.mutate({ video_id: videoId, queued_by: playerName }, { onSuccess: () => setVideoUrl("") });
+    playNow.mutate({ video_id: videoId, queued_by: queuedBy }, { onSuccess: () => setVideoUrl("") });
   };
   const handleAddToQueue = () => {
     if (!videoId) return;
-    addToQueue.mutate({ video_id: videoId, queued_by: playerName }, { onSuccess: () => setVideoUrl("") });
+    addToQueue.mutate({ video_id: videoId, queued_by: queuedBy }, { onSuccess: () => setVideoUrl("") });
   };
 
   const handleSearch = () => {
@@ -107,11 +129,11 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   };
 
   const handleSearchPlayNow = (result: YouTubeSearchResult) => {
-    playNow.mutate({ video_id: result.videoId, queued_by: playerName });
+    playNow.mutate({ video_id: result.videoId, queued_by: queuedBy });
   };
 
   const handleSearchAddToQueue = (result: YouTubeSearchResult) => {
-    addToQueue.mutate({ video_id: result.videoId, queued_by: playerName });
+    addToQueue.mutate({ video_id: result.videoId, queued_by: queuedBy });
   };
 
   const handleOpenPlaylistDialog = (result: YouTubeSearchResult) => {
@@ -176,7 +198,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
   const handleAddSelected = () => {
     const vids = recentVideos.filter((v) => selected.has(v.id));
-    vids.forEach((v) => addToQueue.mutate({ video_id: v.video_id, queued_by: playerName }));
+    vids.forEach((v) => addToQueue.mutate({ video_id: v.video_id, queued_by: queuedBy }));
     setSelected(new Set());
   };
 
@@ -186,10 +208,10 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
   /* ── Playlist callbacks for routing to active queue ── */
   const handlePlaylistPlayNow = (vid: string) => {
-    playNow.mutate({ video_id: vid, queued_by: playerName });
+    playNow.mutate({ video_id: vid, queued_by: queuedBy });
   };
   const handlePlaylistAddToQueue = (vid: string) => {
-    addToQueue.mutate({ video_id: vid, queued_by: playerName });
+    addToQueue.mutate({ video_id: vid, queued_by: queuedBy });
   };
 
   return (
@@ -234,6 +256,49 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
             ? "🎧 Playing on this device only — won't affect others"
             : "📡 Shared queue — syncs with the TV dashboard and other users"}
         </p>
+
+        {/* Dedicate the next song (TV queue only) */}
+        {mode === "live" && (
+          <div className="rounded-lg border border-border p-3 space-y-2">
+            {dedicateTo ? (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-lg">🎵</span>
+                <span className="flex-1">
+                  Next song is <strong>for {dedicateTo}</strong>
+                  <span className="block text-xs text-muted-foreground">Pick or search a song below. The TV shows who it&rsquo;s for.</span>
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setDedicateTo(null)}>Cancel</Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickingDedication((v) => !v)}
+                className="flex w-full items-center gap-2 text-left text-sm"
+              >
+                <span className="text-lg">🎵</span>
+                <span className="flex-1 font-medium">Dedicate the next song</span>
+                <span className="text-xs text-muted-foreground">{pickingDedication ? "Close" : "Pick someone"}</span>
+              </button>
+            )}
+            {pickingDedication && !dedicateTo && (
+              <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                {people
+                  .filter((p) => p.name !== playerName)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      onClick={() => setDedicateTo(p.name)}
+                      className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium hover:bg-primary/15"
+                    >
+                      <span>{p.avatar}</span> {p.name}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Private player */}
         {mode === "private" && (
@@ -546,7 +611,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
                         {/* Thumbnail + info (click to play) */}
                         <button
-                          onClick={() => playNow.mutate({ video_id: video.video_id, queued_by: playerName })}
+                          onClick={() => playNow.mutate({ video_id: video.video_id, queued_by: queuedBy })}
                           disabled={playNow.isPending}
                           className="flex items-center gap-2 flex-1 text-left min-w-0"
                         >
@@ -567,7 +632,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
 
                         {/* Add single to queue */}
                         <button
-                          onClick={() => addToQueue.mutate({ video_id: video.video_id, queued_by: playerName })}
+                          onClick={() => addToQueue.mutate({ video_id: video.video_id, queued_by: queuedBy })}
                           disabled={addToQueue.isPending}
                           className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
                           aria-label="Add to queue"
