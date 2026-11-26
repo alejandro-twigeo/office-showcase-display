@@ -64,6 +64,19 @@ export function PositiveMessagesSection({ playerName }: Props) {
   const [editBy, setEditBy] = useState("");
   const [editError, setEditError] = useState("");
 
+  // Delete: your own messages always, anyone's with the admin password. Two taps to confirm.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const isMine = (by: string) => by.trim().toLowerCase() === playerName.trim().toLowerCase();
+  function handleDelete(id: string) {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      window.setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
+    deactivateMessage.mutate(id);
+  }
+
   // Admin (delete)
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminInput, setAdminInput] = useState("");
@@ -229,15 +242,28 @@ export function PositiveMessagesSection({ playerName }: Props) {
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(msg)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      {adminUnlocked && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => deactivateMessage.mutate(msg.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                      {(adminUnlocked || isMine(msg.created_by)) && (
+                        confirmDeleteId === msg.id ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 px-2 text-xs animate-in fade-in zoom-in-95 duration-150"
+                            onClick={() => handleDelete(msg.id)}
+                            disabled={deactivateMessage.isPending}
+                          >
+                            Delete?
+                          </Button>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(msg.id)}
+                            aria-label="Delete message"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )
                       )}
                     </div>
                   </div>
@@ -254,7 +280,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
               <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Input
                 type="password"
-                placeholder="Admin password to delete"
+                placeholder="Admin password"
                 value={adminInput}
                 onChange={(e) => { setAdminInput(e.target.value); setAdminError(""); }}
                 className="text-sm h-8 flex-1"
