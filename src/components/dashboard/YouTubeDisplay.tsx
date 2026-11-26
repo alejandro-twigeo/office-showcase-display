@@ -4,6 +4,7 @@ import { ListMusic, Volume2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSpotlight, GameDemoOverlay } from "./GameSpotlight";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -60,6 +61,7 @@ function loadYouTubeAPI(onReady: () => void) {
 
 export function YouTubeDisplay() {
   const { currentVideo, queue, advanceQueue } = useYoutubeQueue();
+  const gameSpotlight = useSpotlight();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const playerReadyRef = useRef(false);
@@ -259,7 +261,7 @@ export function YouTubeDisplay() {
   }, []);
 
   return (
-    <Card className="h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
+    <Card className="relative h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
       <span className="tile-label">Now playing</span>
 
       <div className="flex-1 min-h-0">
@@ -360,6 +362,8 @@ export function YouTubeDisplay() {
           </div>
         </div>
       </div>
+      {/* Game how-to demos play here: the video keeps running (and sounding) underneath */}
+      {gameSpotlight?.phase === "demo" && <GameDemoOverlay key={gameSpotlight.gameKey} gameKey={gameSpotlight.gameKey} />}
     </Card>
   );
 }

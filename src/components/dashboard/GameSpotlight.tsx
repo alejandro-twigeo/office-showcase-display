@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { WORLD_LAND_PATH } from "./worldLand";
 import { PlayQr } from "./JoinCard";
 
@@ -91,11 +91,11 @@ const ease = (x: number) => 1 - (1 - clamp01(x)) ** 3;
 
 function YourTurn({ line }: { line: string }) {
   return (
-    <div className="mt-[clamp(4px,0.4vw,8px)] flex items-center gap-[clamp(8px,0.7vw,14px)]">
-      <div className="rounded-[clamp(4px,0.3vw,6px)] bg-white p-[3px] ring-2 ring-primary">
-        <PlayQr className="h-[clamp(48px,4vw,84px)] w-[clamp(48px,4vw,84px)]" />
+    <div className="mt-[clamp(2px,0.3vw,6px)] flex items-center gap-[clamp(6px,0.5vw,10px)]">
+      <div className="shrink-0 rounded-[clamp(4px,0.3vw,6px)] bg-white p-[3px] ring-2 ring-primary">
+        <PlayQr className="h-[clamp(40px,3.2vw,68px)] w-[clamp(40px,3.2vw,68px)]" />
       </div>
-      <p className="leading-tight text-[clamp(14px,1vw,21px)]">
+      <p className="leading-tight text-[clamp(12px,0.85vw,18px)]">
         <span className="font-semibold">Your turn.</span>
         <br />
         <span className="text-muted-foreground">{line}</span>
@@ -104,7 +104,10 @@ function YourTurn({ line }: { line: string }) {
   );
 }
 
-/** Same frame for every game: the animated board on the left, how to play on the right. */
+/**
+ * Same frame for every game: the animated board on the left, how to play on the right.
+ * Sized for the Now Playing tile, which is about a third of the screen wide.
+ */
 function DemoLayout({
   board,
   title,
@@ -112,26 +115,27 @@ function DemoLayout({
   points,
   cta,
 }: {
-  board: React.ReactNode;
+  board: ReactNode;
   title: string;
   body: string;
-  points?: string[];
+  points?: ReactNode[];
   cta: string;
 }) {
   return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-center gap-[clamp(20px,2.4vw,56px)]">
-      <div className="flex h-full min-h-0 items-center justify-center">{board}</div>
-      <div className="min-w-0 flex flex-col gap-[clamp(10px,1vw,20px)]">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center gap-[clamp(12px,1.2vw,28px)]">
+      <div className="flex h-full min-h-0 items-center justify-center" style={{ containerType: "size" }}>
+        {board}
+      </div>
+      <div className="min-w-0 flex flex-col gap-[clamp(6px,0.6vw,12px)]">
         <div>
           <p className="tile-label">How to play</p>
-          <h3 className="mt-[clamp(4px,0.4vw,8px)] font-semibold tracking-tight leading-[1.05] text-[clamp(24px,2.2vw,48px)]">{title}</h3>
+          <h3 className="mt-[clamp(3px,0.3vw,6px)] font-semibold tracking-tight leading-[1.05] text-[clamp(18px,1.6vw,36px)]">{title}</h3>
         </div>
-        <p className="text-muted-foreground leading-snug text-[clamp(14px,1.05vw,22px)] max-w-[36ch]">{body}</p>
+        <p className="text-muted-foreground leading-snug text-[clamp(12px,0.85vw,18px)]">{body}</p>
         {points && (
-          <ul className="flex flex-col gap-[clamp(4px,0.4vw,8px)] text-[clamp(13px,0.95vw,20px)]">
-            {points.map((pt) => (
-              <li key={pt} className="flex gap-2">
-                <span className="text-primary">•</span>
+          <ul className="flex flex-col gap-[clamp(2px,0.25vw,5px)] text-[clamp(11px,0.78vw,16px)]">
+            {points.map((pt, i) => (
+              <li key={i} className="flex items-center gap-1.5">
                 {pt}
               </li>
             ))}
@@ -186,70 +190,50 @@ function haversineKm(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-function WordleDemo() {
-  const { typed, revealed, solved } = useWordleTimeline();
-
+function WordleBoard() {
+  const { typed, revealed } = useWordleTimeline();
   return (
-    <div className="grid h-full min-h-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-[clamp(20px,2.4vw,56px)]">
-      {/* Board */}
-      <div className="grid grid-rows-6 gap-[clamp(4px,0.35vw,7px)]" style={{ perspective: 600 }}>
-        {typed.map((word, row) => {
-          const marks = row < DEMO_GUESSES.length ? score(DEMO_GUESSES[row], DEMO_ANSWER) : [];
-          return (
-            <div key={row} className="grid grid-cols-5 gap-[clamp(4px,0.35vw,7px)]">
-              {Array.from({ length: 5 }).map((_, col) => {
-                const ch = word[col] ?? "";
-                const isRevealed = col < revealed[row];
-                return (
-                  <div
-                    key={`${col}-${isRevealed}`}
-                    className={`flex items-center justify-center rounded-[clamp(4px,0.35vw,8px)] border-2 font-bold uppercase
-                      h-[clamp(30px,2.6vw,56px)] w-[clamp(30px,2.6vw,56px)] text-[clamp(15px,1.4vw,30px)]
-                      ${isRevealed ? `${MARK_CLASS[marks[col]]} tile-flip` : ch ? "border-foreground/45 bg-[hsl(var(--card))] tile-pop" : "border-foreground/15 bg-[hsl(var(--card))]"}`}
-                  >
-                    {ch}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* How to play */}
-      <div className="min-w-0 flex flex-col gap-[clamp(10px,1vw,20px)]">
-        <div>
-          <p className="tile-label">How to play</p>
-          <h3 className="mt-[clamp(4px,0.4vw,8px)] font-semibold tracking-tight leading-[1.05] text-[clamp(24px,2.2vw,48px)]">
-            {solved ? "Solved in 3." : "Wordle"}
-          </h3>
-        </div>
-        <p className="text-muted-foreground leading-snug text-[clamp(14px,1.05vw,22px)] max-w-[34ch]">
-          Guess the 5-letter word in 6 tries. Each guess shows how close you are.
-        </p>
-        <ul className="flex flex-col gap-[clamp(6px,0.5vw,10px)] text-[clamp(13px,0.95vw,20px)]">
-          <li className="flex items-center gap-2">
-            <span className="h-[1.1em] w-[1.1em] shrink-0 rounded-[3px] bg-green-600" /> Right letter, right spot
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="h-[1.1em] w-[1.1em] shrink-0 rounded-[3px] bg-yellow-500" /> Right letter, wrong spot
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="h-[1.1em] w-[1.1em] shrink-0 rounded-[3px] bg-muted-foreground/30" /> Not in the word
-          </li>
-        </ul>
-        <div className="mt-[clamp(4px,0.4vw,8px)] flex items-center gap-[clamp(8px,0.7vw,14px)]">
-          <div className="rounded-[clamp(4px,0.3vw,6px)] bg-white p-[3px] ring-2 ring-primary">
-            <PlayQr className="h-[clamp(48px,4vw,84px)] w-[clamp(48px,4vw,84px)]" />
+    <div className="grid grid-rows-6 gap-[clamp(3px,0.28vw,6px)]" style={{ perspective: 600 }}>
+      {typed.map((word, row) => {
+        const marks = row < DEMO_GUESSES.length ? score(DEMO_GUESSES[row], DEMO_ANSWER) : [];
+        return (
+          <div key={row} className="grid grid-cols-5 gap-[clamp(3px,0.28vw,6px)]">
+            {Array.from({ length: 5 }).map((_, col) => {
+              const ch = word[col] ?? "";
+              const isRevealed = col < revealed[row];
+              return (
+                <div
+                  key={`${col}-${isRevealed}`}
+                  className={`flex items-center justify-center rounded-[clamp(3px,0.3vw,6px)] border-2 font-bold uppercase
+                    h-[clamp(22px,1.9vw,42px)] w-[clamp(22px,1.9vw,42px)] text-[clamp(12px,1vw,22px)]
+                    ${isRevealed ? `${MARK_CLASS[marks[col]]} tile-flip` : ch ? "border-foreground/45 bg-[hsl(var(--card))] tile-pop" : "border-foreground/15 bg-[hsl(var(--card))]"}`}
+                >
+                  {ch}
+                </div>
+              );
+            })}
           </div>
-          <p className="leading-tight text-[clamp(14px,1vw,21px)]">
-            <span className="font-semibold">Your turn.</span>
-            <br />
-            <span className="text-muted-foreground">Today&rsquo;s word is waiting</span>
-          </p>
-        </div>
-      </div>
+        );
+      })}
     </div>
+  );
+}
+
+const chip = (cls: string) => <span className={`h-[1em] w-[1em] shrink-0 rounded-[3px] ${cls}`} />;
+
+function WordleDemo() {
+  return (
+    <DemoLayout
+      board={<WordleBoard />}
+      title="Wordle"
+      body="Guess the 5-letter word in 6 tries."
+      points={[
+        <>{chip("bg-green-600")} Right spot</>,
+        <>{chip("bg-yellow-500")} Wrong spot</>,
+        <>{chip("bg-muted-foreground/30")} Not in the word</>,
+      ]}
+      cta="Today’s word is waiting"
+    />
   );
 }
 
@@ -273,7 +257,7 @@ function GeoDemo() {
   const km = Math.round(GEO_KM * ease((t - 4000) / 900));
 
   return (
-    <div className="grid h-full w-full grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-[clamp(8px,0.7vw,14px)]">
+    <div className="grid h-full w-full grid-rows-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-[clamp(6px,0.5vw,10px)]">
       <div className="relative overflow-hidden rounded-[clamp(8px,0.7vw,14px)]">
         <DemoPhoto hue={205} />
         <span className="absolute left-2 top-2 rounded-full bg-background px-2 py-0.5 text-[clamp(11px,0.75vw,15px)] font-semibold">Where is this?</span>
@@ -324,7 +308,7 @@ function CityDemo() {
   const last = tries[1];
 
   return (
-    <div className="grid h-full w-full grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-[clamp(8px,0.7vw,14px)]">
+    <div className="grid h-full w-full grid-rows-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-[clamp(6px,0.5vw,10px)]">
       <div className="relative overflow-hidden rounded-[clamp(8px,0.7vw,14px)]">
         <DemoPhoto hue={30} />
         <span className="absolute left-2 top-2 rounded-full bg-background px-2 py-0.5 text-[clamp(11px,0.75vw,15px)] font-semibold">Stockholm</span>
@@ -441,17 +425,17 @@ function ThisOrThatDemo() {
   return (
     <div key={qi} className="flex h-full w-full flex-col justify-center gap-[clamp(10px,1vw,20px)] animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex items-baseline justify-between">
-        <p className="font-semibold tracking-tight text-[clamp(20px,1.8vw,38px)] leading-tight">{q.prompt}</p>
+        <p className="font-semibold tracking-tight text-[clamp(14px,1.2vw,26px)] leading-tight">{q.prompt}</p>
         <span className="tile-label tabular-nums">{qi + 1} / 5</span>
       </div>
-      <div className="grid grid-cols-2 gap-[clamp(8px,0.8vw,16px)] h-[50%] min-h-0">
+      <div className="grid grid-cols-2 gap-[clamp(6px,0.5vw,12px)] h-[55%] min-h-0">
         {(["a", "b"] as const).map((side) => {
           const isPick = picked && side === q.correct;
           const right = revealed && side === q.correct;
           return (
             <div
               key={side}
-              className={`flex items-center justify-center rounded-[clamp(10px,0.9vw,18px)] border-2 text-center font-semibold text-[clamp(16px,1.4vw,30px)] transition-all duration-300 ${
+              className={`flex items-center justify-center rounded-[clamp(10px,0.9vw,18px)] border-2 px-1 text-center font-semibold text-[clamp(13px,1vw,22px)] transition-all duration-300 ${
                 right
                   ? "border-green-600 bg-green-600 text-white"
                   : isPick
@@ -493,7 +477,10 @@ function SudokuDemo() {
   const boxDone = filled >= 6; // the middle-left box (rows 2-3, cols 0-2) is complete after 6 fills
 
   return (
-    <div className="aspect-square h-full max-h-full grid grid-cols-6 grid-rows-6 overflow-hidden rounded-[clamp(8px,0.7vw,14px)] border-2 border-foreground/70 bg-[hsl(var(--card))]">
+    <div
+      className="grid grid-cols-6 grid-rows-6 overflow-hidden rounded-[clamp(6px,0.5vw,12px)] border-2 border-foreground/70 bg-[hsl(var(--card))]"
+      style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1" }}
+    >
       {SUDOKU.map((row, r) =>
         row.map((n, c) => {
           const key = `${r},${c}`;
@@ -504,7 +491,7 @@ function SudokuDemo() {
           return (
             <div
               key={key}
-              className={`flex items-center justify-center tabular-nums text-[clamp(14px,1.3vw,28px)] transition-colors duration-300
+              className={`flex items-center justify-center tabular-nums text-[clamp(12px,1vw,22px)] transition-colors duration-300
                 ${c % 3 === 2 && c < 5 ? "border-r-2 border-r-foreground/70" : "border-r border-r-foreground/15"}
                 ${r % 2 === 1 && r < 5 ? "border-b-2 border-b-foreground/70" : "border-b border-b-foreground/15"}
                 ${isActive ? "bg-primary/20" : inBox ? "bg-green-600/15" : ""}`}
@@ -549,14 +536,17 @@ function PairsDemo() {
   const moves = Math.max(0, Math.min(step + (within > 450 ? 1 : 0), PAIRS_SCRIPT.length));
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-[clamp(6px,0.6vw,12px)]">
-      <div className="grid h-[82%] aspect-[5/4] grid-cols-5 grid-rows-4 gap-[clamp(5px,0.45vw,9px)]">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-[clamp(4px,0.4vw,8px)]">
+      <div
+        className="grid grid-cols-5 grid-rows-4 gap-[clamp(3px,0.3vw,7px)]"
+        style={{ width: "min(100cqw, calc((100cqh - 2.2em) * 1.25))", aspectRatio: "5 / 4" }}
+      >
         {PAIRS_TILES.map((emoji, i) => {
           const face = matched.has(i) || open.has(i);
           return (
             <div
               key={`${i}-${face}`}
-              className={`flex min-h-0 items-center justify-center rounded-[clamp(6px,0.5vw,10px)] text-[clamp(16px,1.5vw,32px)] ${
+              className={`flex min-h-0 items-center justify-center rounded-[clamp(4px,0.4vw,8px)] text-[clamp(12px,1.1vw,24px)] ${
                 face ? (matched.has(i) ? "bg-green-600/15 ring-2 ring-green-600/60 tile-flip" : "bg-[hsl(var(--card))] ring-2 ring-primary tile-flip") : "bg-foreground/80"
               }`}
             >
@@ -565,7 +555,7 @@ function PairsDemo() {
           );
         })}
       </div>
-      <div className="flex w-full max-w-[90%] justify-between text-[clamp(12px,0.85vw,18px)] text-muted-foreground tabular-nums">
+      <div className="flex justify-between text-[clamp(11px,0.75vw,16px)] text-muted-foreground tabular-nums" style={{ width: "min(100cqw, calc((100cqh - 2.2em) * 1.25))" }}>
         <span>Moves {moves}</span>
         <span>{matched.size / 2} / 10 pairs</span>
       </div>
@@ -590,7 +580,7 @@ function ZipDemo() {
   const complete = steps === ZIP_PATH.length;
 
   return (
-    <svg viewBox="-2 -2 104 104" className="aspect-square h-full max-h-full">
+    <svg viewBox="-2 -2 104 104" className="h-full w-full">
       {Array.from({ length: 25 }).map((_, i) => {
         const r = Math.floor(i / 5);
         const c = i % 5;
@@ -631,8 +621,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<GeoDemo />}
         title="GeoGuessr"
-        body="A new street photo every day. Drop a pin where you think it was taken. The closer you get, the more points."
-        points={["Easy and hard photo each day", "Distance decides your score"]}
+        body="Drop a pin where the photo was taken. Closer means more points."
+        points={["• Easy and hard photo daily"]}
         cta="Today’s photos are up"
       />
     ),
@@ -643,8 +633,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<CityDemo />}
         title="City Guess"
-        body="Pick New York, Varna or Stockholm, then find where the street photo was taken on the city map."
-        points={["Several tries per photo", "Fewer tries, more points"]}
+        body="Pick a city, then find where the street photo was taken."
+        points={["• Fewer tries, more points"]}
         cta="Which city do you know best?"
       />
     ),
@@ -655,8 +645,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<ColorDemo />}
         title="Color Memory"
-        body="You see a colour for 5 seconds. Then rebuild it from memory with hue, saturation and lightness."
-        points={["The closer the match, the higher the score"]}
+        body="See a colour for 5 seconds, then rebuild it from memory."
+        points={["• Closer match, more points"]}
         cta="How good is your colour eye?"
       />
     ),
@@ -667,8 +657,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<ThisOrThatDemo />}
         title="This or That"
-        body="Five quick questions a day, two answers each. Tap the one you think is right."
-        points={["Points for every right answer", "New questions daily"]}
+        body="Five quick questions a day. Tap the answer you think is right."
+        points={["• A point for every right answer"]}
         cta="Five taps, about a minute"
       />
     ),
@@ -679,8 +669,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<SudokuDemo />}
         title="Sudoku 6×6"
-        body="Fill the grid so every row, column and 2×3 box has the numbers 1 to 6."
-        points={["Faster solve, more points", "Hints cost points"]}
+        body="Every row, column and 2×3 box gets the numbers 1 to 6."
+        points={["• Faster solve, more points"]}
         cta="A new grid every day"
       />
     ),
@@ -691,8 +681,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<PairsDemo />}
         title="Pairs"
-        body="Flip two cards at a time and find all 10 matching pairs."
-        points={["Fewer moves and less time, more points"]}
+        body="Flip two cards at a time and find all 10 pairs."
+        points={["• Fewer moves, more points"]}
         cta="Test your memory"
       />
     ),
@@ -703,8 +693,8 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
       <DemoLayout
         board={<ZipDemo />}
         title="Zip"
-        body="Draw one line through every cell, passing the numbers in order. No crossing, no skipping."
-        points={["Fill the whole grid to finish", "Faster, more points"]}
+        body="One line through every cell, passing the numbers in order."
+        points={["• Faster, more points"]}
         cta="One line, every cell"
       />
     ),
@@ -716,12 +706,13 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
 
 const FIRST_AFTER_MS = 60_000;
 const EVERY_MS = 4 * 60_000;
-const HIGHLIGHT_MS = 2_500;
+const HIGHLIGHT_MS = 1_500;
 
 export type SpotlightState = { gameKey: string; phase: "highlight" | "demo" } | null;
 
 /**
- * Every few minutes: highlight one game's leaderboard, then play its demo, then go away.
+ * Every few minutes: highlight one game's leaderboard, then play its demo in the Now Playing tile
+ * while that leaderboard stays highlighted, then go away.
  * Open the TV with ?demo in the address (e.g. /?demo#/tv) to see it within seconds,
  * or ?demo=sudoku for one game.
  */
@@ -760,12 +751,22 @@ export function useGameSpotlight(): SpotlightState {
   return state;
 }
 
+const SpotlightContext = createContext<SpotlightState>(null);
+
+/** Runs one spotlight schedule for the whole TV page. */
+export function GameSpotlightProvider({ children }: { children: ReactNode }) {
+  const state = useGameSpotlight();
+  return <SpotlightContext.Provider value={state}>{children}</SpotlightContext.Provider>;
+}
+
+export const useSpotlight = () => useContext(SpotlightContext);
+
 export function GameDemoOverlay({ gameKey }: { gameKey: string }) {
   const entry = GAME_DEMOS[gameKey];
   if (!entry) return null;
   const { Demo } = entry;
   return (
-    <div className="absolute inset-[clamp(8px,0.7vw,14px)] z-20 rounded-[clamp(12px,1vw,20px)] bg-[hsl(var(--card))] p-[clamp(16px,1.6vw,36px)] shadow-[0_12px_40px_-12px_hsl(var(--foreground)/0.25)] animate-in fade-in zoom-in-95 duration-300">
+    <div className="absolute inset-0 z-20 rounded-[inherit] bg-[hsl(var(--card))] p-[clamp(14px,1.3vw,28px)] animate-in fade-in zoom-in-95 duration-300">
       <Demo />
     </div>
   );

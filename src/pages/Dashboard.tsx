@@ -7,6 +7,7 @@ import { PlantStatus } from "@/components/dashboard/PlantStatus";
 import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
 import { useAutoReload } from "@/hooks/useAutoReload";
+import { GameSpotlightProvider } from "@/components/dashboard/GameSpotlight";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
@@ -43,6 +44,14 @@ function useDesktopZoom(enabled: boolean) {
 }
 
 export default function Dashboard() {
+  return (
+    <GameSpotlightProvider>
+      <DashboardContent />
+    </GameSpotlightProvider>
+  );
+}
+
+function DashboardContent() {
   const navigate = useNavigate();
   const deviceId = useDeviceId();
   const [forceDesktop, setForceDesktop] = useState(false);
