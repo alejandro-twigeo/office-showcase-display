@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { pinIcon } from '@/lib/mapPins';
+import { buzz } from '@/lib/haptics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDeviceId } from '@/hooks/useDeviceId';
@@ -165,8 +167,10 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   useEffect(() => {
     if (!leafletRef.current) return;
     if (guessPos) {
-      if (markerRef.current) markerRef.current.setLatLng([guessPos.lat, guessPos.lng]);
-      else markerRef.current = L.marker([guessPos.lat, guessPos.lng]).addTo(leafletRef.current);
+      // New marker each time so the drop animation plays
+      markerRef.current?.remove();
+      markerRef.current = L.marker([guessPos.lat, guessPos.lng], { icon: pinIcon('guess') }).addTo(leafletRef.current);
+      buzz(6);
     } else if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
@@ -182,6 +186,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
 
     const newGuesses = [...guesses, { distance: dist, score: points }];
     setGuesses(newGuesses);
+    buzz([10, 40, 14]);
     setGuessPos(null);
 
     const newBest = Math.max(bestScore, points);
@@ -249,14 +254,8 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
       actualMarkerRef.current.remove();
       actualMarkerRef.current = null;
     }
-    const icon = L.divIcon({
-      html: '<div style="background:hsl(var(--destructive));color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>',
-      className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-    });
-    actualMarkerRef.current = L.marker([image.lat, image.lng], { icon }).addTo(leafletRef.current);
-    leafletRef.current.setView([image.lat, image.lng], 15);
+    actualMarkerRef.current = L.marker([image.lat, image.lng], { icon: pinIcon('answer') }).addTo(leafletRef.current);
+    leafletRef.current.flyTo([image.lat, image.lng], 15, { duration: 1.1 });
   }, [showLocation, image, isMapVisible, selectedCity]);
 
   if (!selectedCity) {
@@ -401,7 +400,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
           <div className="space-y-1 border-t pt-2">
             <p className="text-xs text-muted-foreground font-medium">Your guesses:</p>
             {guesses.map((g, i) => (
-              <div key={i} className="text-xs bg-secondary/50 px-2 py-1.5 rounded flex justify-between">
+              <div key={i} className="text-xs bg-secondary/50 px-2 py-1.5 rounded flex justify-between animate-in fade-in slide-in-from-top-1 duration-300">
                 <span>#{i + 1} — {g.distance < 1 ? `${Math.round(g.distance * 1000)} m` : `${Math.round(g.distance)} km`}</span>
                 <span className="font-mono font-semibold text-accent">{g.score} pts</span>
               </div>
