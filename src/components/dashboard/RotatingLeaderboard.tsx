@@ -4,6 +4,7 @@ import { Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayQr } from "./JoinCard";
 import { useSpotlight } from "./GameSpotlight";
+import { useOfficeActivity } from "@/hooks/useOfficeActivity";
 import { Progress } from "@/components/ui/progress";
 import { useRounds } from "@/hooks/useRounds";
 import { useScoring, calculateScore, calculateWordleScore } from "@/hooks/useScoring";
@@ -63,6 +64,21 @@ function CompactBoardCard({
 }) {
   const [leader, ...rest] = rows;
   const avatar = (name: string) => avatarMap.get(name) ?? "👤";
+  const { streaks, lastWeekChampion } = useOfficeActivity();
+  // Small extras after a name: last week's champion, and a workday streak of 3+
+  const badges = (name: string) => {
+    const s = streaks.get(name) ?? 0;
+    return (
+      <>
+        {lastWeekChampion === name && <span title="Champion of last week">👑</span>}
+        {s >= 3 && (
+          <span className="shrink-0 font-semibold tabular-nums text-orange-600 text-[0.8em]" title={`${s}-day streak`}>
+            🔥{s}
+          </span>
+        )}
+      </>
+    );
+  };
 
   return (
     <Card
@@ -93,6 +109,7 @@ function CompactBoardCard({
             <div className="min-w-0 flex-1 flex items-center gap-1">
               <Trophy className="h-3.5 w-3.5 lg:h-[clamp(13px,0.95vw,20px)] lg:w-[clamp(13px,0.95vw,20px)] shrink-0 text-primary" />
               <p className="truncate font-semibold text-foreground text-sm lg:text-[clamp(14px,1.1vw,24px)] leading-tight">{leader.name}</p>
+              {badges(leader.name)}
             </div>
             <div className="shrink-0 text-right leading-none">
               <div className="font-semibold tabular-nums text-primary text-base lg:text-[clamp(18px,1.5vw,34px)]">{leader.score}</div>
@@ -109,7 +126,10 @@ function CompactBoardCard({
                 {i + 2}
               </span>
               <span className="shrink-0 text-[13px] lg:text-[clamp(14px,1vw,22px)] leading-none">{avatar(row.name)}</span>
-              <span className="min-w-0 flex-1 truncate text-foreground text-[11px] lg:text-[clamp(12px,0.9vw,19px)]">{row.name}</span>
+              <span className="min-w-0 flex-1 flex items-center gap-1 text-foreground text-[11px] lg:text-[clamp(12px,0.9vw,19px)]">
+                <span className="truncate">{row.name}</span>
+                {badges(row.name)}
+              </span>
               <span className="shrink-0 font-medium tabular-nums text-foreground text-[11px] lg:text-[clamp(12px,0.9vw,19px)]">{row.score}</span>
             </div>
           ))}
