@@ -19,6 +19,12 @@ import { PairsGame } from './games/PairsGame';
 import { LabyrinthGame } from './games/LabyrinthGame';
 import { RiddleGame } from './games/RiddleGame';
 import riddleIcon from '@/assets/riddle-icon.svg';
+import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
+import { TeamRiddleGame } from './games/TeamRiddleGame';
+import { PlayHub } from './PlayHub';
+
+/** Built-in icons for games that don't have one uploaded in Manager yet */
+const LOCAL_ICONS: Record<string, string> = { riddle: riddleIcon, team_riddle: teamRiddleIcon };
 import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 import { useGameIcons } from '@/hooks/useGameIcons';
@@ -68,6 +74,11 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
             <h2 className="text-lg font-bold">Games</h2>
             <p className="text-xs text-muted-foreground">Pick a game to play</p>
           </div>
+          <PlayHub
+            playerName={player.name}
+            roundId={activeRound?.id}
+            onOpenGame={(id) => setSelectedGame(id === 'geo' ? 'geoguessr' : id)}
+          />
           <div className="grid grid-cols-3 gap-2">
             {/* GeoGuessr */}
             <button
@@ -94,8 +105,8 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                 className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
               >
                 <div className="w-full aspect-square rounded-xl overflow-hidden p-2">
-                  {icons[game.id] || (game.id === 'riddle' && riddleIcon) ? (
-                    <img src={icons[game.id] ?? riddleIcon} alt={game.name} className="w-full h-full object-contain" />
+                  {icons[game.id] || LOCAL_ICONS[game.id] ? (
+                    <img src={icons[game.id] ?? LOCAL_ICONS[game.id]} alt={game.name} className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary/30">
                       <span className="text-2xl">{game.emoji}</span>
@@ -124,6 +135,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {selectedGame === 'pairs' && <PairsGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'labyrinth' && <LabyrinthGame playerName={player.name} roundId={activeRound?.id} />}
         {selectedGame === 'riddle' && <RiddleGame playerName={player.name} roundId={activeRound?.id} />}
+        {selectedGame === 'team_riddle' && <TeamRiddleGame playerName={player.name} roundId={activeRound?.id} />}
       </div>
     );
   };
