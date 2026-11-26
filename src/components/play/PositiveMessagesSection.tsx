@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePositiveMessages } from "@/hooks/usePositiveMessages";
+import { useIsAdmin } from "@/hooks/usePlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Plus, Pencil, Trash2, Check, X, ExternalLink } from "lucide-react";
 
 const MAX_LEN = 120;
-const ADMIN_PASSWORD = "5678";
 const BOB_URL = "https://app.hibob.com/home";
 
 /** "@sa" at the end of the text → "sa", so we can suggest players to tag. */
@@ -24,7 +24,6 @@ export function PositiveMessagesSection({ playerName }: Props) {
 
   // Add form
   const [newMsg, setNewMsg] = useState("");
-  const [newBy, setNewBy] = useState(playerName);
   const [addError, setAddError] = useState("");
   const [lastSent, setLastSent] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -61,26 +60,14 @@ export function PositiveMessagesSection({ playerName }: Props) {
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editMsg, setEditMsg] = useState("");
-  const [editBy, setEditBy] = useState("");
   const [editError, setEditError] = useState("");
 
-  // Manager password, once entered, lets you delete anyone's message
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
-
-  // Delete: your own messages with a confirm tap; anyone else's after the manager password
-  // (asked once, then remembered for the rest of the visit).
+  // Your own kudos: edit or delete (with a confirm tap). Anyone's: only the admin.
+  const { data: isAdmin = false } = useIsAdmin();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [passwordForId, setPasswordForId] = useState<string | null>(null);
-  const [deletePassword, setDeletePassword] = useState("");
-  const [deletePasswordError, setDeletePasswordError] = useState("");
   const isMine = (by: string) => by.trim().toLowerCase() === playerName.trim().toLowerCase();
-  function handleDelete(id: string, by: string) {
-    if (!isMine(by) && !adminUnlocked) {
-      setPasswordForId(id);
-      setDeletePassword("");
-      setDeletePasswordError("");
-      return;
-    }
+  const canChange = (by: string) => isMine(by) || isAdmin;
+  function handleDelete(id: string) {
     if (confirmDeleteId !== id) {
       setConfirmDeleteId(id);
       window.setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 3000);
@@ -89,17 +76,6 @@ export function PositiveMessagesSection({ playerName }: Props) {
     setConfirmDeleteId(null);
     deactivateMessage.mutate(id);
   }
-  function deleteWithPassword(id: string) {
-    if (deletePassword !== ADMIN_PASSWORD) {
-      setDeletePasswordError("Wrong password.");
-      return;
-    }
-    setAdminUnlocked(true);
-    setPasswordForId(null);
-    setDeletePassword("");
-    deactivateMessage.mutate(id);
-  }
-
 
   function validateMessage(msg: string): string {
     if (!msg.trim()) return "Message can't be empty.";
@@ -110,10 +86,9 @@ export function PositiveMessagesSection({ playerName }: Props) {
   function handleAdd() {
     const err = validateMessage(newMsg);
     if (err) { setAddError(err); return; }
-    if (!newBy.trim()) { setAddError("Please add your name."); return; }
     setAddError("");
     const text = newMsg.trim();
-    addMessage.mutate({ message: text, created_by: newBy });
+    addMessage.mutate({ message: text, created_by: playerName });
     setLastSent(text);
     setCopied(false);
     setNewMsg("");
@@ -122,16 +97,15 @@ export function PositiveMessagesSection({ playerName }: Props) {
   function startEdit(msg: { id: string; message: string; created_by: string }) {
     setEditingId(msg.id);
     setEditMsg(msg.message);
-    setEditBy(msg.created_by);
     setEditError("");
   }
 
   function handleUpdate() {
     const err = validateMessage(editMsg);
     if (err) { setEditError(err); return; }
-    if (!editBy.trim()) { setEditError("Please add your name."); return; }
     setEditError("");
-    updateMessage.mutate({ id: editingId!, message: editMsg, created_by: editBy });
+    const original = messages.find((m) => m.id === editingId);
+    updateMessage.mutate({ id: editingId!, message: editMsg, created_by: original?.created_by ?? playerName });
     setEditingId(null);
   }
 
@@ -155,12 +129,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
             className="resize-none text-sm min-h-[70px]"
           />
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Your name"
-              value={newBy}
-              onChange={(e) => setNewBy(e.target.value)}
-              className="text-sm h-8 flex-1"
-            />
+            <span className="flex-1 truncate text-xs text-muted-foreground">From {playerName}</span>
             <span className="text-xs text-muted-foreground whitespace-nowrap">{newMsg.length}/{MAX_LEN}</span>
             <Button
               size="sm"
@@ -226,12 +195,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
                       className="resize-none text-sm min-h-[60px]"
                     />
                     <div className="flex items-center gap-2">
-                      <Input
-                        value={editBy}
-                        onChange={(e) => setEditBy(e.target.value)}
-                        placeholder="Your name"
-                        className="text-sm h-7 flex-1"
-                      />
+                      <span className="flex-1 truncate text-xs text-muted-foreground">From {msg.created_by}</span>
                       <span className="text-xs text-muted-foreground">{editMsg.length}/{MAX_LEN}</span>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleUpdate}>
                         <Check className="h-3.5 w-3.5 text-primary" />
@@ -248,8 +212,9 @@ export function PositiveMessagesSection({ playerName }: Props) {
                       <p className="text-sm leading-snug">{msg.message}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">— {msg.created_by}</p>
                     </div>
+                    {canChange(msg.created_by) && (
                     <div className="flex gap-1 shrink-0">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(msg)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(msg)} aria-label="Edit message">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       {confirmDeleteId === msg.id ? (
@@ -257,7 +222,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
                           size="sm"
                           variant="destructive"
                           className="h-7 px-2 text-xs animate-in fade-in zoom-in-95 duration-150"
-                          onClick={() => handleDelete(msg.id, msg.created_by)}
+                          onClick={() => handleDelete(msg.id)}
                           disabled={deactivateMessage.isPending}
                         >
                           Delete?
@@ -267,42 +232,15 @@ export function PositiveMessagesSection({ playerName }: Props) {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(msg.id, msg.created_by)}
+                          onClick={() => handleDelete(msg.id)}
                           aria-label="Delete message"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
+                    )}
                   </div>
-                )}
-                {passwordForId === msg.id && (
-                  <form
-                    className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      deleteWithPassword(msg.id);
-                    }}
-                  >
-                    <p className="text-xs text-muted-foreground">Not your message. Enter the manager password to delete it.</p>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="password"
-                        autoFocus
-                        placeholder="Manager password"
-                        value={deletePassword}
-                        onChange={(e) => { setDeletePassword(e.target.value); setDeletePasswordError(""); }}
-                        className="text-sm h-8 flex-1"
-                      />
-                      <Button type="submit" size="sm" variant="destructive" className="h-8" disabled={!deletePassword}>
-                        Delete
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setPasswordForId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                    {deletePasswordError && <p className="text-xs text-destructive">{deletePasswordError}</p>}
-                  </form>
                 )}
               </div>
             ))}
