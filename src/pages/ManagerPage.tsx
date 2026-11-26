@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useIsAdmin } from '@/hooks/usePlayer';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -38,9 +39,9 @@ const MINI_GAMES = [
 export default function ManagerPage() {
   const isMobileLayout = useIsMobile();
   const navigate = useNavigate();
-  const [password, setPassword] = useState('');
-  const [unlocked, setUnlocked] = useState(false);
-  const [error, setError] = useState('');
+  // Admin only, checked by the database (no shared password any more)
+  const { data: isAdmin, isLoading: checkingAdmin } = useIsAdmin();
+  const unlocked = !!isAdmin;
   const [debugInfo, setDebugInfo] = useState({
     screenWidth: 0,
     screenHeight: 0,
@@ -199,11 +200,6 @@ export default function ManagerPage() {
     })();
   }, [unlocked]);
 
-  const handleUnlock = () => {
-    if (password !== '5678') { setError('Wrong password'); return; }
-    setUnlocked(true);
-    setError('');
-  };
 
   const handleSave = async () => {
     const distParam = parseFloat(editDistParam);
@@ -295,19 +291,13 @@ export default function ManagerPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(''); }}
-              onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            <p className="text-sm text-muted-foreground">
+              {checkingAdmin ? 'Checking…' : 'Admins only. Log in on the Play page with the admin email, then come back here.'}
+            </p>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => navigate('/play')}>
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                <ArrowLeft className="h-4 w-4 mr-1" /> Play page
               </Button>
-              <Button className="flex-1" onClick={handleUnlock}>Unlock</Button>
             </div>
           </CardContent>
         </Card>
