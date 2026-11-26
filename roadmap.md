@@ -1,5 +1,6 @@
 # Email login setup
 
+- [ ] Reapply `docs/sql/01_email_login.sql` character for character, including exactly one `jsonb_agg` in the claimable line, with no other SQL changes.
 - [x] Apply `docs/sql/01_email_login.sql` unchanged as a migration.
 - [x] Enable email login (already enabled).
 - [x] Verify `https://twigeo-tv.lovable.app` is the Site URL and an allowed redirect URL.
