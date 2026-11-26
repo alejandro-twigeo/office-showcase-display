@@ -136,25 +136,25 @@ export function PollDisplay() {
           <p className="mt-1 text-muted-foreground text-[clamp(13px,0.9vw,18px)]">A new one arrives with the daily reset</p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col gap-[clamp(10px,1vw,20px)] overflow-hidden">
-          <h3 className="font-semibold tracking-tight leading-[1.08] text-[clamp(22px,1.9vw,42px)] text-balance">
+        <div className="flex-1 min-h-0 flex flex-col gap-[clamp(8px,0.7vw,14px)] overflow-hidden">
+          <h3 className="shrink-0 font-semibold tracking-tight leading-[1.1] text-[clamp(18px,1.4vw,30px)] text-balance line-clamp-2">
             {currentPoll.question}
           </h3>
 
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No answers yet. Add yours from the Play page</p>
           ) : (
-            <div className="mt-auto flex flex-col gap-[clamp(8px,0.7vw,14px)]">
+            <div className="mt-auto min-h-0 flex flex-col gap-[clamp(5px,0.45vw,10px)] overflow-hidden">
               {rows.map(({ key, label, count }) => {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const leading = count > 0 && count === topCount;
                 return (
                   <div key={key} className="min-w-0">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className={`truncate text-[clamp(15px,1.1vw,24px)] ${leading ? "font-semibold" : "font-medium"}`}>
+                      <span className={`truncate text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}>
                         {label}
                       </span>
-                      <span className={`shrink-0 tabular-nums text-[clamp(15px,1.1vw,24px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
+                      <span className={`shrink-0 tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
                         {pct}%
                       </span>
                     </div>

@@ -5,7 +5,11 @@ import { usePollRotations } from "@/contexts/pollRotation";
 import { ROTATE_SECONDS } from "@/components/dashboard/PollDisplay";
 import { ThisWeekCard } from "./WeekTiles";
 
-export function NewsDisplay() {
+/**
+ * `standalone`: the news tile only shows news. With no news it renders nothing, so the
+ * tiles around it get the space (the old layout swapped in "This week" instead).
+ */
+export function NewsDisplay({ standalone = false }: { standalone?: boolean }) {
   const { news, isLoading } = useDailyNews();
   const { rotations, pollTimeLeft } = usePollRotations();
   const [index, setIndex] = useState(0);
@@ -44,7 +48,8 @@ export function NewsDisplay() {
     };
   }, []);
 
-  if (!isLoading && (!item || showWeek)) return <ThisWeekCard />;
+  if (standalone && !isLoading && !item) return null;
+  if (!standalone && !isLoading && (!item || showWeek)) return <ThisWeekCard />;
 
   return (
     <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
@@ -68,10 +73,10 @@ export function NewsDisplay() {
               {item.audience}
             </span>
           )}
-          <h3 className="font-semibold tracking-tight leading-[1.08] text-[clamp(22px,1.9vw,42px)] text-balance line-clamp-4">
+          <h3 className="shrink-0 font-semibold tracking-tight leading-[1.15] text-[clamp(18px,1.4vw,30px)] text-balance line-clamp-2">
             {item.headline}
           </h3>
-          <p className="text-muted-foreground leading-snug text-[clamp(14px,1vw,21px)] line-clamp-4">{item.summary}</p>
+          <p className="min-h-0 overflow-hidden text-muted-foreground leading-snug text-[clamp(13px,0.9vw,19px)] line-clamp-1">{item.summary}</p>
         </div>
       )}
 
