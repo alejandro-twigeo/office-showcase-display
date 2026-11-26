@@ -27,7 +27,7 @@ function isRevealTime(now = new Date()) {
  * This week at a glance: who's leading, the office goal, and the office race.
  * Shown in the news tile when there's no news, and every other minute when there is.
  */
-export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
+export function ThisWeekCard({ compact = false, ranking = false }: { compact?: boolean; ranking?: boolean }) {
   const a = useOfficeActivity();
   const [leader, leaderPts] = a.weekRanking[0] ?? [];
   const reveal = isRevealTime();
@@ -45,7 +45,7 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
   }, [a.playsThisWeek]);
 
   return (
-    <Card className="h-full min-h-0 flex flex-col justify-between overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700">
+    <Card className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700 ${ranking ? "" : "justify-between"}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="tile-label">This week</span>
         <span className="tile-label">Resets Monday</span>
@@ -86,6 +86,22 @@ export function ThisWeekCard({ compact = false }: { compact?: boolean }) {
           />
         </div>
       </div>
+
+      {/* The week's ranking: as many rows as fit (the leader is already shown above) */}
+      {ranking && a.weekRanking.length > 1 && (
+        <ol className="flex-1 min-h-0 overflow-hidden flex flex-col gap-[clamp(5px,0.45vw,9px)] border-t border-border/70 pt-[clamp(8px,0.7vw,14px)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
+          {a.weekRanking.slice(1, 12).map(([name, pts], i) => (
+            <li key={name} className="flex items-center gap-[clamp(8px,0.6vw,12px)] text-[clamp(13px,0.95vw,20px)]">
+              <span className="w-[1.4em] text-right font-semibold tabular-nums text-muted-foreground">{i + 2}</span>
+              <span className="leading-none text-[1.2em]">{avatarOf(a, name)}</span>
+              <span className="min-w-0 flex-1 truncate">{name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                <CountUp value={pts} /> pts
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
 
       {/* Office race (in the header in the new layout, so the compact card leaves it out) */}
       <div className={`flex flex-col gap-[clamp(5px,0.45vw,9px)] ${compact ? "hidden" : ""}`}>

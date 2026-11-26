@@ -11,8 +11,9 @@ import { PlaySideTile } from "@/components/dashboard/StreetViewDisplay";
 import { ThisWeekCard } from "@/components/dashboard/WeekTiles";
 import { PlayQr } from "@/components/dashboard/JoinCard";
 import { useAutoReload } from "@/hooks/useAutoReload";
-import { GameSpotlightProvider } from "@/components/dashboard/GameSpotlight";
+import { GameSpotlightProvider, useSpotlight } from "@/components/dashboard/GameSpotlight";
 import { LiveMoments } from "@/components/dashboard/LiveMoments";
+import { TodayFeed } from "@/components/dashboard/TodayFeed";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
@@ -66,17 +67,23 @@ function ZoneLabel({ children }: { children: string }) {
 }
 
 /**
- * The three zones. Every section has a fixed home; only Now playing changes size,
- * growing while something is playing (Kudos makes room for it).
- *  - Play: games with their podiums, then riddle / GeoGuessr photos / team riddle
- *  - Together: now playing, kudos
- *  - This week: who's leading and the fika goal, the poll, the news
+ * The three zones. Every section has a fixed home. Tiles are as tall as their content,
+ * and one tile per column takes whatever room is left, so there's no empty space:
+ *  - Play: games with their podiums (fills), then riddle / GeoGuessr photos / team riddle
+ *  - Together: now playing (compact, or big while a video plays), kudos, then
+ *    "Today in the office" (fills)
+ *  - This week: who's leading, the fika goal and the ranking (fills), the poll, the news
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
-  const [playing, setPlaying] = useState(false);
-  const onPlayingChange = useCallback((p: boolean) => setPlaying(p), []);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const onPlayingChange = useCallback((p: boolean) => setVideoPlaying(p), []);
+  // Game how-to demos also play inside Now playing, so it grows for them too
+  const spotlight = useSpotlight();
+  const playing = videoPlaying || spotlight?.phase === "demo";
   const grow = "transition-[flex-grow] duration-700 ease-out";
   const tile = desktop ? "min-h-0" : "min-h-[280px] lg:min-h-0";
+  // sized to its content: never stretched, never squeezed
+  const fit = "shrink-0";
 
   return (
     <div className={desktop ? "h-full min-h-0 grid grid-cols-[5fr_4fr_3fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[5fr_4fr_3fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
@@ -94,25 +101,33 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
       {/* Together */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <ZoneLabel>Together</ZoneLabel>
-        <div className={`${tile} ${grow} overflow-hidden rounded-xl`} style={{ flexGrow: playing ? 2.3 : 1, flexBasis: 0 }}>
+        {/* Compact when nothing plays; with a video it takes most of the column */}
+        <div
+          className={`${playing ? tile : fit} ${grow} overflow-hidden rounded-xl`}
+          style={playing ? { flexGrow: 3, flexBasis: 0 } : undefined}
+        >
           <YouTubeDisplay onPlayingChange={onPlayingChange} />
         </div>
-        <div className={`${tile} ${grow}`} style={{ flexGrow: playing ? 1.2 : 1.7, flexBasis: 0 }}>
+        <div className={fit}>
           <KudosTile />
+        </div>
+        <div className={`${tile} ${grow}`} style={{ flexGrow: 1, flexBasis: 0, minHeight: playing ? 0 : undefined }}>
+          <TodayFeed />
         </div>
       </div>
 
       {/* This week */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <ZoneLabel>This week</ZoneLabel>
-        <div className={`${tile} flex-[1]`}>
-          <ThisWeekCard compact />
+        <div className={`${tile} flex-1`}>
+          <ThisWeekCard compact ranking />
         </div>
-        <div className={`${tile} flex-[1.3] overflow-hidden rounded-xl`}>
+        {/* Polls fit their content; Flow (a chart) needs room, so it shares the column */}
+        <div className={`${tvFeatureMode === "flow" ? `${tile} flex-1` : fit} overflow-hidden rounded-xl`}>
           <TvFeatureDisplay mode={tvFeatureMode} />
         </div>
-        {/* Empty (no news today) collapses, so the poll and This week get the room */}
-        <div className={`${tile} flex-[1.15] overflow-hidden rounded-xl empty:hidden`}>
+        {/* No news today: nothing here, and This week gets the room */}
+        <div className={`${fit} overflow-hidden rounded-xl empty:hidden`}>
           <NewsDisplay standalone />
         </div>
       </div>
