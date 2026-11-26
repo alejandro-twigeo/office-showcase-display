@@ -35,7 +35,8 @@ export interface ProfileSetup {
 }
 
 /**
- * Login is a 6-digit code sent to your @twigeo.com email (Supabase Auth).
+ * Login is an email to your @twigeo.com address with a Log in button (Supabase Auth).
+ * If the email ever includes a 6-digit code instead, typing it in works too.
  * After that, the database links your account to your profile. On your very first login
  * you either claim your existing profile or make a new one. The database checks every
  * score, vote and kudos against the logged-in person, so nobody can post as someone else.
@@ -125,7 +126,8 @@ export function usePlayer(): {
     if (!isWorkEmail(email)) return { ok: false, error: `Use your @${EMAIL_DOMAIN} email` };
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/#/play` },
+      // The email's Log in button returns here; main.tsx finishes the login and opens /play
+      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/` },
     });
     return error ? { ok: false, error: friendly(error.message) } : { ok: true };
   }, []);
