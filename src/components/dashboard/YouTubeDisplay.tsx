@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { ListMusic, Volume2 } from "lucide-react";
+import { ListMusic, Volume2, SkipForward, Loader2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +77,28 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   const navigate = useNavigate();
   const openMusic = () => navigate("/play?tab=music");
   const addSong = (videoId: string) => me && addToQueue.mutate({ video_id: videoId, queued_by: me });
+
+  // ⏭ Next: skip the song for everyone. Two clicks (the first asks "Skip?"), so nobody skips by accident.
+  // Same database step the TV uses when a song ends. Not logged in on this laptop: it opens the Play page.
+  const [confirmSkip, setConfirmSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  useEffect(() => {
+    if (!confirmSkip) return;
+    const t = setTimeout(() => setConfirmSkip(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmSkip]);
+  useEffect(() => setConfirmSkip(false), [currentVideo?.id]);
+  const skip = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!me) return openMusic();
+    if (!currentVideo || skipping) return;
+    if (!confirmSkip) return setConfirmSkip(true);
+    setConfirmSkip(false);
+    setSkipping(true);
+    await tvRpc("tv_advance_queue", { p_current: currentVideo.id });
+    setSkipping(false);
+  };
+  const skipIcon = skipping ? <Loader2 className="h-[55%] w-auto animate-spin" /> : <SkipForward className="h-[50%] w-auto shrink-0 fill-current" />;
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const playerReadyRef = useRef(false);
@@ -308,8 +330,20 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           })()}
         {/* ＋ on small screens, where the queue strip is hidden; on big ones it sits under the queue */}
         <span className="ml-auto lg:hidden" />
-        <span className="lg:hidden">
+        <span className="flex items-center gap-1.5 lg:hidden">
           <QueueAdder me={me} onLogin={openMusic} onAdd={addSong} />
+          {currentVideo && (
+            <button
+              type="button"
+              onClick={skip}
+              aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
+              title={me ? "Skip to the next song" : "Skip on the Play page"}
+              className={`flex h-[clamp(24px,1.7vw,36px)] shrink-0 items-center justify-center gap-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold transition-all ${confirmSkip ? "px-2.5" : "w-[clamp(24px,1.7vw,36px)]"}`}
+            >
+              {skipIcon}
+              {confirmSkip && "Skip?"}
+            </button>
+          )}
         </span>
       </div>
 
@@ -407,8 +441,27 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 onReorder={(ids, onFail) => reorderQueue.mutate(ids, { onError: onFail })}
               />
             )}
-            {/* ＋ : add a song, by search or link (on a laptop; otherwise it opens the Play page) */}
-            <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
+            {/* ＋ adds a song, ⏭ skips to the next one (on a laptop; otherwise both open the Play page).
+                While it asks "Skip?", the ⏭ takes the whole row */}
+            <div className="flex shrink-0 gap-[clamp(4px,0.4vw,8px)]">
+              {!confirmSkip && (
+                <div className="min-w-0 flex-1">
+                  <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
+                </div>
+              )}
+              {currentVideo && (
+                <button
+                  type="button"
+                  onClick={skip}
+                  aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
+                  title={me ? "Skip to the next song" : "Skip on the Play page"}
+                  className={`flex h-[clamp(26px,1.9vw,40px)] min-w-0 flex-1 items-center justify-center gap-[0.3em] rounded-[clamp(4px,0.4vw,8px)] bg-primary text-primary-foreground font-semibold text-[clamp(11px,0.8vw,17px)] transition-colors [@media(hover:hover)]:hover:bg-primary/90 ${confirmSkip ? "animate-in fade-in duration-150" : ""}`}
+                >
+                  {skipIcon}
+                  {confirmSkip && "Skip?"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
