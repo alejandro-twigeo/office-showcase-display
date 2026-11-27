@@ -36,6 +36,12 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
       <span className="tile-label">💬 Chat</span>
       {/* Anchored to the bottom: the newest message is always in view */}
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(4px,0.35vw,7px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)]">
+        {/* Nobody has written for a while: invite people in */}
+        {shown.length === 0 && (
+          <p className="mb-[clamp(2px,0.2vw,4px)] text-muted-foreground text-[clamp(12px,0.9vw,19px)]">
+            Quiet right now. Say hi from the Play page 👋
+          </p>
+        )}
         {/* A quiet chat gets a nudge: a conversation starter that changes every half minute */}
         {shown.length < 4 && (
           <p key={starterAt(now)} className="mb-[clamp(4px,0.4vw,8px)] self-start rounded-2xl border border-dashed border-primary/40 px-[0.9em] py-[0.45em] text-muted-foreground text-[clamp(12px,0.9vw,19px)] animate-in fade-in duration-700">
