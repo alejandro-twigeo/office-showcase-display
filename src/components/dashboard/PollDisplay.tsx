@@ -3,6 +3,9 @@ import { usePollRotations } from "@/contexts/pollRotation";
 import { Card } from "@/components/ui/card";
 import { usePolls, useVotes } from "@/hooks/usePolls";
 import { CountUp } from "@/components/ui/count-up";
+import { useNavigate } from "react-router-dom";
+import { useMe } from "@/hooks/useMe";
+import { getDeviceId } from "@/hooks/useDeviceId";
 
 export const ROTATE_SECONDS = 30;
 
@@ -89,7 +92,21 @@ export function PollDisplay() {
     [activePolls, currentPollId],
   );
 
-  const { votes } = useVotes(currentPoll?.id);
+  const { votes, submitVote, updateVote } = useVotes(currentPoll?.id);
+
+  // On a laptop the answers are clickable: vote (or change your vote) right here
+  const navigate = useNavigate();
+  const me = useMe();
+  const myVote = me ? votes.find((v) => v.player_name === me) : undefined;
+  const vote = (optionIndex: number) => {
+    if (!currentPoll) return;
+    if (!me) return navigate("/play?tab=polls");
+    if (myVote) {
+      if (myVote.option_index !== optionIndex) updateVote.mutate({ voteId: myVote.id, option_index: optionIndex });
+    } else {
+      submitVote.mutate({ poll_id: currentPoll.id, device_id: getDeviceId(), player_name: me, option_index: optionIndex });
+    }
+  };
 
   const voteCounts = useMemo(() => {
     if (!currentPoll) return [];
@@ -149,10 +166,18 @@ export function PollDisplay() {
               {rows.map(({ key, label, count }) => {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const leading = count > 0 && count === topCount;
+                const mine = myVote?.option_index === key;
                 return (
-                  <div key={key} className="min-w-0">
+                  <button
+                    type="button"
+                    key={key}
+                    onClick={() => vote(key)}
+                    className="block w-full min-w-0 rounded-md text-left [@media(hover:hover)]:hover:bg-primary/[0.06] [@media(hover:hover)]:hover:shadow-[0_0_0_4px_hsl(var(--primary)/0.06)]"
+                    title={me ? (mine ? "Your vote" : "Vote for this") : "Log in on the Play page to vote"}
+                  >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className={`truncate text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}>
+                        {mine && <span className="text-primary">✓ </span>}
                         {label}
                       </span>
                       <span className={`shrink-0 tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
@@ -165,7 +190,7 @@ export function PollDisplay() {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

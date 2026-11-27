@@ -5,6 +5,8 @@ import { useSpotlight } from "./GameSpotlight";
 import { CountUp } from "@/components/ui/count-up";
 import { useFlip } from "@/hooks/useFlip";
 import { PlayQr } from "./JoinCard";
+import { useNavigate } from "react-router-dom";
+import { ACTIONABLE } from "@/hooks/useMe";
 
 const GAME_EMOJI: Record<string, string> = {
   wordle: "🟩",
@@ -57,14 +59,14 @@ function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => st
           <div
             key={e.player}
             data-flip={e.player}
-            className="flex w-full items-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-[hsl(var(--card))] px-[clamp(8px,0.6vw,12px)] py-[clamp(5px,0.4vw,9px)]"
+            className="flex w-full items-center gap-[clamp(5px,0.4vw,9px)] rounded-[clamp(7px,0.5vw,11px)] bg-[hsl(var(--card))] px-[clamp(6px,0.5vw,11px)] py-[clamp(4px,0.3vw,7px)]"
           >
-            <span className="leading-none text-[clamp(18px,1.4vw,30px)]">{av(e.player)}</span>
-            <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(13px,1vw,21px)]">
+            <span className="leading-none text-[clamp(16px,1.2vw,27px)]">{av(e.player)}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(12px,0.9vw,20px)]">
               <span className="truncate">{e.player}</span>
               {badges(e.player)}
             </span>
-            <CountUp value={e.score} className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(15px,1.2vw,26px)]" />
+            <CountUp value={e.score} className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(14px,1.05vw,24px)]" />
           </div>
         ) : (
           <div
@@ -93,6 +95,9 @@ function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => st
 export function GamesTile() {
   const a = useOfficeActivity();
   const spotlight = useSpotlight();
+  // On a laptop a card opens that game on the Play page
+  const navigate = useNavigate();
+  const openGame = (g: string) => navigate(`/play?game=${g === "geo" ? "geoguessr" : g}`);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 20_000);
@@ -122,7 +127,7 @@ export function GamesTile() {
   const topStreak = [...a.streaks.entries()].sort((x, y) => y[1] - x[1])[0];
 
   return (
-    <Card className="h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.8vw,16px)]">
+    <Card className="h-full min-h-0 flex flex-col p-[clamp(12px,1.05vw,24px)] gap-[clamp(8px,0.65vw,14px)]">
       <div className="flex items-center justify-between gap-3">
         <span className="tile-label">
           Games · <CountUp value={todayCount} /> played today
@@ -130,7 +135,7 @@ export function GamesTile() {
         <ActivityMeter level={activityLevel(lastHour)} label="Activity" />
       </div>
 
-      <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-3 gap-[clamp(8px,0.7vw,14px)]">
+      <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-3 gap-[clamp(6px,0.55vw,12px)]">
         {games.shown.map((g) => {
           const board = a.todayByGame.get(g) ?? [];
           const [lead, ...rest] = board;
@@ -140,7 +145,8 @@ export function GamesTile() {
           return (
             <div
               key={g}
-              className={`relative flex min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(12px,1vw,20px)] p-[clamp(10px,0.8vw,16px)] transition-all duration-500 ${
+              onClick={() => openGame(g)}
+              className={`relative flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] rounded-[clamp(10px,0.85vw,18px)] p-[clamp(8px,0.65vw,14px)] transition-all duration-500 ${ACTIONABLE} ${
                 hot ? "bg-green-600/10 shadow-[0_0_0_2px_hsl(142_60%_45%/0.45)]" : lead ? "bg-background" : "border border-dashed border-foreground/15"
               } ${lit ? "shadow-[0_0_0_3px_hsl(var(--primary))] scale-[1.02]" : ""}`}
             >
@@ -150,7 +156,7 @@ export function GamesTile() {
                 </span>
               )}
               <div className="flex items-baseline justify-between gap-2">
-                <span className={`truncate font-semibold text-[clamp(14px,1.1vw,23px)] ${lead ? "" : "text-muted-foreground"}`}>
+                <span className={`truncate font-semibold text-[clamp(13px,0.95vw,21px)] ${lead ? "" : "text-muted-foreground"}`}>
                   {GAME_EMOJI[g]} {GAME_NAMES[g] ?? g}
                 </span>
                 {board.length > 0 && <span className="shrink-0 text-muted-foreground tabular-nums text-[clamp(11px,0.75vw,16px)]">{board.length} today</span>}
@@ -158,9 +164,7 @@ export function GamesTile() {
               {lead ? (
                 <Podium rows={[lead, ...rest].slice(0, 3)} av={av} badges={badges} />
               ) : (
-                <p className="m-auto text-center text-muted-foreground text-[clamp(12px,0.85vw,17px)]">
-                  No scores yet.
-                  <br />
+                <p className="m-auto text-center text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
                   <span className="font-medium text-foreground/70">Be the first</span>
                 </p>
               )}
@@ -168,7 +172,7 @@ export function GamesTile() {
           );
         })}
         {/* Ninth slot: something to nudge people with */}
-        <div className="flex min-h-0 flex-col justify-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(12px,1vw,20px)] bg-primary/[0.07] p-[clamp(10px,0.8vw,16px)] text-[clamp(13px,0.95vw,20px)] leading-snug">
+        <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col justify-center gap-[clamp(4px,0.4vw,8px)] rounded-[clamp(10px,0.85vw,18px)] bg-primary/[0.07] p-[clamp(8px,0.65vw,14px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
           {challenge ? (
             <>
               <span className="tile-label">Challenge</span>
