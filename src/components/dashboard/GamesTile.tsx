@@ -50,6 +50,32 @@ export function ActivityMeter({ level, label }: { level: number; label?: string 
   );
 }
 
+/** A player's avatar: an emoji today, or a picture if it's a link */
+function Avatar({ value }: { value?: string }) {
+  const v = value || "👤";
+  return /^(https?:|data:|\/)/.test(v) ? (
+    <img src={v} alt="" className="h-[1.35em] w-[1.35em] shrink-0 rounded-full object-cover" draggable={false} />
+  ) : (
+    <span className="shrink-0 text-[1.15em] leading-none">{v}</span>
+  );
+}
+
+/** First names only; first name + last initial when two people share a first name */
+function makeShortName(names: Iterable<string>) {
+  const byFirst = new Map<string, Set<string>>();
+  for (const n of names) {
+    const first = n.trim().split(/\s+/)[0];
+    if (!byFirst.has(first)) byFirst.set(first, new Set());
+    byFirst.get(first)!.add(n.trim());
+  }
+  return (full: string) => {
+    const parts = full.trim().split(/\s+/);
+    const first = parts[0];
+    if ((byFirst.get(first)?.size ?? 0) > 1 && parts.length > 1) return `${first} ${parts[parts.length - 1][0]}.`;
+    return first;
+  };
+}
+
 const MEDAL = ["bg-amber-200/70 text-amber-900", "bg-stone-200/80 text-stone-700", "bg-orange-200/60 text-orange-900"];
 
 /**
@@ -57,7 +83,17 @@ const MEDAL = ["bg-amber-200/70 text-amber-900", "bg-stone-200/80 text-stone-700
  * keyed by player, so when someone overtakes, the rows slide into their new places and the score
  * counts up. Sizes follow the card's width (cqw), so names fit on the TV and on a laptop alike.
  */
-function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JSX.Element | null }) {
+function Podium({
+  rows,
+  badges,
+  avatar,
+  short,
+}: {
+  rows: PlayEvent[];
+  badges: (n: string) => JSX.Element | null;
+  avatar: (n: string) => string | undefined;
+  short: (n: string) => string;
+}) {
   const ref = useFlip<HTMLDivElement>([rows.map((r) => r.player).join("|")]);
   return (
     // flex-wrap: a row that doesn't fit wraps out of view instead of showing half
@@ -66,7 +102,7 @@ function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JS
         <div
           key={e.player}
           data-flip={e.player}
-          className={`flex w-full items-center gap-[clamp(5px,2cqw,10px)] py-[clamp(4px,1.4cqw,9px)] text-[clamp(12px,3.6cqw,20px)] ${
+          className={`flex w-full items-center gap-[clamp(5px,2cqw,10px)] py-[clamp(4px,1.6cqw,10px)] text-[clamp(13px,4.8cqw,24px)] ${
             i > 0 ? "border-t border-foreground/[0.07]" : ""
           }`}
         >
@@ -75,8 +111,9 @@ function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JS
           >
             {i + 1}
           </span>
-          <span className={`flex min-w-0 flex-1 items-center gap-1 ${i === 0 ? "font-semibold" : "font-medium"}`}>
-            <span className="truncate">{e.player}</span>
+          <Avatar value={avatar(e.player)} />
+          <span className={`flex min-w-0 flex-1 items-center gap-1 ${i === 0 ? "font-semibold" : "font-medium"}`} title={e.player}>
+            <span className="truncate">{short(e.player)}</span>
             {badges(e.player)}
           </span>
           <CountUp value={e.score} className={`shrink-0 tabular-nums text-primary ${i === 0 ? "font-semibold" : "font-medium"}`} />
@@ -135,6 +172,15 @@ export function GamesTile() {
   }, []);
 
   const av = (n: string) => a.players.get(n)?.avatar ?? "👤";
+  const short = useMemo(
+    () =>
+      makeShortName([
+        ...a.players.keys(),
+        ...[...a.todayByGame.values()].flat().map((e) => e.player),
+        ...a.challenges.flatMap((c) => [c.from, c.to]),
+      ]),
+    [a.players, a.todayByGame, a.challenges]
+  );
   const todayCount = [...a.todayByGame.values()].reduce((s, l) => s + l.length, 0);
   const lastHour = a.events.filter((e) => e.day === a.today && now - Date.parse(e.at) < 3_600_000).length;
 
@@ -183,11 +229,11 @@ export function GamesTile() {
               <GameArt src={icons[iconKey(g)]} hue={GAME_HUE[g] ?? 25} />
               {hot && last && (
                 <span className="absolute right-[clamp(8px,0.7vw,14px)] top-[clamp(6px,0.5vw,10px)] z-10 rounded-full bg-[hsl(var(--card))] px-[0.8em] py-[0.25em] font-semibold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.35)] text-[clamp(12px,0.85vw,18px)] animate-in fade-in zoom-in-90 duration-500">
-                  +1 {av(last.player)} {last.player}
+                  +1 {av(last.player)} {short(last.player)}
                 </span>
               )}
               <div className="relative z-[1] flex items-center justify-between gap-2">
-                <span className={`truncate font-semibold text-[clamp(13px,4.3cqw,23px)] ${lead ? "" : "text-muted-foreground"}`}>
+                <span className={`truncate font-semibold text-[clamp(14px,5.2cqw,26px)] ${lead ? "" : "text-muted-foreground"}`}>
                   {GAME_NAMES[g] ?? g}
                 </span>
                 {board.length > 0 && (
@@ -198,7 +244,7 @@ export function GamesTile() {
                 )}
               </div>
               {lead ? (
-                <Podium rows={[lead, ...rest].slice(0, 3)} badges={badges} />
+                <Podium rows={[lead, ...rest].slice(0, 3)} badges={badges} avatar={(n) => a.players.get(n)?.avatar} short={short} />
               ) : (
                 <p className="relative z-[1] m-auto text-center text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
                   <span className="font-medium text-foreground/70">Be the first</span>
@@ -212,7 +258,7 @@ export function GamesTile() {
         <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col [container-type:inline-size] ${challenges.length ? "justify-start" : "justify-center"} gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(10px,0.85vw,18px)] ${challenges.length ? "bg-background" : "bg-primary/[0.07]"} p-[clamp(10px,0.8vw,18px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
           {challenges.length > 0 ? (
             <>
-              <span className="flex items-center gap-[0.4em] font-semibold text-[clamp(13px,4.3cqw,23px)]">
+              <span className="flex items-center gap-[0.4em] font-semibold text-[clamp(14px,5.2cqw,26px)]">
                 <Swords className="h-[1em] w-[1em] text-primary" />
                 Challenges
               </span>
@@ -220,19 +266,19 @@ export function GamesTile() {
                 {challenges.map((c, i) => (
                   <div
                     key={`${c.key}-${c.at}`}
-                    className={`flex items-center gap-[clamp(5px,2cqw,10px)] py-[clamp(4px,1.4cqw,9px)] text-[clamp(12px,3.6cqw,20px)] ${
+                    className={`flex items-center gap-[clamp(4px,1.6cqw,10px)] py-[clamp(4px,1.6cqw,10px)] text-[clamp(12px,4.8cqw,24px)] ${
                       i > 0 ? "border-t border-foreground/[0.07]" : ""
                     } ${c.status === "open" ? "" : "text-muted-foreground"}`}
                   >
-                    <span className="min-w-0 truncate font-medium">{c.from}</span>
+                    <span className="min-w-0 truncate font-medium" title={c.from}>{short(c.from)}</span>
                     <Swords className="h-[0.9em] w-[0.9em] shrink-0 text-primary/70" aria-label="challenged" />
-                    <span className="min-w-0 flex-1 truncate font-medium">{c.to}</span>
+                    <span className="min-w-0 truncate font-medium" title={c.to}>{short(c.to)}</span>
                     {icons[iconKey(c.game)] ? (
-                      <img src={icons[iconKey(c.game)]} alt={GAME_NAMES[c.game] ?? c.game} title={GAME_NAMES[c.game] ?? c.game} className="h-[1.5em] w-[1.5em] shrink-0 rounded-[5px] object-contain" />
+                      <img src={icons[iconKey(c.game)]} alt={GAME_NAMES[c.game] ?? c.game} title={GAME_NAMES[c.game] ?? c.game} className="ml-auto h-[1.5em] w-[1.5em] shrink-0 rounded-[5px] object-contain" />
                     ) : (
                       <span
                         title={GAME_NAMES[c.game] ?? c.game}
-                        className="flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center rounded-[5px] text-[0.75em] font-semibold"
+                        className="ml-auto flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center rounded-[5px] text-[0.75em] font-semibold"
                         style={{ background: `hsl(${GAME_HUE[c.game] ?? 25} 80% 85%)` }}
                       >
                         {(GAME_NAMES[c.game] ?? c.game).charAt(0)}
@@ -246,7 +292,7 @@ export function GamesTile() {
             <>
               <span className="tile-label">Longest streak</span>
               <p>
-                🔥 <b>{topStreak[0]}</b> has played {topStreak[1]} days in a row
+                🔥 <b>{short(topStreak[0])}</b> has played {topStreak[1]} days in a row
               </p>
             </>
           ) : (

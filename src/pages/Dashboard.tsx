@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { NewsDisplay } from "@/components/dashboard/NewsDisplay";
 import { KudosTile } from "@/components/dashboard/PositiveMessagesBanner";
-import { PlantStatus } from "@/components/dashboard/PlantStatus";
 import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
 import { OfficeStrip } from "@/components/dashboard/OfficeStrip";
@@ -266,7 +265,7 @@ function DashboardContent() {
       )}
       <div className="relative z-[1] h-full w-full p-2 lg:p-[clamp(16px,1.4vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_auto_1fr] gap-3 lg:gap-[clamp(8px,0.7vw,14px)]">
-          {/* Header: logo, the three offices (weather, time, race points), clock, plant, QR to play */}
+          {/* Header: logo, the three offices (weather, time, race points), clock, QR to play */}
           <header className="flex items-center gap-2 lg:gap-[clamp(12px,1.2vw,24px)]">
             <h1 className="flex items-center shrink-0">
               <img src={twigeoLogo} alt="Twigeo logo" className="h-8 lg:h-[clamp(36px,3.4vw,76px)] w-auto object-contain" />
@@ -288,8 +287,6 @@ function DashboardContent() {
               <div className="hidden lg:block">
                 <Clock />
               </div>
-
-              <PlantStatus />
 
               {/* Play: for laptops (phones scan the QR) */}
               <button
