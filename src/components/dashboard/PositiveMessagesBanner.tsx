@@ -190,9 +190,10 @@ export function KudosTile() {
         <span className="tile-label">Give one on the Play page</span>
       </div>
       {latest ? (
-        <>
+        // Only one or two kudos: they sit in the middle, bigger, instead of leaving a gap below
+        <div className={`flex min-h-0 flex-1 flex-col gap-[clamp(8px,0.7vw,14px)] ${earlier.length < 2 ? "justify-center" : ""}`}>
           <div key={latest.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <p className="font-semibold tracking-tight leading-[1.2] text-balance text-[clamp(18px,1.55vw,34px)] line-clamp-3">
+            <p className={`font-semibold tracking-tight leading-[1.2] text-balance line-clamp-3 ${earlier.length < 2 ? "text-[clamp(22px,2.2vw,48px)]" : "text-[clamp(18px,1.55vw,34px)]"}`}>
               <Rendered segments={parseKudos(latest.message, playerNames).segments} avatars={avatars} />
             </p>
             <p className="mt-[clamp(4px,0.4vw,8px)] text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
@@ -200,18 +201,19 @@ export function KudosTile() {
               {ago(latest.created_at)}
             </p>
           </div>
-          <div className="flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden pt-[clamp(2px,0.2vw,4px)]">
+          {/* Earlier kudos: as many as fit, the bottom fades out */}
+          <div className={`flex min-h-0 flex-col gap-[clamp(6px,0.55vw,11px)] overflow-hidden pt-[clamp(2px,0.2vw,4px)] ${earlier.length < 2 ? "" : "flex-1 [mask-image:linear-gradient(to_bottom,black_85%,transparent)]"}`}>
             {earlier.length === 0 && (
               <p className="text-muted-foreground text-[clamp(13px,0.95vw,20px)]">💛 Who helped you this week? Tag them with @ on the Play page.</p>
             )}
-            {earlier.slice(0, 2).map((m) => (
-              <p key={m.id} className="truncate text-[clamp(13px,0.95vw,20px)]">
+            {earlier.slice(0, 12).map((m) => (
+              <p key={m.id} className="truncate text-[clamp(13px,0.95vw,20px)] animate-in fade-in duration-500">
                 💛 <Rendered segments={parseKudos(m.message, playerNames).segments} avatars={avatars} />
                 {m.created_by && <span className="text-muted-foreground"> · {m.created_by}</span>}
               </p>
             ))}
           </div>
-        </>
+        </div>
       ) : (
         <p className="m-auto text-center text-muted-foreground text-[clamp(14px,1.05vw,22px)]">{EMPTY_MSG} ✨</p>
       )}
