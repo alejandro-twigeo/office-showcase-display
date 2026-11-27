@@ -14,6 +14,8 @@ interface Moment {
 }
 
 const SHOW_MS = 7000;
+/** The header line keeps the last moment (with its age) this many minutes, then clears */
+const LINE_KEEP_MIN = 10;
 const STREAK_MILESTONES = new Set([3, 5, 10, 15, 20, 30]);
 
 /**
@@ -108,20 +110,20 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
   }, []);
 
   if (variant === "line") {
-    const shown = current ?? last?.m ?? null;
+    // Only when something has actually happened: the moment itself, then for a few minutes with its
+    // age, then the line clears. No standing instructions; the row keeps its height so nothing jumps.
     const mins = last ? Math.round((Date.now() - last.at) / 60_000) : 0;
+    const shown = current ?? (last && mins < LINE_KEEP_MIN ? last.m : null);
     return (
-      <div className="flex min-w-0 items-center gap-[clamp(8px,0.7vw,14px)] text-[clamp(14px,1.1vw,23px)]">
-        <span className="tile-label shrink-0">Just now</span>
-        {shown ? (
+      <div className="flex min-h-[1.6em] min-w-0 items-center gap-[clamp(8px,0.7vw,14px)] text-[clamp(14px,1.1vw,23px)]">
+        {shown && <span className="tile-label shrink-0 animate-in fade-in duration-500">Just now</span>}
+        {shown && (
           <span key={shown.id} className={`flex min-w-0 items-center gap-[clamp(6px,0.5vw,10px)] ${current ? "animate-in fade-in slide-in-from-left-2 duration-500" : ""}`}>
             <PlayerAvatar avatar={shown.avatar} name={shown.who} size="1.4em" tv />
             <span className="truncate font-semibold">{shown.title}</span>
             {shown.detail && <span className="truncate text-muted-foreground">{shown.detail}</span>}
             {!current && <span className="shrink-0 text-muted-foreground text-[0.8em]">· {mins < 1 ? "just now" : `${mins} min ago`}</span>}
           </span>
-        ) : (
-          <span className="truncate text-muted-foreground">Play a game, give kudos or queue a song and it shows up here.</span>
         )}
       </div>
     );
