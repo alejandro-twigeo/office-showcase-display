@@ -138,6 +138,38 @@ export type Database = {
           },
         ]
       }
+      kudos_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          kudos_id: string
+          player_name: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          kudos_id: string
+          player_name: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          kudos_id?: string
+          player_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kudos_reactions_kudos_id_fkey"
+            columns: ["kudos_id"]
+            isOneToOne: false
+            referencedRelation: "positive_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string | null

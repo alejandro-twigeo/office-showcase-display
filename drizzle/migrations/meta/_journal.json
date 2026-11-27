@@ -36,6 +36,13 @@
       "when": 1795773782447,
       "tag": "0004_05_admin_roster",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795775765467,
+      "tag": "0005_07_kudos_reactions",
+      "breakpoints": true
     }
   ]
 }
