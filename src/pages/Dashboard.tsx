@@ -13,6 +13,7 @@ import { PlayQr } from "@/components/dashboard/JoinCard";
 import { useAutoReload } from "@/hooks/useAutoReload";
 import { GameSpotlightProvider, useSpotlight } from "@/components/dashboard/GameSpotlight";
 import { LiveMoments } from "@/components/dashboard/LiveMoments";
+import { SwapTimer } from "@/components/dashboard/SwapTimer";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,8 +93,11 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
     return () => clearInterval(id);
   }, [hasNews]);
   return (
-    <div key={showNews ? "news" : "poll"} className="h-full animate-in fade-in duration-700">
-      {showNews && hasNews ? <NewsDisplay standalone /> : <TvFeatureDisplay mode={tvFeatureMode} />}
+    <div className="relative h-full">
+      <div key={showNews ? "news" : "poll"} className="h-full animate-in fade-in duration-700">
+        {showNews && hasNews ? <NewsDisplay standalone /> : <TvFeatureDisplay mode={tvFeatureMode} />}
+      </div>
+      {hasNews && <SwapTimer durationMs={POLL_NEWS_SWAP_MS} cycleKey={showNews ? "news" : "poll"} />}
     </div>
   );
 }
