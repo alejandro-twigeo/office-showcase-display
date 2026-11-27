@@ -162,7 +162,7 @@ export function PollDisplay() {
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No answers yet. Add yours from the Play page</p>
           ) : (
-            <div className="min-h-0 flex flex-col gap-[clamp(5px,0.45vw,10px)] overflow-hidden">
+            <div className="min-h-0 flex flex-col gap-[clamp(5px,0.4vw,9px)] overflow-hidden">
               {rows.map(({ key, label, count }) => {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const leading = count > 0 && count === topCount;
@@ -175,20 +175,19 @@ export function PollDisplay() {
                     className="block w-full min-w-0 rounded-md text-left [@media(hover:hover)]:hover:bg-primary/[0.06] [@media(hover:hover)]:hover:shadow-[0_0_0_4px_hsl(var(--primary)/0.06)]"
                     title={me ? (mine ? "Your vote" : "Vote for this") : "Log in on the Play page to vote"}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className={`truncate text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}>
+                    {/* Tall bar with the answer and the % inside it */}
+                    <div className="relative flex h-[clamp(30px,2.25vw,48px)] items-center overflow-hidden rounded-[clamp(8px,0.6vw,12px)] bg-secondary/70">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-[inherit] transition-[width] duration-700 ease-out ${leading ? "bg-primary/35" : "bg-foreground/[0.09]"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                      <span className={`relative min-w-0 flex-1 truncate px-[clamp(10px,0.8vw,16px)] text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}>
                         {mine && <span className="text-primary">✓ </span>}
                         {label}
                       </span>
-                      <span className={`shrink-0 tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
+                      <span className={`relative shrink-0 pr-[clamp(10px,0.8vw,16px)] tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
                         <CountUp value={pct} />%
                       </span>
-                    </div>
-                    <div className="mt-[clamp(4px,0.3vw,6px)] h-[clamp(5px,0.4vw,9px)] rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-[width] duration-700 ease-out ${leading ? "bg-primary" : "bg-foreground/35"}`}
-                        style={{ width: `${pct}%` }}
-                      />
                     </div>
                   </button>
                 );
