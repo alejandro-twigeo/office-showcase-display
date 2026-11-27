@@ -30,12 +30,13 @@ function usePlayers() {
 /** A tagged name: orange with avatar if they play, outlined if they haven't joined yet. */
 function Tag({ name, known, avatar, big = false }: { name: string; known: boolean; avatar?: string | null; big?: boolean }) {
   return (
+    // Inline (not a box), so it sits on the text line instead of pushing the lines around it
     <span
-      className={`inline-flex items-center gap-[0.25em] rounded-full px-[0.45em] py-[0.05em] align-baseline font-semibold whitespace-nowrap ${
-        known ? "bg-primary/15 text-foreground" : "border border-dashed border-foreground/35 text-foreground"
+      className={`whitespace-nowrap rounded-full px-[0.35em] font-semibold [box-decoration-break:clone] ${
+        known ? "bg-primary/15 text-foreground" : "outline outline-1 outline-dashed outline-foreground/35 text-foreground"
       } ${big ? "" : ""}`}
     >
-      {known && avatar ? <span className="leading-none">{avatar}</span> : null}
+      {known && avatar ? <span className="mr-[0.2em]">{avatar}</span> : null}
       {name}
     </span>
   );
@@ -200,17 +201,18 @@ export function KudosTile() {
         <span className="tile-label">Give one on the Play page</span>
       </div>
       {latest ? (
-        // Only one or two kudos: they sit in the middle, bigger, instead of leaving a gap below
-        <div className={`flex min-h-0 flex-1 flex-col gap-[clamp(8px,0.7vw,14px)] ${earlier.length < 2 ? "justify-center" : ""}`}>
+        // "safe" centring: when it doesn't fit, it starts at the top instead of spilling over the title
+        <div className={`flex min-h-0 flex-1 flex-col gap-[clamp(8px,0.7vw,14px)] overflow-hidden ${earlier.length < 2 ? "[justify-content:safe_center]" : ""}`}>
           <div key={latest.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <p className={`font-semibold tracking-tight leading-[1.2] text-balance line-clamp-3 ${earlier.length < 2 ? "text-[clamp(22px,2.2vw,48px)]" : "text-[clamp(18px,1.55vw,34px)]"}`}>
+            <p className={`font-semibold tracking-tight leading-[1.3] line-clamp-2 ${earlier.length < 2 ? "text-[clamp(18px,1.6vw,36px)]" : "text-[clamp(17px,1.45vw,32px)]"}`}>
               <Rendered segments={parseKudos(latest.message, playerNames).segments} avatars={avatars} />
             </p>
-            <p className="mt-[clamp(4px,0.4vw,8px)] text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
-              {latest.created_by && <>from {avatars.get(latest.created_by) ?? ""} {latest.created_by} · </>}
-              {ago(latest.created_at)}
-            </p>
-            <div className="mt-[clamp(6px,0.5vw,10px)]">
+            {/* Who sent it and the reactions share one line, so they still fit when the tile is short */}
+            <div className="mt-[clamp(4px,0.4vw,8px)] flex flex-wrap items-center gap-x-[clamp(8px,0.7vw,14px)] gap-y-1">
+              <span className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
+                {latest.created_by && <>from {avatars.get(latest.created_by) ?? ""} {latest.created_by} · </>}
+                {ago(latest.created_at)}
+              </span>
               <ReactionBar size="tv" reactions={forKudos(latest.id)} onReact={react(latest.id)} />
             </div>
           </div>
