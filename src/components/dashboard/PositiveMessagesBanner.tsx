@@ -8,6 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseKudos, isKudosLive, type KudosSegment } from "@/lib/kudos";
 import { PlayQr } from "./JoinCard";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { useMe, ACTIONABLE } from "@/hooks/useMe";
+import { useKudosReactions } from "@/hooks/useKudosReactions";
+import { ReactionBar } from "@/components/ReactionBar";
 
 const EMPTY_MSG = "Give someone kudos this week. Type @ and their name";
 const CELEBRATE_MS = 8000;
@@ -182,9 +186,15 @@ export function KudosTile() {
   const messages = useLiveKudos(all);
   const celebrating = useCelebration(all);
   const [latest, ...earlier] = messages;
+  // On a laptop the tile is clickable: react right here, or open Kudos on the Play page
+  const navigate = useNavigate();
+  const me = useMe();
+  const { forKudos, toggle } = useKudosReactions(me);
+  const openKudos = () => navigate("/play?tab=kudos");
+  const react = (kudosId: string) => (emoji: string) => (me ? toggle.mutate({ kudosId, emoji }) : openKudos());
 
   return (
-    <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)]">
+    <Card onClick={openKudos} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] ${ACTIONABLE}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="tile-label">Kudos · {messages.length} on the board</span>
         <span className="tile-label">Give one on the Play page</span>
@@ -200,6 +210,9 @@ export function KudosTile() {
               {latest.created_by && <>from {avatars.get(latest.created_by) ?? ""} {latest.created_by} · </>}
               {ago(latest.created_at)}
             </p>
+            <div className="mt-[clamp(6px,0.5vw,10px)]">
+              <ReactionBar size="tv" reactions={forKudos(latest.id)} onReact={react(latest.id)} />
+            </div>
           </div>
           {/* Earlier kudos: as many as fit, the bottom fades out */}
           <div className={`flex min-h-0 flex-col gap-[clamp(6px,0.55vw,11px)] overflow-hidden pt-[clamp(2px,0.2vw,4px)] ${earlier.length < 2 ? "" : "flex-1 [mask-image:linear-gradient(to_bottom,black_85%,transparent)]"}`}>
@@ -210,6 +223,9 @@ export function KudosTile() {
               <p key={m.id} className="truncate text-[clamp(13px,0.95vw,20px)] animate-in fade-in duration-500">
                 💛 <Rendered segments={parseKudos(m.message, playerNames).segments} avatars={avatars} />
                 {m.created_by && <span className="text-muted-foreground"> · {m.created_by}</span>}
+                {forKudos(m.id).length > 0 && (
+                  <span className="text-muted-foreground"> · {forKudos(m.id).map((r) => `${r.emoji}${r.count}`).join(" ")}</span>
+                )}
               </p>
             ))}
           </div>

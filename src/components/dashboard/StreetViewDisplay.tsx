@@ -9,6 +9,8 @@ import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
 import { TeamRiddleCard, TeamRiddleStrip } from "./WeekTiles";
 import { SwapTimer } from "./SwapTimer";
+import { useNavigate } from "react-router-dom";
+import { ACTIONABLE } from "@/hooks/useMe";
 
 type ActiveLocation = ReturnType<typeof useActiveLocation>["activeLocation"];
 
@@ -112,11 +114,12 @@ function RiddlesCard() {
     return { right: v.filter(Boolean).length, wrong: v.filter((x) => !x).length };
   }, [scores]);
   const total = right + wrong;
+  const navigate = useNavigate();
 
   return (
     <Card className="h-full min-h-0 grid grid-cols-2 gap-[clamp(14px,1.3vw,28px)] p-[clamp(14px,1.3vw,28px)] animate-in fade-in duration-700">
       {/* Riddle of the day */}
-      <div className="flex min-h-0 min-w-0 flex-col gap-[clamp(6px,0.5vw,10px)]">
+      <div onClick={() => navigate("/play?game=riddle")} className={`-m-[clamp(4px,0.4vw,8px)] flex min-h-0 min-w-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-lg p-[clamp(4px,0.4vw,8px)] ${ACTIONABLE}`}>
         <span className="tile-label">🧩 Riddle of the day</span>
         <div className="flex min-h-0 flex-1 items-center">
           <p className="font-semibold tracking-tight leading-[1.15] text-balance line-clamp-3 text-[clamp(16px,1.35vw,30px)]">{riddle.question}</p>
@@ -141,8 +144,10 @@ function RiddlesCard() {
         )}
       </div>
       {/* Team riddle of the week */}
-      <div className="flex min-h-0 min-w-0 flex-col justify-center border-l border-border/70 pl-[clamp(14px,1.3vw,28px)]">
-        <TeamRiddleStrip bare />
+      <div className="flex min-h-0 min-w-0 flex-col justify-center border-l border-border/70 pl-[clamp(10px,0.9vw,20px)]">
+        <div onClick={() => navigate("/play?game=team_riddle")} className={`rounded-lg p-[clamp(4px,0.4vw,8px)] ${ACTIONABLE}`}>
+          <TeamRiddleStrip bare />
+        </div>
       </div>
     </Card>
   );
@@ -155,6 +160,7 @@ const SWITCH_EVERY_MS = 60_000;
  * ?geo in the address starts on the photos.
  */
 export function PlaySideTile() {
+  const navigate = useNavigate();
   const { activeLocation: easy } = useActiveLocation(1);
   const { activeLocation: hard } = useActiveLocation(3);
   const hasGeo = !!easy?.pano_id || !!hard?.pano_id;
@@ -165,7 +171,13 @@ export function PlaySideTile() {
   }, []);
   return (
     <div className="relative h-full">
-      {slot === 1 && hasGeo ? <GeoCard easy={easy} hard={hard} fillHeight /> : <RiddlesCard />}
+      {slot === 1 && hasGeo ? (
+        <div onClick={() => navigate("/play?game=geoguessr")} className={`h-full rounded-xl ${ACTIONABLE}`}>
+          <GeoCard easy={easy} hard={hard} fillHeight />
+        </div>
+      ) : (
+        <RiddlesCard />
+      )}
       {/* Only when there's something to switch to */}
       {hasGeo && <SwapTimer durationMs={SWITCH_EVERY_MS} cycleKey={slot} />}
     </div>
