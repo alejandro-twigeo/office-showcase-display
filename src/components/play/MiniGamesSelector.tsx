@@ -1,4 +1,4 @@
-import { useState, useImperativeHandle, forwardRef } from 'react';
+import { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WordleGame } from './WordleGame';
 import { CityGuessGame } from './games/CityGuessGame';
@@ -27,6 +27,8 @@ interface MiniGamesSelectorProps {
   roundId?: string;
   includeGeoGuessr?: boolean;
   onSelectGeoGuessr?: () => void;
+  /** Open this game straight away (a link from the TV page) */
+  initialGame?: string | null;
 }
 
 export interface MiniGamesSelectorHandle {
@@ -34,8 +36,13 @@ export interface MiniGamesSelectorHandle {
 }
 
 export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSelectorProps>(
-  function MiniGamesSelector({ playerName, onGameChange, roundId, includeGeoGuessr = false, onSelectGeoGuessr }, ref) {
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  function MiniGamesSelector({ playerName, onGameChange, roundId, includeGeoGuessr = false, onSelectGeoGuessr, initialGame = null }, ref) {
+  const [selectedGame, setSelectedGame] = useState<string | null>(initialGame);
+  // Tell the page a game is open when we start inside one
+  useEffect(() => {
+    if (initialGame) onGameChange?.(initialGame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { icons } = useGameIcons();
 
   useImperativeHandle(ref, () => ({

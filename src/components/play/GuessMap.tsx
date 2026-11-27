@@ -30,6 +30,8 @@ interface GuessMapProps {
   hideOtherGames?: boolean;
   forcedTab?: 'easy' | 'hard' | 'other' | null;
   resetKey?: number;
+  /** Open this mini game straight away (a link from the TV page) */
+  initialGame?: string | null;
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -458,7 +460,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
   );
 }
 
-export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames, forcedTab = null, resetKey = 0 }: GuessMapProps) {
+export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hideOtherGames, forcedTab = null, resetKey = 0, initialGame = null }: GuessMapProps) {
   const isMobile = useIsMobile();
   const deviceId = useDeviceId();
   const { settings } = useScoring();
@@ -611,6 +613,7 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
             roundId={activeRound?.id}
             includeGeoGuessr
             onSelectGeoGuessr={() => setActiveTab('easy')}
+            initialGame={initialGame}
           />
         )}
       </CardContent>
