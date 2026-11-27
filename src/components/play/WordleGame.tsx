@@ -180,7 +180,12 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
     return () => window.visualViewport?.removeEventListener('resize', handleViewportChange);
   }, [isMobile, gameOver, scrollActiveRowIntoView]);
 
-  const gridWidthClass = isMobile ? 'w-full' : 'w-full max-w-[26rem]';
+  const gridWidthClass = isMobile ? 'w-full mx-auto' : 'w-full max-w-[26rem]';
+  // Phones: the board is sized from the screen height, so board + keyboard always fit above the
+  // bottom bar. The board is about 0.83 times as wide as it is tall (5 columns, 6 rows).
+  const mobileBoardStyle = isMobile
+    ? { maxWidth: 'min(100%, calc((var(--app-height, 100dvh) - var(--wordle-reserved, 400px)) * 0.83))' }
+    : undefined;
   const keyboardStatus = (revealing ? shownGuesses.slice(0, -1) : shownGuesses).reduce<Record<string, LetterStatus>>((acc, guess) => {
     guess.word.split('').forEach((letter, index) => {
       const nextStatus = guess.statuses[index];
@@ -223,7 +228,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
 
   const showResult = gameOver && !revealing;
   const keyboard = !showResult ? (
-    <div className={`w-full ${isMobile ? '' : 'max-w-[17rem]'} space-y-2`} onClick={(e) => e.stopPropagation()}>
+    <div className={`w-full ${isMobile ? 'space-y-1.5' : 'max-w-[17rem] space-y-2'}`} onClick={(e) => e.stopPropagation()}>
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div
           key={rowIndex}
@@ -240,7 +245,7 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
                 variant="outline"
                 size="sm"
                 className={[
-                  'h-12 rounded-xl border px-0 font-semibold uppercase transition-colors',
+                  isMobile ? 'h-11 rounded-lg border px-0 font-semibold uppercase transition-colors' : 'h-12 rounded-xl border px-0 font-semibold uppercase transition-colors',
                   '!text-slate-900 active:!text-slate-900',
                   isActionKey ? 'text-[0.72rem]' : 'text-sm',
                   isActionKey ? getActionKeyClass(key) : getKeyboardKeyClass(keyboardStatus[key]),
@@ -297,13 +302,23 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          🟩 Wordle
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts.</p>
-      </CardHeader>
-      <CardContent className={`space-y-3 ${isMobile ? 'pb-28' : ''}`}>
+      {isMobile ? (
+        // Phones: one compact line, so the board gets the room
+        <CardHeader className="px-4 pb-1 pt-3">
+          <CardTitle className="flex items-baseline gap-2 text-base">
+            🟩 Wordle
+            <span className="text-xs font-normal text-muted-foreground">5 letters · up to {settings.wordle_attempt_points[0]} pts</span>
+          </CardTitle>
+        </CardHeader>
+      ) : (
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            🟩 Wordle
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Guess the 5-letter word. Up to {settings.wordle_attempt_points[0]} pts.</p>
+        </CardHeader>
+      )}
+      <CardContent className={isMobile ? 'space-y-2 px-3 pb-3' : 'space-y-3'}>
         {/* Grid */}
         <div
           className={`flex gap-4 ${isMobile ? 'flex-col items-start' : 'items-center justify-center'}`}
@@ -344,12 +359,12 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
                 aria-label="Wordle input"
               />
             )}
-            <div className={`${gridWidthClass} [&>*:last-child]:mb-0`}>
+            <div className={`${gridWidthClass} [&>*:last-child]:mb-0`} style={mobileBoardStyle}>
               {gridRows.map((row, ri) => (
                 <div
                   key={ri === shownGuesses.length ? `row-${ri}-${shakeKey}` : `row-${ri}`}
                   ref={ri === shownGuesses.length && !gameOver ? currentRowRef : undefined}
-                  className={`grid grid-cols-5 gap-2 w-full mb-2 ${ri === shownGuesses.length && shakeKey > 0 && error ? 'wordle-shake' : ''}`}
+                  className={`grid grid-cols-5 w-full ${isMobile ? 'gap-1.5 mb-1.5' : 'gap-2 mb-2'} ${ri === shownGuesses.length && shakeKey > 0 && error ? 'wordle-shake' : ''}`}
                   style={{ perspective: 600 }}
                 >
                   {row.map((cell, ci) => {
@@ -361,7 +376,8 @@ export function WordleGame({ playerName, roundId }: WordleGameProps) {
                       <div
                         key={`${ci}-${cell.letter}-${waiting ? 'w' : 'r'}`}
                         className={[
-                          'aspect-square w-full flex items-center justify-center text-[clamp(1.6rem,7vw,2.35rem)] font-bold uppercase border-2 rounded-lg',
+                          'aspect-square w-full flex items-center justify-center font-bold uppercase border-2 rounded-lg',
+                          isMobile ? 'text-[clamp(1.2rem,6vw,2.2rem)]' : 'text-[clamp(1.6rem,7vw,2.35rem)]',
                           getStatusColor(shown),
                           cell.letter && shown === 'empty' ? 'border-foreground/45' : '',
                           ri === shownGuesses.length && cell.letter ? 'tile-pop' : '',
