@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { chatAgo, CHAT_MAX_LEN, type ChatMessage } from "@/hooks/useChat";
 import { MentionText } from "@/components/MentionText";
 import { starterAt } from "@/lib/chatStarters";
+import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
+import { botColour } from "@/lib/botColour";
 
 /**
  * The office chat on the TV: like a chat app, newest at the bottom. When there are more
@@ -29,7 +31,7 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
-  const av = (n: string) => <PlayerAvatar avatar={avatars.get(n)} name={n} size="1.6em" tv still />;
+  const colourOf = (n: string) => botColour(avatars.get(n), n);
   const shown = messages.slice(-12);
 
   return (
@@ -53,17 +55,23 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
           // Messages in a row from the same person share one name line, under the last one
           const lastOfRun = i === shown.length - 1 || shown[i + 1].created_by !== m.created_by;
           return (
-            <div key={m.id} className={`flex shrink-0 flex-col items-start animate-in fade-in slide-in-from-bottom-1 duration-500 ${lastOfRun ? "mb-[clamp(4px,0.35vw,7px)]" : ""}`}>
-              <p
-                className={`max-w-[92%] break-words bg-[hsl(var(--card))] px-[0.85em] py-[0.4em] leading-snug text-[clamp(13px,1vw,21px)] shadow-[0_1px_0_hsl(var(--foreground)/0.06)] ${
-                  lastOfRun ? "rounded-[1.1em] rounded-bl-[0.3em]" : "rounded-[1.1em]"
-                }`}
-              >
-                <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
-              </p>
+            <div key={m.id} className={`flex shrink-0 flex-col items-start animate-in fade-in slide-in-from-bottom-1 duration-500 text-[clamp(13px,1vw,21px)] ${lastOfRun ? "mb-[0.35em]" : ""}`}>
+              <div className="flex max-w-[94%] items-end gap-[0.55em]">
+                {/* The speaker sits under their last bubble of a run; earlier ones keep the space */}
+                <span className="flex w-[2.1em] shrink-0 justify-center">
+                  {lastOfRun && (
+                    <ChatSpeaker speaking={i === shown.length - 1}>
+                      <PlayerAvatar avatar={avatars.get(m.created_by)} name={m.created_by} size="2.1em" tv still={i !== shown.length - 1} />
+                    </ChatSpeaker>
+                  )}
+                </span>
+                <ChatBubble color={colourOf(m.created_by)} tail={lastOfRun} className="px-[0.85em] py-[0.4em] leading-snug">
+                  <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
+                </ChatBubble>
+              </div>
               {lastOfRun && (
-                <span className="mt-[0.25em] pl-[0.5em] text-muted-foreground text-[clamp(10px,0.72vw,15px)]">
-                  {av(m.created_by)} <span className="font-medium text-foreground/75">{m.created_by}</span> · {chatAgo(m.created_at, now)}
+                <span className="mt-[0.3em] pl-[2.65em] text-muted-foreground text-[0.72em]">
+                  <span className="font-medium text-foreground/75">{m.created_by}</span> · {chatAgo(m.created_at, now)}
                 </span>
               )}
             </div>

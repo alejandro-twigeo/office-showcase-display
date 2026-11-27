@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, Trash2, Loader2 } from "lucide-react";
 import { MentionText } from "@/components/MentionText";
 import { CHAT_STARTERS } from "@/lib/chatStarters";
+import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
+import { botColour } from "@/lib/botColour";
 
 /** "@sa" at the end of the text → "sa", so we can suggest people to tag */
 const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
@@ -29,7 +31,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
     },
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
-  const av = (n: string) => <PlayerAvatar avatar={avatars.get(n)} name={n} size="1.6em" still />;
+  const colourOf = (n: string) => botColour(avatars.get(n), n);
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const isMe = (n: string) => n.trim().toLowerCase() === playerName.trim().toLowerCase();
 
@@ -98,19 +100,32 @@ export function ChatSection({ playerName }: { playerName: string }) {
               const lastOfRun = i === messages.length - 1 || messages[i + 1].created_by !== m.created_by;
               return (
                 <div key={m.id} className={`flex flex-col animate-in fade-in duration-300 ${mine ? "items-end" : "items-start"} ${lastOfRun ? "mb-1" : ""}`}>
-                  <div className={`group flex max-w-[85%] items-center gap-1 ${mine ? "flex-row-reverse" : ""}`}>
-                    <p
-                      className={`break-words px-3 py-1.5 text-left text-sm leading-snug ${
-                        mine ? "bg-primary text-primary-foreground" : "border bg-card"
-                      } ${lastOfRun ? (mine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md") : "rounded-2xl"}`}
+                  <div className={`group flex max-w-[90%] items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                    {/* The speaker sits under their last bubble of a run; earlier ones keep the space */}
+                    <span className="flex w-8 shrink-0 justify-center">
+                      {lastOfRun && (
+                        <ChatSpeaker speaking={i === messages.length - 1}>
+                          <PlayerAvatar avatar={avatars.get(m.created_by)} name={m.created_by} size="2em" still={i !== messages.length - 1} />
+                        </ChatSpeaker>
+                      )}
+                    </span>
+                    <ChatBubble
+                      color={colourOf(m.created_by)}
+                      side={mine ? "right" : "left"}
+                      tail={lastOfRun}
+                      className="px-3 py-1.5 text-left text-sm leading-snug"
                     >
                       <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
-                    </p>
-                    {(mine || isAdmin) && <DeleteButton confirming={confirmDelete === m.id} onClick={() => askDelete(m)} />}
+                    </ChatBubble>
+                    {(mine || isAdmin) && (
+                      <span className="self-center">
+                        <DeleteButton confirming={confirmDelete === m.id} onClick={() => askDelete(m)} />
+                      </span>
+                    )}
                   </div>
                   {lastOfRun && (
-                    <span className="mt-0.5 px-1 text-[11px] text-muted-foreground">
-                      {av(m.created_by)} <span className="font-medium text-foreground/75">{mine ? "You" : m.created_by}</span> · {chatAgo(m.created_at, now)}
+                    <span className={`mt-1 text-[11px] text-muted-foreground ${mine ? "pr-10" : "pl-10"}`}>
+                      <span className="font-medium text-foreground/75">{mine ? "You" : m.created_by}</span> · {chatAgo(m.created_at, now)}
                     </span>
                   )}
                 </div>
