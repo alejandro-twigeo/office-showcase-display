@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -97,7 +98,7 @@ export function WordleLeaderboard({ dashboard = false, progressBar }: { dashboar
               <div className="flex items-center justify-center w-5 shrink-0">
                 {entry.solved ? getRankIcon(i + 1) : <span className="text-xs text-muted-foreground">—</span>}
               </div>
-              <span className={`${dashboard ? 'text-base' : 'text-lg'} shrink-0`}>{avatarMap.get(entry.player_name) ?? '👤'}</span>
+              <PlayerAvatar avatar={avatarMap.get(entry.player_name)} name={entry.player_name} size={dashboard ? '1.6em' : 32} tv={dashboard} state={dashboard && i === 0 ? 'working' : 'default'} />
               <span className={`font-medium truncate min-w-0 ${dashboard ? 'text-[clamp(12px,0.9vw,16px)]' : 'text-sm'}`}>{entry.player_name}</span>
               <div className="ml-auto shrink-0 text-right leading-tight">
                 {entry.solved ? (

@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
     },
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
-  const av = (n: string) => avatars.get(n) ?? "👤";
+  const av = (n: string) => <PlayerAvatar avatar={avatars.get(n)} name={n} size="1.6em" still />;
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const isMe = (n: string) => n.trim().toLowerCase() === playerName.trim().toLowerCase();
 
@@ -141,7 +142,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
                 onClick={() => insertMention(p.name)}
                 className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium hover:bg-primary/20"
               >
-                <span>{p.avatar ?? "👤"}</span>
+                <PlayerAvatar avatar={p.avatar} name={p.name} size="1.7em" still />
                 {p.name}
               </button>
             ))}

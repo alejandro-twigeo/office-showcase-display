@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, Binoculars, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useScoring, calculateScore } from '@/hooks/useScoring';
@@ -151,7 +152,7 @@ export function Leaderboard({ easyGuesses: externalEasyGuesses, hardGuesses: ext
               <div className="flex items-center justify-center w-5 shrink-0">
                 {getRankIcon(i + 1)}
               </div>
-              <span className="text-base shrink-0">{avatarMap.get(entry.name) ?? '👤'}</span>
+              <PlayerAvatar avatar={avatarMap.get(entry.name)} name={entry.name} size="1.6em" tv state={i === 0 ? 'working' : 'default'} />
               <span className="font-medium text-[clamp(12px,0.9vw,16px)] truncate min-w-0">
                 {entry.name}
               </span>

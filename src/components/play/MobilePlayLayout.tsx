@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useRef, useEffect } from 'react';
 import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy, MessageCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -169,7 +170,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               onClick={() => setShowMenu(!showMenu)}
               className="flex items-center gap-1 p-1.5 rounded-full active:bg-secondary/60 transition-colors"
             >
-              <span className="text-lg">{player.avatar}</span>
+              <PlayerAvatar avatar={player.avatar} name={player.name} size={30} />
               <span className="text-xs font-medium max-w-[80px] truncate">{player.name}</span>
               <span className="text-xs">{OFFICE_FLAGS[player.office]}</span>
             </button>

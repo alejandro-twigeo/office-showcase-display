@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Swords, Check, X } from "lucide-react";
@@ -99,7 +100,7 @@ export function PlayHub({ playerName, roundId, onOpenGame }: PlayHubProps) {
             c.status === "beaten" ? "bg-green-600/10" : c.status === "held" ? "bg-secondary/40" : "bg-violet-500/10"
           }`}
         >
-          <span className="text-2xl leading-none">{a.players.get(c.from)?.avatar ?? "⚔️"}</span>
+          <PlayerAvatar avatar={a.players.get(c.from)?.avatar} name={c.from} size={36} />
           <div className="min-w-0 flex-1 text-xs leading-snug">
             <p className="font-semibold">{c.from} challenged you</p>
             <p className="text-muted-foreground">
@@ -159,7 +160,7 @@ export function PlayHub({ playerName, roundId, onOpenGame }: PlayHubProps) {
                       onClick={() => setTo(p.name)}
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${to === p.name ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
                     >
-                      <span>{p.avatar}</span> {p.name}
+                      <PlayerAvatar avatar={p.avatar} name={p.name} size="1.7em" still /> {p.name}
                     </button>
                   ))}
                 </div>

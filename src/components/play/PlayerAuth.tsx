@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, ArrowLeft, UserPlus, KeyRound } from 'lucide-react';
+import { AvatarPicker } from './AvatarPicker';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
+import { botFromName, serializeBot, type BotConfig } from '@/lib/botAvatar';
 import {
-  AVATAR_OPTIONS,
   OFFICE_OPTIONS,
   OFFICE_FLAGS,
   EMAIL_DOMAIN,
@@ -66,7 +68,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
   const [showAll, setShowAll] = useState(false);
   const [name, setName] = useState('');
   const [office, setOffice] = useState<string>('Sweden');
-  const [avatar, setAvatar] = useState('🐶');
+  const [bot, setBot] = useState<BotConfig>(() => botFromName(''));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
@@ -75,6 +77,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
   useEffect(() => {
     if (!setup) return;
     setName(setup.suggestedName);
+    setBot(botFromName(setup.suggestedName));
     if (setup.office) setOffice(setup.office);
     setCreating(setup.claimable.length === 0);
     setError('');
@@ -122,11 +125,11 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
     const shown = showAll || likely.length === 0 ? setup.claimable : likely;
     return (
       <Shell
-        icon={creating ? <span className="text-3xl">{avatar}</span> : <Mail className="h-7 w-7 text-primary" />}
+        icon={creating ? <UserPlus className="h-7 w-7 text-primary" /> : <Mail className="h-7 w-7 text-primary" />}
         title={creating ? 'Create your profile' : 'Is this you?'}
         subtitle={
           creating
-            ? `${setup.department ? `${setup.department} · ` : ''}Pick a name, avatar and office`
+            ? 'Pick your name, office and avatar. You can change them later.'
             : 'Pick your profile to keep your scores and streaks. You only do this once.'
         }
       >
@@ -141,7 +144,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
                   onClick={() => run(() => onClaim(p.id))}
                   className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors hover:bg-secondary active:scale-[0.99] ${p.likely ? 'border-primary/50 bg-primary/5' : ''}`}
                 >
-                  <span className="text-2xl leading-none">{p.avatar}</span>
+                  <PlayerAvatar avatar={p.avatar} name={p.name} size={36} />
                   <span className="flex-1 font-medium">{p.name}</span>
                   <span className="text-sm text-muted-foreground">
                     {OFFICE_FLAGS[p.office]} {p.office}
@@ -163,7 +166,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (name.trim()) run(() => onCreate(name, office, avatar));
+              if (name.trim()) run(() => onCreate(name, office, serializeBot(bot)));
             }}
             className="space-y-4"
           >
@@ -178,32 +181,7 @@ export function PlayerAuth({ setup, onSendCode, onVerify, onClaim, onCreate }: P
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium text-center">Avatar</p>
-              <div className="grid grid-cols-8 gap-1">
-                {AVATAR_OPTIONS.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => setAvatar(a)}
-                    className={`text-2xl p-1 rounded-md transition-all ${avatar === a ? 'bg-primary/20 ring-2 ring-primary scale-110' : 'hover:bg-secondary'}`}
-                  >
-                    {a}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-muted-foreground">Or type your own:</span>
-                <Input
-                  type="text"
-                  value={AVATAR_OPTIONS.includes(avatar) ? '' : avatar}
-                  onChange={(e) => e.target.value && setAvatar(e.target.value)}
-                  placeholder="🎸"
-                  maxLength={2}
-                  className="w-16 text-center text-xl p-1 h-9"
-                />
-              </div>
-            </div>
+            <AvatarPicker value={bot} onChange={setBot} name={name.trim()} caption={setup.department ?? undefined} />
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
             <div className={setup.claimable.length ? 'grid grid-cols-[auto_1fr] gap-2' : ''}>
               {setup.claimable.length > 0 && (

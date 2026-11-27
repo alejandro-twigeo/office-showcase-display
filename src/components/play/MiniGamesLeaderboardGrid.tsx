@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -245,7 +246,7 @@ export function MiniGamesLeaderboardGrid() {
                       <span className="text-xs sm:text-[10px] text-muted-foreground">{i + 1}</span>
                     )}
                   </div>
-                  <span className="text-base sm:text-sm shrink-0">{p.avatar}</span>
+                  <PlayerAvatar avatar={p.avatar} name={p.player_name} size="1.7em" />
                   <span className="text-sm sm:text-xs truncate min-w-0">{p.player_name}</span>
                   <span className="ml-auto text-sm sm:text-xs font-mono text-accent font-semibold shrink-0">
                     {gameId === 'wordle' && 'solved' in p
