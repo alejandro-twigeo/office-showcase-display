@@ -101,11 +101,11 @@ export function QueueAdder({
           <div
             ref={box}
             style={pos}
-            className="tv-2027 fixed z-[80] w-[min(440px,90vw)] space-y-2 rounded-2xl border bg-[hsl(var(--card))] p-3 text-sm shadow-[0_20px_60px_-20px_hsl(var(--foreground)/0.35)] animate-in fade-in zoom-in-95 duration-150"
+            className="tv-2027 fixed z-[80] w-[min(640px,94vw)] space-y-2.5 rounded-2xl border bg-[hsl(var(--card))] p-4 text-sm shadow-[0_20px_60px_-20px_hsl(var(--foreground)/0.35)] animate-in fade-in zoom-in-95 duration-150"
           >
             <form onSubmit={submit} className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   autoFocus
                   value={text}
@@ -113,20 +113,32 @@ export function QueueAdder({
                     setText(e.target.value);
                     setAdded(null);
                   }}
-                  placeholder="Search artist and song, or paste a link"
-                  className="h-9 w-full rounded-lg border bg-background pl-8 pr-2 outline-none focus:border-primary"
+                  placeholder="Search artist and song, or paste a YouTube link"
+                  className="h-11 w-full rounded-xl border bg-background pl-9 pr-3 text-[15px] outline-none focus:border-primary"
                 />
               </div>
               <button
                 type="submit"
                 disabled={!linkId && text.trim().length < 3}
-                className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 font-semibold text-primary-foreground disabled:opacity-40"
+                className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 text-[15px] font-semibold text-primary-foreground disabled:opacity-40"
               >
                 {search.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : linkId ? <ListPlus className="h-4 w-4" /> : <Search className="h-4 w-4" />}
                 {linkId ? "Add" : "Search"}
               </button>
             </form>
-            {added && <p className="text-xs text-green-700">✓ {added} is in the queue</p>}
+            {/* Say that a full YouTube link works too, and confirm when one is recognised */}
+            {linkId ? (
+              <p className="px-1 text-xs font-medium text-green-700">✓ YouTube link recognised. Press Add to queue it.</p>
+            ) : (
+              !added &&
+              !search.data && (
+                <p className="px-1 text-xs text-muted-foreground">
+                  You can also paste a full YouTube link, like <span className="font-medium text-foreground/70">youtube.com/watch?v=…</span> or{" "}
+                  <span className="font-medium text-foreground/70">youtu.be/…</span>
+                </p>
+              )
+            )}
+            {added && <p className="px-1 text-xs text-green-700">✓ {added} is in the queue</p>}
             {search.error && <p className="text-xs text-destructive">{search.error.message}</p>}
             {(search.data?.results ?? []).map((r) => (
               <button
