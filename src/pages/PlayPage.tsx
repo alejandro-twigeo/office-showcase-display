@@ -20,6 +20,8 @@ import { ProfileEditor } from '@/components/play/ProfileEditor';
 import { AvatarPrompt } from '@/components/play/AvatarPrompt';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceTrack } from '@/hooks/usePresenceCount';
+import twigeoLogo from '@/assets/twigeo-logo.png';
+import '@/styles/play-glass.css';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news' | 'chat';
 
@@ -95,167 +97,77 @@ export default function PlayPage() {
     );
   }
 
+  const tabs = [
+    { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
+    { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
+    { value: 'youtube' as const, icon: Youtube, label: 'Music' },
+    { value: 'news' as const, icon: Newspaper, label: 'News' },
+    { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
+    { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
+  ];
+  const openTab = (value: TabValue) => {
+    setActiveTab(value);
+    if (value === 'guess') {
+      setGamesSubTab('other');
+      setGamesResetKey((key) => key + 1);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="play-glass min-h-screen">
+      <div className="tv-backdrop" aria-hidden><i /><i /><i /><i /></div>
       <AvatarPrompt key={player.id} player={player} onSave={updateProfile} />
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
-        <style>{`
-          .desktop-target-nav {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.75rem 1rem;
-            border-radius: 9999px;
-            color: rgb(100 116 139);
-            transition:
-              color 180ms ease,
-              background-color 180ms ease,
-              box-shadow 180ms ease,
-              transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-            overflow: hidden;
-            isolation: isolate;
-          }
 
-          .desktop-target-nav::before,
-          .desktop-target-nav::after {
-            content: '';
-            position: absolute;
-            inset: auto;
-            border-radius: 9999px;
-            pointer-events: none;
-            opacity: 0;
-            transition:
-              opacity 180ms ease,
-              transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 0;
-          }
+      {/* Top bar: floating frosted glass, like the TV */}
+      <header className="sticky top-0 z-20 px-3 pt-3 sm:px-6">
+        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-full pl-4 pr-1.5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+          <div className="flex min-w-0 items-center gap-3 lg:justify-self-start">
+            <img src={twigeoLogo} alt="Twigeo" className="h-6 w-auto object-contain" />
+            <PlantStatus playerName={player.name} compact />
+          </div>
 
-          .desktop-target-nav::before {
-            width: 4.4rem;
-            height: 4.4rem;
-            left: -0.85rem;
-            top: -1rem;
-            background: radial-gradient(circle, rgba(251,146,60,0.24) 0%, rgba(251,146,60,0.1) 45%, transparent 72%);
-            filter: blur(8px);
-            transform: translate(-0.65rem, -0.45rem) scale(0.82);
-          }
+          <nav className="hidden items-center gap-0.5 rounded-full bg-foreground/[0.04] p-1 lg:flex lg:justify-self-center">
+            {tabs.map(({ value, icon: Icon, label }) => (
+              <button
+                type="button"
+                key={value}
+                onClick={() => openTab(value)}
+                aria-current={activeTab === value ? 'page' : undefined}
+                className="seg-tab h-9 px-3.5 text-sm"
+              >
+                <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary' : ''}`} />
+                {label}
+              </button>
+            ))}
+          </nav>
 
-          .desktop-target-nav::after {
-            width: 3.4rem;
-            height: 3.4rem;
-            right: -0.35rem;
-            bottom: -0.7rem;
-            background: radial-gradient(circle, rgba(249,115,22,0.18) 0%, rgba(249,115,22,0.08) 42%, transparent 72%);
-            filter: blur(10px);
-            transform: translate(0.55rem, 0.45rem) scale(0.88);
-          }
-
-          .desktop-target-nav:hover {
-            color: rgb(154 52 18);
-            background: linear-gradient(180deg, rgba(255,247,237,0.98), rgba(255,237,213,0.96));
-            box-shadow: 0 10px 22px rgba(251, 146, 60, 0.14);
-            transform: translateY(-1px);
-          }
-
-          .desktop-target-nav:hover::before,
-          .desktop-target-nav:hover::after {
-            opacity: 1;
-          }
-
-          .desktop-target-nav:hover::before {
-            transform: translate(0.1rem, 0.05rem) scale(1.02);
-          }
-
-          .desktop-target-nav:hover::after {
-            transform: translate(-0.1rem, -0.12rem) scale(1.04);
-          }
-
-          .desktop-target-nav-active {
-            background: rgb(254 215 170);
-            color: rgb(124 45 18);
-            box-shadow: 0 12px 26px rgba(249, 115, 22, 0.18);
-          }
-
-          .desktop-target-nav-active::before,
-          .desktop-target-nav-active::after {
-            opacity: 1;
-          }
-
-          .desktop-target-nav > * {
-            position: relative;
-            z-index: 1;
-          }
-        `}</style>
-        <div className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-          <div className="flex items-center gap-3 lg:justify-self-start">
+          <div className="flex items-center gap-1.5 lg:justify-self-end">
             <button
               type="button"
               onClick={() => navigate('/tv')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-colors text-sm font-medium"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
             >
               <Monitor className="h-4 w-4" />
-              <span>TV mode</span>
+              TV mode
             </button>
-              <PlantStatus playerName={player.name} />
-          </div>
-          <div className="hidden lg:flex lg:justify-self-center">
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-2 py-1 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
-              {([
-                { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
-                { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
-                { value: 'youtube' as const, icon: Youtube, label: 'Music' },
-                { value: 'news' as const, icon: Newspaper, label: 'News' },
-                { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
-                { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
-              ]).map(({ value, icon: Icon, label }) => (
-                <button
-                  type="button"
-                  key={value}
-                  onClick={() => {
-                    setActiveTab(value);
-                    if (value === 'guess') {
-                      setGamesSubTab('other');
-                      setGamesResetKey((key) => key + 1);
-                    }
-                  }}
-                  className={`desktop-target-nav ${activeTab === value ? 'desktop-target-nav-active' : ''}`}
-                >
-                  <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary text-primary' : ''}`} />
-                  <span className="text-base font-medium">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground lg:justify-self-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className="flex items-center gap-1.5 p-1 rounded-full hover:bg-secondary/60 transition-colors">
-                  <PlayerAvatar avatar={player.avatar} name={player.name} size={30} />
-                  <span className="text-sm">{player.name}</span>
+                <button type="button" className="flex h-11 items-center gap-2 rounded-full bg-white/70 py-1 pl-1 pr-3 shadow-sm transition-colors hover:bg-white">
+                  <PlayerAvatar avatar={player.avatar} name={player.name} size={34} />
+                  <span className="text-sm font-medium">{player.name}</span>
                   <span className="text-xs">{OFFICE_FLAGS[player.office]}</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => setShowProfile(true)}
-                >
+              <DropdownMenuContent align="end" className="rounded-xl">
+                <DropdownMenuItem className="gap-2" onClick={() => setShowProfile(true)}>
                   <UserCog className="h-4 w-4" />
-                  Edit Profile
+                  Edit profile
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => navigate('/manager')}
-                >
+                <DropdownMenuItem className="gap-2" onClick={() => navigate('/manager')}>
                   <Shield className="h-4 w-4" />
-                  Manager Mode
+                  Manager mode
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive gap-2"
-                  onClick={logout}
-                >
+                <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={logout}>
                   <LogOut className="h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
@@ -266,32 +178,22 @@ export default function PlayPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto px-2 sm:px-4 py-4">
-        {/* Tab buttons */}
-        <div className="grid grid-cols-6 gap-1 bg-muted/70 p-1 rounded-lg mb-4 lg:hidden">
-          {([
-            { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
-            { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
-            { value: 'youtube' as const, icon: Youtube, label: 'Music' },
-            { value: 'news' as const, icon: Newspaper, label: 'News' },
-            { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
-            { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
-          ]).map(({ value, icon: Icon, label }) => (
+      <main className="mx-auto max-w-[75rem] px-3 pb-10 pt-5 sm:px-6">
+        {/* Tablets: the tabs sit under the bar */}
+        <nav className="glass-bar mb-4 grid grid-cols-6 gap-0.5 rounded-full p-1 lg:hidden">
+          {tabs.map(({ value, icon: Icon, label }) => (
             <button
               type="button"
               key={value}
-              onClick={() => setActiveTab(value)}
-              className={`flex items-center justify-center gap-1 lg:gap-2 rounded-md px-2 lg:px-4 py-1.5 lg:py-2 text-sm lg:text-base font-medium transition-all ${
-                activeTab === value
-                  ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
-                  : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
-              }`}
+              onClick={() => openTab(value)}
+              aria-current={activeTab === value ? 'page' : undefined}
+              className="seg-tab h-9 px-2 text-sm"
             >
-              <Icon className={`h-4 w-4 lg:h-5 lg:w-5 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary text-primary' : ''}`} />
+              <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary' : ''}`} />
               <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
-        </div>
+        </nav>
 
         {/* Tab content */}
         <DesktopSectionBoundary>

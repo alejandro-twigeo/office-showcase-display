@@ -17,7 +17,8 @@ const PLANT_MEDIUM_ICON = `${import.meta.env.BASE_URL}medium.png`;
 const PLANT_BAD_ICON = `${import.meta.env.BASE_URL}bad.png`;
 const WATER_ICON = `${import.meta.env.BASE_URL}water.png`;
 
-export function PlantStatus({ playerName }: { playerName?: string }) {
+/** compact: a small plant for the Play page's top bar */
+export function PlantStatus({ playerName, compact = false }: { playerName?: string; compact?: boolean }) {
   const [plantId, setPlantId] = useState<string | null>(null);
   const [lastWatered, setLastWatered] = useState<Date | null>(null);
   const [lastWateredBy, setLastWateredBy] = useState<string | null>(null);
@@ -110,13 +111,13 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
   return (
     <TooltipProvider>
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <img
                 src={plantIcon}
                 alt="Plant status"
-                className={`h-[clamp(72px,5.12vw,123px)] w-auto ${plantLoading ? "opacity-60" : ""}`}
+                className={`${compact ? "h-11" : "h-[clamp(72px,5.12vw,123px)]"} w-auto ${plantLoading ? "opacity-60" : ""}`}
               />
             </TooltipTrigger>
             <TooltipContent side="top" align="center">
@@ -129,7 +130,7 @@ export function PlantStatus({ playerName }: { playerName?: string }) {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setConfirmOpen(true)}
-                  className={`h-[clamp(24px,1.7vw,40px)] w-auto transition-transform duration-200 ease-out active:scale-90 ${
+                  className={`${compact ? "h-6" : "h-[clamp(24px,1.7vw,40px)]"} w-auto transition-transform duration-200 ease-out active:scale-90 ${
                     watering ? "scale-110" : ""
                   }`}
                 >

@@ -67,29 +67,40 @@ export function PlayHub({ playerName, roundId, onOpenGame }: PlayHubProps) {
 
   return (
     <div className="space-y-2">
-      {/* At a glance */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-secondary/40 px-2.5 py-2">
-          <p className="text-[0.65rem] text-muted-foreground">Your streak</p>
-          <p className="font-semibold text-sm">{streak > 0 ? `🔥 ${streak} ${streak === 1 ? "day" : "days"}` : "Start today"}</p>
-          {streak > 0 && !playedToday && <p className="text-[0.65rem] text-orange-600">Play today to keep it</p>}
-        </div>
-        <div className="rounded-xl bg-secondary/40 px-2.5 py-2">
-          <p className="text-[0.65rem] text-muted-foreground">Office race</p>
-          <p className="font-semibold text-sm truncate">
-            {office ? `${office.flag} ${officeRank === 1 ? "1st" : officeRank === 2 ? "2nd" : "3rd"}` : "—"}
-          </p>
-          {office && <p className="text-[0.65rem] text-muted-foreground truncate">{office.city}</p>}
-        </div>
-        <div className="rounded-xl bg-secondary/40 px-2.5 py-2">
-          <p className="text-[0.65rem] text-muted-foreground truncate">{OFFICE_GOAL_REWARD}</p>
-          <p className="font-semibold text-sm tabular-nums">
-            {Math.min(a.playsThisWeek, OFFICE_GOAL)}/{OFFICE_GOAL}
-          </p>
-          <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${goalPct}%` }} />
+      {/* At a glance: one frosted strip; on wider screens the challenge button sits at its end */}
+      <div className="glass-chip flex items-stretch rounded-2xl">
+        <div className="grid min-w-0 flex-1 grid-cols-3 divide-x divide-foreground/[0.07]">
+          <div className="min-w-0 px-3 py-2">
+            <p className="text-[0.68rem] text-muted-foreground">Your streak</p>
+            <p className="truncate text-sm font-semibold">{streak > 0 ? `🔥 ${streak} ${streak === 1 ? "day" : "days"}` : "Start today"}</p>
+            {streak > 0 && !playedToday && <p className="truncate text-[0.65rem] text-orange-600">Play today to keep it</p>}
+          </div>
+          <div className="min-w-0 px-3 py-2">
+            <p className="text-[0.68rem] text-muted-foreground">Office race</p>
+            <p className="truncate text-sm font-semibold">
+              {office ? `${office.flag} ${officeRank === 1 ? "1st" : officeRank === 2 ? "2nd" : "3rd"}` : "—"}
+              {office && <span className="ml-1 font-normal text-muted-foreground">{office.city}</span>}
+            </p>
+          </div>
+          <div className="min-w-0 px-3 py-2">
+            <p className="truncate text-[0.68rem] text-muted-foreground">{OFFICE_GOAL_REWARD}</p>
+            <p className="text-sm font-semibold tabular-nums">
+              {Math.min(a.playsThisWeek, OFFICE_GOAL)}/{OFFICE_GOAL}
+            </p>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-foreground/[0.07]">
+              <div className="h-full rounded-full bg-primary transition-[width] duration-700" style={{ width: `${goalPct}%` }} />
+            </div>
           </div>
         </div>
+        {!composing && (
+          <button
+            type="button"
+            onClick={() => { setComposing(true); setSent(null); }}
+            className="m-1.5 hidden shrink-0 items-center gap-2 rounded-xl bg-white/80 px-4 text-sm font-medium shadow-sm transition-colors hover:bg-white sm:inline-flex"
+          >
+            <Swords className="h-4 w-4 text-primary" /> Challenge a colleague
+          </button>
+        )}
       </div>
 
       {/* Challenges for you */}
@@ -119,14 +130,18 @@ export function PlayHub({ playerName, roundId, onOpenGame }: PlayHubProps) {
 
       {/* Challenge someone */}
       {!composing ? (
-        <div className="space-y-1">
-          <Button variant="outline" className="w-full gap-2" onClick={() => { setComposing(true); setSent(null); }}>
-            <Swords className="h-4 w-4" /> Challenge a colleague
-          </Button>
+        <div className="space-y-1 sm:space-y-0">
+          <button
+            type="button"
+            onClick={() => { setComposing(true); setSent(null); }}
+            className="glass-chip flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium sm:hidden"
+          >
+            <Swords className="h-4 w-4 text-primary" /> Challenge a colleague
+          </button>
           {sent && <p className="text-center text-xs text-green-700 animate-in fade-in">{sent}</p>}
         </div>
       ) : (
-        <div className="space-y-3 rounded-xl border p-3 animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="glass-chip space-y-3 rounded-2xl p-3 animate-in fade-in slide-in-from-top-1 duration-300">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Challenge a colleague</p>
             <button className="text-muted-foreground" onClick={() => setComposing(false)} aria-label="Close">

@@ -1,5 +1,5 @@
 import { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { GameTile } from './GameTile';
 import { WordleGame } from './WordleGame';
 import { CityGuessGame } from './games/CityGuessGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
@@ -77,43 +77,21 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
         roundId={roundId}
         onOpenGame={(id) => (id === 'geo' ? onSelectGeoGuessr?.() : selectGame(id))}
       />
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-2.5">
-            {includeGeoGuessr && (
-              <button
-                onClick={onSelectGeoGuessr}
-                className="min-w-0 flex flex-col items-center justify-start gap-1.5 px-2 pt-3 pb-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:-translate-y-0.5 active:scale-[0.97] transition-all text-center"
-              >
-                <div className="flex w-[78%] max-w-[4.5rem] aspect-square min-h-0 items-center justify-center overflow-hidden">
-                  {icons['geoguessr'] ? (
-                    <img src={icons['geoguessr']} alt="GeoGuessr" className="h-full w-full object-contain" />
-                  ) : (
-                    <span className="text-xl sm:text-[2rem]">🎯</span>
-                  )}
-                </div>
-                <p className="flex min-h-[2.5em] w-full items-center justify-center font-medium text-xs leading-tight text-balance">GeoGuessr</p>
-              </button>
-            )}
-            {MINI_GAMES.map((game) => (
-              <button
-                key={game.id}
-                onClick={() => selectGame(game.id)}
-                className="min-w-0 flex flex-col items-center justify-start gap-1.5 px-2 pt-3 pb-2 rounded-xl border bg-secondary/30 hover:bg-secondary/60 hover:-translate-y-0.5 active:scale-[0.97] transition-all text-center"
-              >
-                <div className="flex w-[78%] max-w-[4.5rem] aspect-square min-h-0 items-center justify-center overflow-hidden">
-                  {icons[game.id] || LOCAL_ICONS[game.id] ? (
-                    <img src={icons[game.id] ?? LOCAL_ICONS[game.id]} alt={game.name} className="h-full w-full object-contain" />
-                  ) : (
-                    <span className="text-xl sm:text-[2rem]">{game.emoji}</span>
-                  )}
-                </div>
-                <p className="flex min-h-[2.5em] w-full items-center justify-center font-medium text-xs leading-tight text-balance">{game.name}</p>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
+        {includeGeoGuessr && (
+          <GameTile id="geoguessr" name="GeoGuessr" icon={icons['geoguessr']} emoji="🎯" onClick={() => onSelectGeoGuessr?.()} />
+        )}
+        {MINI_GAMES.map((game) => (
+          <GameTile
+            key={game.id}
+            id={game.id}
+            name={game.name}
+            icon={icons[game.id] ?? LOCAL_ICONS[game.id]}
+            emoji={game.emoji}
+            onClick={() => selectGame(game.id)}
+          />
+        ))}
+      </div>
 
       <MiniGamesLeaderboardGrid />
     </div>

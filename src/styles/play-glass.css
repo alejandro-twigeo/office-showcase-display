@@ -1,0 +1,98 @@
+/* ── Play page: the TV's look on phones and laptops ──────────────────────────
+   Soft colour fields drift behind (the TV's .tv-backdrop), and cards are frosted
+   glass lifted off them. Only the Card component is targeted (border + bg-card +
+   shadow-sm), so small bg-card bits inside games keep their own look. */
+.play-glass {
+  position: relative;
+  isolation: isolate;
+  background: hsl(var(--background));
+}
+.play-glass > .tv-backdrop { z-index: -1; }
+.play-glass .tv-backdrop i { opacity: 0.75; }
+
+.play-glass .bg-card.border.shadow-sm {
+  background-color: hsl(0 0% 100% / 0.62);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  backdrop-filter: blur(22px) saturate(1.35);
+  border-color: hsl(0 0% 100% / 0.75);
+  border-radius: 1.25rem;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.9),
+    0 1px 2px hsl(25 40% 30% / 0.05),
+    0 18px 40px -22px hsl(25 60% 30% / 0.28);
+}
+/* Cards inside cards: a lighter sheet, no second blur */
+.play-glass .bg-card.border.shadow-sm .bg-card.border.shadow-sm {
+  background-color: hsl(0 0% 100% / 0.5);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: hsl(0 0% 100% / 0.6);
+  border-radius: 1rem;
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.8);
+}
+
+/* Floating bars (header, tabs, bottom nav) */
+.glass-bar {
+  background-color: hsl(0 0% 100% / 0.58);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid hsl(0 0% 100% / 0.75);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.9),
+    0 16px 36px -20px hsl(25 60% 30% / 0.3);
+}
+/* A small frosted panel (stats strip, tiles) */
+.glass-chip {
+  background-color: hsl(0 0% 100% / 0.55);
+  border: 1px solid hsl(0 0% 100% / 0.7);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.85), 0 10px 24px -18px hsl(25 60% 30% / 0.3);
+}
+
+/* Segmented tabs: the selected one is a raised white pill */
+.seg-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 200ms ease;
+}
+.seg-tab:hover { color: hsl(var(--foreground)); background-color: hsl(0 0% 100% / 0.45); }
+.seg-tab[aria-current="page"] {
+  color: hsl(var(--foreground));
+  background-color: hsl(0 0% 100% / 0.95);
+  box-shadow: 0 1px 1px hsl(25 40% 30% / 0.06), 0 6px 16px -8px hsl(25 70% 40% / 0.35);
+}
+.seg-tab[aria-current="page"] svg { color: hsl(var(--primary)); }
+
+/* Game tiles: frosted, with a soft wash of the game's colour */
+.game-tile {
+  --h: 25;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 1.1rem;
+  background-color: hsl(0 0% 100% / 0.55);
+  border: 1px solid hsl(0 0% 100% / 0.75);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.85), 0 12px 26px -20px hsl(var(--h) 60% 30% / 0.45);
+  transition: transform 220ms cubic-bezier(.2, .8, .2, 1), box-shadow 220ms ease;
+}
+.game-tile::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -30% -30% auto auto;
+  width: 95%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, hsl(var(--h) 85% 72% / 0.5), hsl(var(--h) 85% 72% / 0));
+  transition: transform 300ms ease, opacity 300ms ease;
+}
+.game-tile:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.9), 0 18px 34px -20px hsl(var(--h) 70% 35% / 0.55); }
+.game-tile:hover::before { transform: scale(1.15); }
+.game-tile:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .game-tile, .game-tile::before { transition: none; }
+}

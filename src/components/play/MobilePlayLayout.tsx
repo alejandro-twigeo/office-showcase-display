@@ -1,6 +1,6 @@
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useRef, useEffect } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy, MessageCircle } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Trophy, MessageCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
@@ -25,6 +25,7 @@ import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
 import { TeamRiddleGame } from './games/TeamRiddleGame';
 import { PlayHub } from './PlayHub';
 import { TipPopup } from './TipPopup';
+import { GameTile } from './GameTile';
 
 /** Built-in icons for games that don't have one uploaded in Manager yet */
 const LOCAL_ICONS: Record<string, string> = { riddle: riddleIcon, team_riddle: teamRiddleIcon };
@@ -32,7 +33,6 @@ import { MiniGamesLeaderboardGrid } from './MiniGamesLeaderboardGrid';
 import { MINI_GAMES } from './miniGamesList';
 import { useGameIcons } from '@/hooks/useGameIcons';
 import { useRounds } from '@/hooks/useRounds';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards' | 'chat';
 
@@ -79,52 +79,24 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   const renderGameContent = () => {
     if (!selectedGame) {
       return (
-        <div className="space-y-2">
-          <div className="px-0.5">
-            <h2 className="text-lg font-bold">Games</h2>
-            <p className="text-xs text-muted-foreground">Pick a game to play</p>
-          </div>
+        <div className="space-y-3">
+          <h2 className="px-1 text-xl font-bold tracking-tight">Games</h2>
           <PlayHub
             playerName={player.name}
             roundId={activeRound?.id}
             onOpenGame={(id) => setSelectedGame(id === 'geo' ? 'geoguessr' : id)}
           />
           <div className="grid grid-cols-3 gap-2">
-            {/* GeoGuessr */}
-            <button
-              onClick={() => setSelectedGame('geoguessr')}
-              className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
-            >
-              <div className="w-full aspect-square rounded-xl overflow-hidden p-2">
-                {icons['geoguessr'] ? (
-                  <img src={icons['geoguessr']} alt="GeoGuessr" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary/30">
-                    <Target className="h-7 w-7 text-primary" />
-                  </div>
-                )}
-              </div>
-              <p className="font-semibold text-[0.7rem] py-1">GeoGuessr</p>
-            </button>
-
-            {/* Mini games */}
+            <GameTile id="geoguessr" name="GeoGuessr" icon={icons['geoguessr']} emoji="🎯" onClick={() => setSelectedGame('geoguessr')} />
             {MINI_GAMES.map((game) => (
-              <button
+              <GameTile
                 key={game.id}
+                id={game.id}
+                name={game.name}
+                icon={icons[game.id] ?? LOCAL_ICONS[game.id]}
+                emoji={game.emoji}
                 onClick={() => setSelectedGame(game.id)}
-                className="flex flex-col items-center rounded-xl bg-secondary/30 active:scale-[0.97] transition-transform text-center overflow-hidden min-h-[8.5rem] sm:min-h-[11rem]"
-              >
-                <div className="w-full aspect-square rounded-xl overflow-hidden p-2">
-                  {icons[game.id] || LOCAL_ICONS[game.id] ? (
-                    <img src={icons[game.id] ?? LOCAL_ICONS[game.id]} alt={game.name} className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-secondary/30">
-                      <span className="text-2xl">{game.emoji}</span>
-                    </div>
-                  )}
-                </div>
-                <p className="font-semibold text-[0.7rem] py-1">{game.name}</p>
-              </button>
+              />
             ))}
           </div>
         </div>
@@ -151,27 +123,28 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
   };
 
   return (
-    <div className="bg-background flex flex-col" style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)' }}>
-      {/* Compact mobile header */}
-      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-3 py-2 safe-area-top">
-        <div className="flex items-center justify-between">
+    <div className="play-glass flex flex-col" style={{ minHeight: 'var(--app-height, 100vh)', height: 'var(--app-height, 100vh)' }}>
+      <div className="tv-backdrop" aria-hidden><i /><i /><i /><i /></div>
+      {/* Compact top bar: floating frosted glass */}
+      <header className="relative z-30 px-2 pt-2 safe-area-top">
+        <div className="glass-bar flex h-14 items-center justify-between rounded-full pl-3 pr-1.5">
           <div className="flex items-center gap-2">
-            <PlantStatus playerName={player.name} />
+            <PlantStatus playerName={player.name} compact />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => navigate('/tv')}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-full border border-primary/50 text-primary text-xs font-medium active:bg-primary/10 transition-colors"
+              className="flex h-9 items-center gap-1 rounded-full px-2.5 text-xs font-semibold text-primary transition-colors active:bg-primary/10"
             >
-              <Monitor className="h-3.5 w-3.5" />
+              <Monitor className="h-4 w-4" />
               <span>TV</span>
             </button>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="flex items-center gap-1 p-1.5 rounded-full active:bg-secondary/60 transition-colors"
+              className="flex h-11 items-center gap-1.5 rounded-full bg-white/70 py-1 pl-1 pr-2.5 shadow-sm transition-colors active:bg-white"
             >
-              <PlayerAvatar avatar={player.avatar} name={player.name} size={30} />
-              <span className="text-xs font-medium max-w-[80px] truncate">{player.name}</span>
+              <PlayerAvatar avatar={player.avatar} name={player.name} size={32} />
+              <span className="max-w-[80px] truncate text-xs font-semibold">{player.name}</span>
               <span className="text-xs">{OFFICE_FLAGS[player.office]}</span>
             </button>
           </div>
@@ -181,7 +154,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {showMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-            <div className="absolute right-3 top-full mt-1 z-50 bg-card border rounded-xl shadow-lg overflow-hidden min-w-[180px]">
+            <div className="glass-bar absolute right-3 top-full mt-2 z-50 min-w-[180px] overflow-hidden rounded-2xl">
               <button
                 className="flex items-center gap-3 w-full px-4 py-3 text-sm active:bg-secondary/60 transition-colors"
                 onClick={() => { setShowProfile(true); setShowMenu(false); }}
@@ -210,7 +183,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       </header>
 
       {/* Scrollable content area */}
-      <main className={`flex-1 overflow-y-auto overscroll-y-contain px-2 pb-[5.2rem] lg:pb-[7rem] space-y-2 sm:px-3 sm:py-3 ${activeTab === 'games' && selectedGame ? 'pt-4' : 'py-2'}`}>
+      <main className={`flex-1 overflow-y-auto overscroll-y-contain px-3 pb-[6.5rem] lg:pb-[8rem] space-y-3 ${activeTab === 'games' && selectedGame ? 'pt-4' : 'pt-3'}`}>
         {activeTab === 'games' && renderGameContent()}
         {activeTab === 'leaderboards' && <MiniGamesLeaderboardGrid />}
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
@@ -220,9 +193,9 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {activeTab === 'chat' && <ChatSection playerName={player.name} />}
       </main>
 
-      {/* Bottom tab bar - native app style */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-7 h-[5rem] lg:h-[clamp(6rem,10vw,7rem)]">
+      {/* Bottom tabs: a floating frosted bar */}
+      <nav className="fixed inset-x-2 z-30 bottom-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="glass-bar grid h-16 grid-cols-7 gap-0.5 rounded-[1.75rem] p-1 lg:h-[clamp(4.5rem,8vw,5.5rem)]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -232,14 +205,11 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                   setActiveTab(value);
                   if (value === 'games') setSelectedGame(null);
                 }}
-                className={`flex flex-col items-center justify-center gap-0.5 lg:gap-1.5 transition-colors active:scale-95 min-h-[56px] lg:min-h-[64px] px-1 ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-                }`}
+                aria-current={isActive ? 'page' : undefined}
+                className="seg-tab flex-col gap-1 rounded-[1.4rem] px-0.5 active:scale-95"
               >
-                <Icon className={`h-6 w-6 lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[0.72rem] lg:text-xs font-semibold leading-none text-center">{label}</span>
+                <Icon className={`h-[1.35rem] w-[1.35rem] lg:h-7 lg:w-7 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.66rem] font-semibold leading-none lg:text-xs">{label}</span>
               </button>
             );
           })}
