@@ -10,6 +10,7 @@ import {
   weekIndex,
 } from "@/hooks/useOfficeActivity";
 import { teamRiddleForWeek } from "@/lib/teamRiddles";
+import { HandUnderline } from "@/components/Squiggles";
 
 const avatarOf = (a: ReturnType<typeof useOfficeActivity>, name: string) => a.players.get(name)?.avatar ?? "👤";
 
@@ -60,7 +61,15 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
         <div className="min-w-0 flex-1">
           <p className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">{reveal ? "Champion of the week" : "Leading the week"}</p>
           <p className="truncate font-semibold tracking-tight text-[clamp(20px,1.7vw,36px)] leading-tight">
-            {leader ?? "Nobody yet. Play to take it"}
+            {leader ? (
+              // A hand-drawn underline under the leader, drawn again whenever the lead changes
+              <span className="relative inline-block pb-[0.18em]">
+                {leader}
+                <HandUnderline key={leader} className="absolute -bottom-[0.05em] left-0 h-[0.32em] w-full" />
+              </span>
+            ) : (
+              "Nobody yet. Play to take it"
+            )}
           </p>
         </div>
         {leader && (
