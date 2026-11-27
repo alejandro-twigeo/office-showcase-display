@@ -326,10 +326,9 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               </span>
             ) : null;
           })()}
-        {/* ＋ (and ⏭) up here on small screens, and on big ones while nothing plays; with a video they sit under it */}
+        {/* (⏭ and) ＋ up here on small screens, and on big ones while nothing plays; with a video they sit under it */}
         <span className={`ml-auto ${currentVideo ? "lg:hidden" : ""}`} />
         <span className={`flex items-center gap-1.5 ${currentVideo ? "lg:hidden" : ""}`}>
-          <QueueAdder me={me} onLogin={openMusic} onAdd={addSong} />
           {currentVideo && (
             <button
               type="button"
@@ -342,6 +341,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               {confirmSkip && "Skip?"}
             </button>
           )}
+          <QueueAdder me={me} onLogin={openMusic} onAdd={addSong} />
         </span>
       </div>
 
@@ -413,7 +413,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           </div>
         )}
 
-        {/* Big screens: up next as a row of thumbnails, with ＋ and ⏭ at the end (while it asks "Skip?", ⏭ takes both slots) */}
+        {/* Big screens: up next as a row of thumbnails, with ⏭ and ＋ at the end (while it asks "Skip?", ⏭ takes both slots) */}
         {currentVideo && (
           <div className="hidden lg:flex shrink-0 items-center gap-[clamp(6px,0.5vw,10px)]">
             <span className="shrink-0 text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Up next</span>
@@ -429,11 +429,6 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               />
             )}
             <div className="flex w-[clamp(80px,6vw,130px)] shrink-0 gap-[clamp(4px,0.4vw,8px)]">
-              {!confirmSkip && (
-                <div className="min-w-0 flex-1">
-                  <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
-                </div>
-              )}
               <button
                 type="button"
                 onClick={skip}
@@ -444,6 +439,11 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 {skipIcon}
                 {confirmSkip && "Skip?"}
               </button>
+              {!confirmSkip && (
+                <div className="min-w-0 flex-1">
+                  <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
+                </div>
+              )}
             </div>
           </div>
         )}
