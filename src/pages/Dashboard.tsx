@@ -13,8 +13,9 @@ import { PlayQr } from "@/components/dashboard/JoinCard";
 import { useAutoReload } from "@/hooks/useAutoReload";
 import { GameSpotlightProvider, useSpotlight } from "@/components/dashboard/GameSpotlight";
 import { LiveMoments } from "@/components/dashboard/LiveMoments";
-import { TodayFeed } from "@/components/dashboard/TodayFeed";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
@@ -66,13 +67,44 @@ function ZoneLabel({ children }: { children: string }) {
   );
 }
 
+const POLL_NEWS_SWAP_MS = 45_000;
+
+/** The poll and today's news take turns in one slot (just the poll when there's no news). */
+function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
+  // Just "is there news?". The news tile has its own live connection; a second one under the same name would clash.
+  const { data: hasNews } = useQuery({
+    queryKey: ["tv-has-news"],
+    refetchInterval: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("daily_news").select("items").order("run_date", { ascending: false }).limit(1).maybeSingle();
+      return Array.isArray(data?.items) && data.items.length > 0;
+    },
+  });
+  // ?newsfirst in the address starts on the news (preview)
+  const [showNews, setShowNews] = useState(() => new URLSearchParams(window.location.search).has("newsfirst"));
+  useEffect(() => {
+    if (hasNews === undefined) return; // still checking
+    if (!hasNews) {
+      setShowNews(false);
+      return;
+    }
+    const id = setInterval(() => setShowNews((v) => !v), POLL_NEWS_SWAP_MS);
+    return () => clearInterval(id);
+  }, [hasNews]);
+  return (
+    <div key={showNews ? "news" : "poll"} className="h-full animate-in fade-in duration-700">
+      {showNews && hasNews ? <NewsDisplay standalone /> : <TvFeatureDisplay mode={tvFeatureMode} />}
+    </div>
+  );
+}
+
 /**
  * The three zones. Every section has a fixed home. Tiles are as tall as their content,
  * and one tile per column takes whatever room is left, so there's no empty space:
- *  - Play: games with their podiums (fills), then riddle / GeoGuessr photos / team riddle
- *  - Together: now playing (compact, or big while a video plays), kudos, then
- *    "Today in the office" (fills)
- *  - This week: who's leading, the fika goal and the ranking (fills), the poll, the news
+ *  - Play: games with their podiums (fills), then the riddle of the day / GeoGuessr photos
+ *  - Together: now playing (compact, or big while a video plays), then kudos (fills)
+ *  - This week: who's leading, the fika goal, the team riddle and the ranking (fills), then the poll
+ *    and the news taking turns in one slot
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -108,28 +140,29 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
         >
           <YouTubeDisplay onPlayingChange={onPlayingChange} />
         </div>
-        <div className={fit}>
+        <div className={`${tile} ${grow}`} style={{ flexGrow: 1, flexBasis: 0 }}>
           <KudosTile />
-        </div>
-        <div className={`${tile} ${grow}`} style={{ flexGrow: 1, flexBasis: 0, minHeight: playing ? 0 : undefined }}>
-          <TodayFeed />
         </div>
       </div>
 
       {/* This week */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <ZoneLabel>This week</ZoneLabel>
-        <div className={`${tile} flex-1`}>
-          <ThisWeekCard compact ranking />
+        {/* Never smaller than leader + goal + team riddle; the ranking fills any extra room */}
+        <div className={`${tile} flex-1 lg:min-h-[clamp(250px,18.5vw,420px)]`}>
+          <ThisWeekCard compact ranking riddle />
         </div>
-        {/* Polls fit their content; Flow (a chart) needs room, so it shares the column */}
-        <div className={`${tvFeatureMode === "flow" ? `${tile} flex-1` : fit} overflow-hidden rounded-xl`}>
-          <TvFeatureDisplay mode={tvFeatureMode} />
-        </div>
-        {/* No news today: nothing here, and This week gets the room */}
-        <div className={`${fit} overflow-hidden rounded-xl empty:hidden`}>
-          <NewsDisplay standalone />
-        </div>
+        {tvFeatureMode === "flow" ? (
+          // Flow (a chart) needs room, so it shares the column
+          <div className={`${tile} flex-1 overflow-hidden rounded-xl`}>
+            <TvFeatureDisplay mode={tvFeatureMode} />
+          </div>
+        ) : (
+          // Poll and news take turns; a fixed height so nothing jumps when they swap
+          <div className={`${desktop ? "h-[300px]" : "min-h-[280px] lg:min-h-0 lg:h-[clamp(250px,18.5vw,400px)]"} shrink-0 overflow-hidden rounded-xl`}>
+            <PollNewsSlot tvFeatureMode={tvFeatureMode} />
+          </div>
+        )}
       </div>
     </div>
   );
