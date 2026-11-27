@@ -5,7 +5,7 @@ import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { useUserGuesses } from "@/hooks/useGuesses";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MapPin, Target, Check, AlertCircle, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, Gamepad2 } from "lucide-react";
+import { MapPin, Target, Check, AlertCircle, ZoomIn, ZoomOut, RotateCcw, Binoculars, Brain, ArrowLeft } from "lucide-react";
 import { DIFFICULTY_LABELS, type Difficulty } from "@/lib/difficulty";
 import { useScoring, calculateScore, formatScoreDisplay, type ScoringSettings } from "@/hooks/useScoring";
 import { MiniGamesSelector, type MiniGamesSelectorHandle } from "./MiniGamesSelector";
@@ -499,9 +499,12 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
     setInsideMiniGame(false);
   }, [resetKey, onActiveTabChange]);
 
+  // The Games home sits straight on the page; a card frames a game or GeoGuessr
+  const bare = activeTab === 'other' && !insideMiniGame;
+
   return (
-    <Card>
-      {!isMobile && (
+    <Card className={bare ? 'border-0 bg-transparent shadow-none' : ''}>
+      {!isMobile && !bare && (
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -510,70 +513,24 @@ export function GuessMap({ playerName, onActiveTabChange, onMinigameChange, hide
           </CardTitle>
           <div className="flex items-center gap-1">
             {!hideOtherGames && (activeTab !== 'other' || insideMiniGame) && (
-              <Button
-                variant={activeTab === 'other' ? 'default' : 'outline'}
-                size="sm"
-                className={`relative overflow-hidden h-7 lg:h-9 text-xs lg:text-sm gap-1.5 px-2.5 lg:px-5 lg:min-w-[13.5rem] ${activeTab !== 'other' ? 'border-primary/60 text-primary hover:bg-primary/10 hover:text-primary lg:border-[#fe822a]/50 lg:text-[#9a4300] lg:hover:text-[#7a3500]' : 'lg:border-[#fe822a]/30 lg:text-[#5c2500]'} lg:shadow-[0_10px_30px_rgba(254,130,42,0.18)]`}
+              <button
+                type="button"
+                className="glass-chip inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors hover:bg-white"
                 onClick={() => {
-                  if (activeTab === 'other' && insideMiniGame) {
-                    miniGameRef.current?.reset();
-                  } else {
-                    setActiveTab('other');
-                    miniGameRef.current?.reset();
-                  }
+                  if (activeTab !== 'other') setActiveTab('other');
+                  miniGameRef.current?.reset();
                 }}
               >
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 hidden lg:block opacity-95"
-                  style={{
-                    backgroundImage: `
-                      radial-gradient(circle at 18% 18%, rgba(243,244,246,0.92), transparent 28%),
-                      radial-gradient(circle at 82% 24%, rgba(255,179,107,0.86), transparent 34%),
-                      radial-gradient(circle at 50% 100%, rgba(254,130,42,0.82), transparent 42%),
-                      linear-gradient(135deg, rgba(243,244,246,0.94), rgba(255,179,107,0.92))
-                    `,
-                    backgroundSize: '180% 180%',
-                    willChange: 'transform, background-position, filter',
-                    animation: 'other-games-grainient 2.4s linear infinite alternate',
-                  }}
-                />
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 hidden lg:block mix-blend-soft-light opacity-25"
-                  style={{
-                    backgroundImage:
-                      'radial-gradient(rgba(255,255,255,0.8) 0.6px, transparent 0.8px)',
-                    backgroundSize: '7px 7px',
-                  }}
-                />
-                <span className="relative z-10 flex items-center justify-center gap-1.5 w-full">
-                  <Gamepad2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  ← Back to games
-                </span>
-              </Button>
+                <ArrowLeft className="h-4 w-4" />
+                All games
+              </button>
             )}
           </div>
         </div>
       </CardHeader>
       )}
 
-      <style>{`
-        @keyframes other-games-grainient {
-          0% {
-            background-position: 0% 50%;
-            transform: scale(1);
-            filter: saturate(1) brightness(1);
-          }
-          100% {
-            background-position: 100% 50%;
-            transform: scale(1.08);
-            filter: saturate(1.12) brightness(1.04);
-          }
-        }
-      `}</style>
-
-      <CardContent className={isMobile ? "space-y-3 pt-3 pb-3" : "space-y-4"}>
+      <CardContent className={bare ? "space-y-4 p-0" : isMobile ? "space-y-3 pt-3 pb-3" : "space-y-4"}>
         {activeTab !== 'other' ? (
           <>
             {/* Geo-Easy / Geo-Hard tabs */}
