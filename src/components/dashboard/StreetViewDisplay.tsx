@@ -40,7 +40,7 @@ function GeoCard({ easy, hard, fillHeight }: { easy: ActiveLocation; hard: Activ
   ].filter(Boolean) as { location: NonNullable<ActiveLocation>; level: keyof typeof LEVELS }[];
 
   return (
-    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)] animate-in fade-in duration-700`}>
+    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(11px,0.95vw,22px)] gap-[clamp(10px,0.9vw,18px)] animate-in fade-in duration-700`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="tile-label">Where is this?</span>
         <span className="tile-label">GeoGuessr</span>
@@ -71,7 +71,7 @@ function RiddleCard({ fillHeight }: { fillHeight: boolean }) {
   const total = right + wrong;
 
   return (
-    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)] animate-in fade-in duration-700`}>
+    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(11px,0.95vw,22px)] gap-[clamp(10px,0.9vw,18px)] animate-in fade-in duration-700`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="tile-label">Riddle of the day</span>
         <span className="tile-label">🧩</span>
@@ -117,7 +117,7 @@ function RiddlesCard() {
   const navigate = useNavigate();
 
   return (
-    <Card className="h-full min-h-0 grid grid-cols-2 gap-[clamp(14px,1.3vw,28px)] p-[clamp(14px,1.3vw,28px)] animate-in fade-in duration-700">
+    <Card className="h-full min-h-0 grid grid-cols-2 gap-[clamp(11px,0.95vw,22px)] p-[clamp(11px,0.95vw,22px)] animate-in fade-in duration-700">
       {/* Riddle of the day */}
       <div onClick={() => navigate("/play?game=riddle")} className={`-m-[clamp(4px,0.4vw,8px)] flex min-h-0 min-w-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-lg p-[clamp(4px,0.4vw,8px)] ${ACTIONABLE}`}>
         <span className="tile-label">🧩 Riddle of the day</span>
