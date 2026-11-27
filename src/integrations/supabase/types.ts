@@ -863,6 +863,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_roster: {
+        Args: never
+        Returns: {
+          department: string
+          email: string
+          full_name: string
+          office: string
+          player_avatar: string
+          player_name: string
+        }[]
+      }
       append_poll_option: {
         Args: { p_option_text: string; p_poll_id: string }
         Returns: number
