@@ -1,13 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { ListMusic, Volume2 } from "lucide-react";
+import { ListMusic, Volume2, Play } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpotlight, GameDemoOverlay } from "./GameSpotlight";
 import { parseQueuedBy } from "@/lib/dedication";
 import { useNavigate } from "react-router-dom";
-import { ACTIONABLE } from "@/hooks/useMe";
+import { ACTIONABLE, useMe } from "@/hooks/useMe";
+import { QueueAdder } from "./QueueAdder";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -64,7 +65,21 @@ function loadYouTubeAPI(onReady: () => void) {
 /* ── Component ────────────────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
-  const { currentVideo, queue } = useYoutubeQueue();
+  const { currentVideo, queue, addToQueue, reorderQueue } = useYoutubeQueue();
+  const me = useMe();
+  // On a laptop: drag queued songs up and down to change the order
+  const dragFrom = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const dropAt = (to: number) => {
+    const from = dragFrom.current;
+    dragFrom.current = null;
+    setDragOver(null);
+    if (from === null || from === to) return;
+    const ids = queue.map((q) => q.id);
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    reorderQueue.mutate(ids);
+  };
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
     onPlayingChange?.(!!currentVideo);
@@ -280,10 +295,10 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   }, []);
 
   return (
-    <Card className="relative h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
+    <Card className="relative h-full min-h-0 flex flex-col p-[clamp(11px,0.95vw,22px)] gap-[clamp(10px,0.9vw,18px)]">
       {/* The song goes on the same line as "Now playing", so the video gets the room below */}
-      <div className="flex min-w-0 items-baseline gap-[clamp(6px,0.5vw,10px)]">
-        <span className="tile-label shrink-0">Now playing</span>
+      <div className="flex min-w-0 items-center gap-[clamp(6px,0.5vw,10px)]">
+        <Play className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)] shrink-0 fill-primary text-primary" aria-label="Now playing" />
         {currentVideo && (
           <span className="min-w-0 truncate text-[clamp(13px,1vw,21px)]">
             <span className="font-semibold">{currentVideo.title}</span>
@@ -294,11 +309,18 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           (() => {
             const d = parseQueuedBy(currentVideo.queued_by);
             return d.to ? (
-              <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-[clamp(8px,0.6vw,12px)] py-[clamp(1px,0.15vw,3px)] font-medium text-[clamp(11px,0.85vw,18px)]">
+              <span className="shrink-0 rounded-full bg-primary/10 px-[clamp(8px,0.6vw,12px)] py-[clamp(1px,0.15vw,3px)] font-medium text-[clamp(11px,0.85vw,18px)]">
                 🎵 For <strong>{d.to}</strong> <span className="text-muted-foreground">from {d.from}</span>
               </span>
             ) : null;
           })()}
+        {/* ＋ : add a song, by search or link (on a laptop; otherwise it opens the Play page) */}
+        <span className="ml-auto" />
+        <QueueAdder
+          me={me}
+          onLogin={() => navigate("/play?tab=music")}
+          onAdd={(videoId) => me && addToQueue.mutate({ video_id: videoId, queued_by: me })}
+        />
       </div>
 
       <div className="flex-1 min-h-0">
@@ -391,21 +413,37 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 )}
               </div>
             ) : (
-              <div className="flex h-full min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)]">
-                <span className="flex items-center gap-1 text-muted-foreground text-[clamp(11px,0.75vw,16px)] font-medium">
-                  <ListMusic className="h-[clamp(12px,0.85vw,18px)] w-[clamp(12px,0.85vw,18px)]" />
-                  {queue.length}
-                </span>
-                {queue.slice(0, 4).map((item) =>
-                  item.thumbnail_url ? (
-                    <img key={item.id} src={item.thumbnail_url} alt={item.title} title={item.title} className="w-full aspect-video rounded-[clamp(4px,0.4vw,8px)] object-cover" />
-                  ) : (
-                    <div key={item.id} className="w-full aspect-video rounded-[clamp(4px,0.4vw,8px)] bg-secondary" />
-                  )
-                )}
-                {queue.length > 4 && (
-                  <span className="text-center text-muted-foreground text-[clamp(11px,0.75vw,16px)]">+{queue.length - 4}</span>
-                )}
+              // As many as fit (whole thumbnails only); hover shows the song, and on a laptop you can drag to reorder
+              <div className="flex h-full min-h-0 flex-col flex-wrap content-start gap-[clamp(6px,0.5vw,10px)] overflow-hidden">
+                {queue.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    title={`${idx + 1}. ${item.title}${me ? "  (drag to reorder)" : ""}`}
+                    draggable={!!me}
+                    onDragStart={() => (dragFrom.current = idx)}
+                    onDragOver={(e) => {
+                      if (dragFrom.current === null) return;
+                      e.preventDefault();
+                      setDragOver(idx);
+                    }}
+                    onDragLeave={() => setDragOver((d) => (d === idx ? null : d))}
+                    onDrop={() => dropAt(idx)}
+                    onDragEnd={() => {
+                      dragFrom.current = null;
+                      setDragOver(null);
+                    }}
+                    className={`relative w-full shrink-0 rounded-[clamp(4px,0.4vw,8px)] transition-shadow ${me ? "cursor-grab active:cursor-grabbing" : ""} ${
+                      dragOver === idx ? "shadow-[0_0_0_2px_hsl(var(--primary))]" : ""
+                    }`}
+                  >
+                    {item.thumbnail_url ? (
+                      <img src={item.thumbnail_url} alt={item.title} draggable={false} className="w-full aspect-video rounded-[inherit] object-cover" />
+                    ) : (
+                      <div className="w-full aspect-video rounded-[inherit] bg-secondary" />
+                    )}
+                    <span className="absolute left-[3px] top-[3px] rounded-full bg-background/85 px-[0.4em] text-[clamp(9px,0.6vw,13px)] font-semibold tabular-nums">{idx + 1}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
