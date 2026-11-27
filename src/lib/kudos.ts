@@ -55,3 +55,25 @@ export function startOfWeekStockholm(now = new Date()): Date {
   const offsetMs = new Date(now.toLocaleString("en-US", { timeZone: tz })).getTime() - new Date(now.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
   return new Date(localMidnightUtc - offsetMs - dow * 86_400_000);
 }
+
+/* ── How long kudos stay on the TV ──────────────────────────────────────── */
+
+export const KUDOS_DEFAULT_DAYS = 7;
+export const KUDOS_MIN_DAYS = 1;
+export const KUDOS_MAX_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+/** When a kudos leaves the TV. Kudos from before end dates existed: 7 days after posting. */
+export function kudosEndsAt(m: { created_at: string; expires_at?: string | null }): number {
+  return m.expires_at ? Date.parse(m.expires_at) : Date.parse(m.created_at) + KUDOS_DEFAULT_DAYS * DAY_MS;
+}
+
+export const isKudosLive = (m: { created_at: string; expires_at?: string | null }, now = Date.now()) => kudosEndsAt(m) > now;
+
+/** Whole days left, rounded up (a kudos ending in 20 hours has "1 day" left). 0 once it has ended. */
+export function kudosDaysLeft(m: { created_at: string; expires_at?: string | null }, now = Date.now()): number {
+  return Math.max(0, Math.ceil((kudosEndsAt(m) - now) / DAY_MS));
+}
+
+/** End date for "show for N days from now" */
+export const kudosEndInDays = (days: number, now = Date.now()) => new Date(now + days * DAY_MS).toISOString();
