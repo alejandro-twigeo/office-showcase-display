@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { CountUp } from "@/components/ui/count-up";
@@ -12,7 +13,9 @@ import {
 import { teamRiddleForWeek } from "@/lib/teamRiddles";
 import { HandUnderline } from "@/components/Squiggles";
 
-const avatarOf = (a: ReturnType<typeof useOfficeActivity>, name: string) => a.players.get(name)?.avatar ?? "👤";
+const avatarOf = (a: ReturnType<typeof useOfficeActivity>, name: string, state: "default" | "working" = "default") => (
+  <PlayerAvatar avatar={a.players.get(name)?.avatar} name={name} size="1.3em" tv state={state} />
+);
 
 /** Friday afternoon (Stockholm) the leader becomes the champion of the week. */
 function isRevealTime(now = new Date()) {
@@ -55,7 +58,7 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
       {/* Champion */}
       <div key={leader ?? "none"} className="flex items-center gap-[clamp(10px,0.8vw,16px)] animate-in fade-in slide-in-from-bottom-2 duration-700">
         <span className="relative shrink-0 leading-none text-[clamp(30px,2.6vw,56px)]">
-          {leader ? avatarOf(a, leader) : "🏆"}
+          {leader ? avatarOf(a, leader, "working") : "🏆"}
           {leader && <span className="absolute -top-[0.45em] left-1/2 -translate-x-1/2 text-[0.55em] crown-bob">👑</span>}
         </span>
         <div className="min-w-0 flex-1">
@@ -184,7 +187,7 @@ export function TeamRiddleStrip({ bare = false }: { bare?: boolean }) {
       <p className="text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
         {first ? (
           <>
-            ✅ Cracked by {a.players.get(first.player)?.avatar ?? ""} <b className="text-foreground">{first.player}</b>
+            ✅ Cracked by {avatarOf(a, first.player)} <b className="text-foreground">{first.player}</b>
             {a.teamRiddleSolves.length > 1 && ` and ${a.teamRiddleSolves.length - 1} more`}
           </>
         ) : (
@@ -231,7 +234,7 @@ export function TeamRiddleCard({ fillHeight }: { fillHeight: boolean }) {
         {first ? (
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-[1em] w-[1em] text-green-600" />
-            Cracked by {a.players.get(first.player)?.avatar ?? ""} <strong>{first.player}</strong>
+            Cracked by {avatarOf(a, first.player)} <strong>{first.player}</strong>
             {solvers.length > 1 && <span className="text-muted-foreground">and {solvers.length - 1} more</span>}
           </span>
         ) : (
