@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Binoculars, Brain, CheckCircle2, XCircle } from "lucide-react";
 import { useRounds } from "@/hooks/useRounds";
@@ -7,7 +7,8 @@ import { RIDDLES } from "@/lib/riddles";
 import { JoinCard } from "./JoinCard";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
-import { TeamRiddleCard, TeamRiddleStrip } from "./WeekTiles";
+import { TeamRiddleCard } from "./WeekTiles";
+import { RiddlesPanel } from "./RiddlesPanel";
 import { SwapTimer } from "./SwapTimer";
 import { useNavigate } from "react-router-dom";
 import { ACTIONABLE } from "@/hooks/useMe";
@@ -19,12 +20,56 @@ const LEVELS = {
   Hard: { icon: Brain, colorClass: "text-destructive" },
 } as const;
 
+/** A random spot to drift to: a little zoomed in, nudged a few percent in any direction */
+const drift = () => {
+  const scale = 1.08 + Math.random() * 0.16;
+  const room = ((scale - 1) / 2) * 100 * 0.9; // stay inside the photo's edges
+  const x = (Math.random() * 2 - 1) * room;
+  const y = (Math.random() * 2 - 1) * room;
+  return `translate(${x.toFixed(1)}%, ${y.toFixed(1)}%) scale(${scale.toFixed(3)})`;
+};
+
+/**
+ * Slow, random camera moves over a still photo (a Ken Burns effect): it zooms in and drifts
+ * somewhere new, again and again, so the GeoGuessr tile feels alive. Each photo moves on its own.
+ */
+function useKenBurns() {
+  const ref = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let from = "translate(0%, 0%) scale(1.04)";
+    let anim: Animation | undefined;
+    let stopped = false;
+    const step = () => {
+      if (stopped) return;
+      const to = drift();
+      anim = el.animate([{ transform: from }, { transform: to }], {
+        duration: 9000 + Math.random() * 5000,
+        easing: "cubic-bezier(0.45, 0, 0.55, 1)",
+        fill: "forwards",
+      });
+      from = to;
+      anim.onfinish = step;
+    };
+    // The two photos start out of step, so they never move together
+    const t = setTimeout(step, Math.random() * 1500);
+    return () => {
+      stopped = true;
+      clearTimeout(t);
+      anim?.cancel();
+    };
+  }, []);
+  return ref;
+}
+
 function GeoPhoto({ location, level }: { location: NonNullable<ActiveLocation>; level: keyof typeof LEVELS }) {
   const { icon: Icon, colorClass } = LEVELS[level];
+  const img = useKenBurns();
   return (
     <div className="relative min-w-0 min-h-0 overflow-hidden rounded-[clamp(8px,0.6vw,12px)] bg-secondary">
-      <img src={location.pano_id!} alt={`${level} GeoGuessr location`} className="absolute inset-0 h-full w-full object-cover" />
-      <span className="absolute left-[clamp(6px,0.5vw,10px)] top-[clamp(6px,0.5vw,10px)] flex items-center gap-1 rounded-full bg-background px-[clamp(8px,0.6vw,12px)] py-[clamp(2px,0.2vw,4px)] text-[clamp(11px,0.8vw,16px)] font-semibold text-foreground shadow-sm">
+      <img ref={img} src={location.pano_id!} alt={`${level} GeoGuessr location`} className="absolute inset-0 h-full w-full object-cover will-change-transform" />
+      <span className="absolute left-[clamp(6px,0.5vw,10px)] top-[clamp(6px,0.5vw,10px)] z-[1] flex items-center gap-1 rounded-full bg-background px-[clamp(8px,0.6vw,12px)] py-[clamp(2px,0.2vw,4px)] text-[clamp(11px,0.8vw,16px)] font-semibold text-foreground shadow-sm">
         <Icon className={`h-[clamp(12px,0.9vw,18px)] w-[clamp(12px,0.9vw,18px)] ${colorClass}`} />
         {level}
       </span>
@@ -101,62 +146,10 @@ function RiddleCard({ fillHeight }: { fillHeight: boolean }) {
   );
 }
 
-/** Both riddles side by side: today's riddle on the left, the team riddle of the week on the right. */
-function RiddlesCard() {
-  const { activeRound } = useRounds();
-  const roundId = activeRound?.id;
-  const riddle = RIDDLES[dateSeed(`${roundId ?? todayDate()}-riddle`) % RIDDLES.length];
-  const { data: scores = [] } = useMinigameLeaderboardRound("riddle", roundId);
-  const { right, wrong } = useMemo(() => {
-    const byPlayer = new Map<string, boolean>();
-    for (const s of scores) byPlayer.set(s.player_name, (byPlayer.get(s.player_name) ?? false) || s.score > 0);
-    const v = [...byPlayer.values()];
-    return { right: v.filter(Boolean).length, wrong: v.filter((x) => !x).length };
-  }, [scores]);
-  const total = right + wrong;
-  const navigate = useNavigate();
-
-  return (
-    <Card className="h-full min-h-0 grid grid-cols-2 gap-[clamp(11px,0.95vw,22px)] p-[clamp(11px,0.95vw,22px)] animate-in fade-in duration-700">
-      {/* Riddle of the day */}
-      <div onClick={() => navigate("/play?game=riddle")} className={`-m-[clamp(4px,0.4vw,8px)] flex min-h-0 min-w-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-lg p-[clamp(4px,0.4vw,8px)] ${ACTIONABLE}`}>
-        <span className="tile-label">🧩 Riddle of the day</span>
-        <div className="flex min-h-0 flex-1 items-center">
-          <p className="font-semibold tracking-tight leading-[1.15] text-balance line-clamp-3 text-[clamp(16px,1.35vw,30px)]">{riddle.question}</p>
-        </div>
-        {total > 0 ? (
-          <div className="space-y-[clamp(4px,0.35vw,7px)]">
-            <div className="flex h-[clamp(6px,0.45vw,9px)] overflow-hidden rounded-full bg-secondary">
-              <div className="h-full bg-green-600 transition-[width] duration-700" style={{ width: `${(right / total) * 100}%` }} />
-              {wrong > 0 && <div className="h-full flex-1 bg-destructive/70" />}
-            </div>
-            <div className="flex justify-between tabular-nums text-[clamp(11px,0.8vw,16px)]">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="h-[1em] w-[1em] text-green-600" /> {right} got it
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground">
-                {wrong} didn&rsquo;t <XCircle className="h-[1em] w-[1em] text-destructive" />
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Nobody has cracked it yet</p>
-        )}
-      </div>
-      {/* Team riddle of the week */}
-      <div className="flex min-h-0 min-w-0 flex-col justify-center border-l border-border/70 pl-[clamp(10px,0.9vw,20px)]">
-        <div onClick={() => navigate("/play?game=team_riddle")} className={`rounded-lg p-[clamp(4px,0.4vw,8px)] ${ACTIONABLE}`}>
-          <TeamRiddleStrip bare />
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 const SWITCH_EVERY_MS = 60_000;
 
 /**
- * Bottom of the Play zone: one tile that moves on every minute, both riddles → GeoGuessr photos.
+ * Bottom of the Play zone: one tile that moves on every minute, both riddles → GeoGuessr photos (slowly panning).
  * ?geo in the address starts on the photos.
  */
 export function PlaySideTile() {
@@ -176,7 +169,7 @@ export function PlaySideTile() {
           <GeoCard easy={easy} hard={hard} fillHeight />
         </div>
       ) : (
-        <RiddlesCard />
+        <RiddlesPanel />
       )}
       {/* Only when there's something to switch to */}
       {hasGeo && <SwapTimer durationMs={SWITCH_EVERY_MS} cycleKey={slot} />}
