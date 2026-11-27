@@ -26,6 +26,7 @@ import { useDeviceId } from "@/hooks/useDeviceId";
 import { usePresenceTrack } from "@/hooks/usePresenceCount";
 import { useTvFeatureMode, useTvFlowFullscreen } from "@/hooks/useGameIcons";
 import { HandArrow } from "@/components/Squiggles";
+import { GrainSilk } from "@/components/dashboard/GrainSilk";
 
 /** Moving background + frosted tiles. ?noglass in the address turns them off. */
 const GLASS = typeof window === "undefined" || !new URLSearchParams(window.location.search).has("noglass");
@@ -257,12 +258,16 @@ function DashboardContent() {
   return (
     <div className={`tv-2027 ${GLASS ? "tv-glass" : ""} relative min-h-[100dvh] lg:h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden bg-background text-foreground`}>
       {GLASS && (
-        <div className="tv-backdrop" aria-hidden>
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
+        <>
+          {/* Soft colour fields: shown if the grain silk can't run on this screen */}
+          <div className="tv-backdrop" aria-hidden>
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+          <GrainSilk />
+        </>
       )}
       <div className="relative z-[1] h-full w-full p-2 lg:p-[clamp(16px,1.4vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_auto_1fr] gap-3 lg:gap-[clamp(8px,0.7vw,14px)]">
