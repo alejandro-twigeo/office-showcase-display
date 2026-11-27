@@ -19,7 +19,8 @@ interface DayStat {
 interface PersonRow {
   name: string;
   avatar: string;
-  detail: string;
+  office: string | null;
+  department: string | null;
   days: number;
   games: number;
   lastSeen: string | null;
@@ -131,28 +132,30 @@ export function UsageAnalytics() {
         db.rpc('admin_roster'),
       ]);
       setRosterOk(!roster.error);
-      const OFFICE: Record<string, string> = { Sweden: 'Stockholm', US: 'New York', Bulgaria: 'Varna' };
       const rowFor = (p: { name: string; avatar?: string | null; office?: string | null; department?: string | null }): PersonRow => {
         const days = daysByPerson.get(p.name);
         return {
           name: p.name,
           avatar: p.avatar ?? '👤',
-          detail: [p.department, p.office ? OFFICE[p.office] ?? p.office : null].filter(Boolean).join(' · '),
+          office: p.office ?? null,
+          department: p.department ?? null,
           days: days?.size ?? 0,
           games: gamesByPerson.get(p.name) ?? 0,
           lastSeen: days ? [...days].sort().at(-1) ?? null : null,
         };
       };
       const everyone = ((players ?? []) as { name: string; avatar: string | null; office: string | null; department: string | null }[]).map(rowFor);
-      setActive(everyone.filter((r) => r.days > 0).sort((a, b) => b.days - a.days || b.games - a.games || a.name.localeCompare(b.name)));
+      setActive(everyone.filter((r) => r.days > 0).sort((a, b) => a.name.localeCompare(b.name)));
       setNotSeen(everyone.filter((r) => r.days === 0).sort((a, b) => a.name.localeCompare(b.name)));
       setNeverJoined(
         ((roster.data ?? []) as { full_name: string; department: string; office: string | null; player_name: string | null }[])
           .filter((r) => !r.player_name)
+          .sort((a, b) => a.full_name.localeCompare(b.full_name))
           .map((r) => ({
             name: r.full_name,
             avatar: '·',
-            detail: [r.department, r.office ? OFFICE[r.office] ?? r.office : null].filter(Boolean).join(' · '),
+            office: r.office,
+            department: r.department,
             days: 0,
             games: 0,
             lastSeen: null,
@@ -356,17 +359,21 @@ export function UsageAnalytics() {
 
             {/* People: who came in this period, who didn't, who never signed up */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">People</p>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">People</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {Object.entries(DEPT_ICON).map(([d, i]) => `${i} ${d}`).join('  ·  ')}
+                </p>
+              </div>
               <PeopleGroup
                 icon={<UserCheck className="h-3.5 w-3.5 text-green-600" />}
                 title={`Active in this period (${active.length})`}
                 rows={active}
-                right={(r) => (
-                  <span className="tabular-nums">
-                    {r.days} {r.days === 1 ? 'day' : 'days'} · {r.games} {r.games === 1 ? 'game' : 'games'}
-                    <span className="text-muted-foreground"> · last {r.lastSeen ? format(new Date(r.lastSeen + 'T12:00:00'), 'd/M') : '–'}</span>
-                  </span>
-                )}
+                stats={(r) =>
+                  `${r.days} ${r.days === 1 ? 'day' : 'days'} · ${r.games} ${r.games === 1 ? 'game' : 'games'} · last ${
+                    r.lastSeen ? format(new Date(r.lastSeen + 'T12:00:00'), 'd/M') : '–'
+                  }`
+                }
               />
               <PeopleGroup
                 icon={<UserMinus className="h-3.5 w-3.5 text-amber-600" />}
@@ -426,44 +433,54 @@ export function UsageAnalytics() {
   );
 }
 
-/** A small labelled list of people */
+const FLAG: Record<string, string> = { Sweden: '🇸🇪', US: '🇺🇸', Bulgaria: '🇧🇬' };
+const CITY: Record<string, string> = { Sweden: 'Stockholm', US: 'New York', Bulgaria: 'Varna' };
+const DEPT_ICON: Record<string, string> = { Analytics: '📊', Business: '💼', Creative: '🎨', 'People & Culture': '🤝' };
+
+/** A labelled group of people as compact chips in as many columns as fit, alphabetical */
 function PeopleGroup({
   icon,
   title,
   rows,
-  right,
+  stats,
   muted = false,
 }: {
   icon: React.ReactNode;
   title: string;
   rows: PersonRow[];
-  right?: (r: PersonRow) => React.ReactNode;
+  stats?: (r: PersonRow) => string;
   muted?: boolean;
 }) {
-  if (rows.length === 0) {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {icon} {title}
-      </div>
-    );
-  }
   return (
-    <div className="space-y-1">
-      <p className="flex items-center gap-1.5 text-xs font-medium">
+    <div className="space-y-1.5">
+      <p className={`flex items-center gap-1.5 text-xs ${rows.length ? 'font-medium' : 'text-muted-foreground'}`}>
         {icon} {title}
       </p>
-      <div className="divide-y rounded-lg border">
-        {rows.map((r) => (
-          <div key={r.name} className={`flex items-center gap-2 px-2.5 py-1.5 text-xs ${muted ? 'text-muted-foreground' : ''}`}>
-            <span className="w-5 text-center text-base leading-none">{r.avatar}</span>
-            <span className="min-w-0 flex-1">
-              <span className="font-medium">{r.name}</span>
-              {r.detail && <span className="ml-1.5 text-muted-foreground">{r.detail}</span>}
-            </span>
-            {right && <span className="shrink-0 text-right">{right(r)}</span>}
-          </div>
-        ))}
-      </div>
+      {rows.length > 0 && (
+        <div
+          className="grid gap-1.5"
+          // The active group carries stats, so its chips need more room
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${stats ? 230 : 170}px, 1fr))` }}
+        >
+          {rows.map((r) => (
+            <div
+              key={r.name}
+              title={[r.name, r.department, r.office ? CITY[r.office] ?? r.office : null, stats?.(r)].filter(Boolean).join(' · ')}
+              className={`flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs ${muted ? 'bg-transparent text-muted-foreground' : 'bg-secondary/20'}`}
+            >
+              <span className="shrink-0 text-sm leading-none">{r.avatar}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{r.name}</span>
+                {stats && <span className="block truncate text-[10px] text-muted-foreground tabular-nums">{stats(r)}</span>}
+              </span>
+              <span className="shrink-0 text-[11px] leading-none">
+                {r.department ? DEPT_ICON[r.department] ?? '' : ''}
+                {r.office ? FLAG[r.office] ?? '' : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
