@@ -73,7 +73,7 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * The three zones. Every section has a fixed home. Tiles are as tall as their content,
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then both riddles / GeoGuessr photos
- *  - Together (the widest column): now playing (compact, or a 16:9 video with the queue under it), then kudos (fills)
+ *  - Together (a little wider than the others): now playing (compact, or a 16:9 video with the queue under it), then kudos (fills)
  *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll (news is a chat topic now),
  *    and the office chat filling the rest. Every tile keeps its place, chat or no chat.
  */
@@ -91,8 +91,9 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   // The chat always has its home at the bottom of This week (quiet or not), so nothing moves around
   const { messages: chat, now, post: postChat } = useChat();
 
+  // Columns are fixed shares (minmax(0, …)), so nothing inside can push one wider than its share
   return (
-    <div className={desktop ? "h-full min-h-0 grid grid-cols-[3.8fr_4.8fr_3.4fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[3.8fr_4.8fr_3.4fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
+    <div className={desktop ? "h-full min-h-0 grid grid-cols-[minmax(0,3.9fr)_minmax(0,4.7fr)_minmax(0,3.4fr)] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[minmax(0,3.9fr)_minmax(0,4.7fr)_minmax(0,3.4fr)] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
       {/* Play */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <div className={`${tile} flex-[3.2]`}>
