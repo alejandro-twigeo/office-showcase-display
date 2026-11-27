@@ -96,10 +96,7 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
 
   return (
     <Card className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700 ${ranking ? "" : "justify-between"}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="tile-label">This week</span>
-        <span className="tile-label">Resets Monday</span>
-      </div>
+      <span className="tile-label">This week</span>
 
       {/* Champion */}
       <div key={leader ?? "none"} className="flex items-center gap-[clamp(10px,0.8vw,16px)] animate-in fade-in slide-in-from-bottom-2 duration-700">

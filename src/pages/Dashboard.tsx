@@ -64,15 +64,6 @@ export default function Dashboard() {
   );
 }
 
-/** Small zone heading above each column, so people learn where things live */
-function ZoneLabel({ children }: { children: string }) {
-  return (
-    <p className="hidden lg:block px-1 font-semibold uppercase tracking-[0.12em] text-muted-foreground/80 text-[clamp(10px,0.7vw,14px)] -mb-[clamp(4px,0.4vw,8px)]">
-      {children}
-    </p>
-  );
-}
-
 const POLL_NEWS_SWAP_MS = 45_000;
 
 /** The poll and today's news take turns in one slot (just the poll when there's no news). */
@@ -132,7 +123,6 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
     <div className={desktop ? "h-full min-h-0 grid grid-cols-[4.2fr_4.4fr_3.4fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[4.2fr_4.4fr_3.4fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
       {/* Play */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
-        <ZoneLabel>Play</ZoneLabel>
         <div className={`${tile} flex-[3.2]`}>
           <GamesTile />
         </div>
@@ -143,7 +133,6 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
 
       {/* Together */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
-        <ZoneLabel>Together</ZoneLabel>
         {/* Compact when nothing plays; with a video it takes most of the column */}
         <div
           className={`${playing ? tile : fit} ${grow} overflow-hidden rounded-xl`}
@@ -158,7 +147,6 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
 
       {/* This week */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
-        <ZoneLabel>This week</ZoneLabel>
         {/* Leader, 2nd and 3rd, and the goal */}
         <div className={fit}>
           <ThisWeekCard compact />
