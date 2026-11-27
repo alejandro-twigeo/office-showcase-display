@@ -46,7 +46,7 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
   }, [a.playsThisWeek]);
 
   return (
-    <Card className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700 ${ranking ? "" : "justify-between"}`}>
+    <Card className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700 ${ranking ? "" : "justify-between"}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="tile-label">This week</span>
         <span className="tile-label">Resets Monday</span>
@@ -203,7 +203,7 @@ export function TeamRiddleCard({ fillHeight }: { fillHeight: boolean }) {
   const first = solvers[0];
 
   return (
-    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700`}>
+    <Card className={`${fillHeight ? "h-full" : "h-[240px] lg:h-full"} min-h-0 flex flex-col p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700`}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="tile-label">Team riddle of the week</span>
         <span className="tile-label">Who or what am I?</span>
