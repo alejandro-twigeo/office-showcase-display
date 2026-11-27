@@ -65,13 +65,15 @@ function LeafletMap({
   onMapClick: (lat: number, lng: number) => void;
   markerPosition: { lat: number; lng: number } | null;
   centerOnMarker?: boolean;
-  /** Shown with the solution: your guesses, joined to the real spot by dashed lines */
+  /** Your earlier guesses: always on the map as numbered pins (a reference for the next try);
+   *  with the solution they're joined to the real spot by dashed lines */
   pastGuesses?: { lat: number; lng: number }[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const overlayRef = useRef<L.LayerGroup | null>(null);
+  const pastRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -93,6 +95,17 @@ function LeafletMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Earlier guesses stay on the map while you keep guessing
+  useEffect(() => {
+    if (!mapRef.current) return;
+    pastRef.current?.remove();
+    pastRef.current = null;
+    if (centerOnMarker || !pastGuesses.length) return; // the solution view draws its own
+    const group = L.layerGroup().addTo(mapRef.current);
+    pastGuesses.forEach((g, i) => L.marker([g.lat, g.lng], { icon: pinIcon("past", i + 1), interactive: false }).addTo(group));
+    pastRef.current = group;
+  }, [pastGuesses, centerOnMarker]);
+
   useEffect(() => {
     if (!mapRef.current) return;
     if (markerPosition) {
@@ -112,7 +125,7 @@ function LeafletMap({
             dashArray: "6 6",
             opacity: 0.85,
           }).addTo(group);
-          L.marker([g.lat, g.lng], { icon: pinIcon("past") }).addTo(group);
+          L.marker([g.lat, g.lng], { icon: pinIcon("past", pastGuesses.indexOf(g) + 1) }).addTo(group);
         });
         if (pastGuesses.length) {
           const bounds = L.latLngBounds([[markerPosition.lat, markerPosition.lng], ...pastGuesses.map((g) => [g.lat, g.lng] as [number, number])]);
@@ -358,7 +371,7 @@ function DifficultyGuessPanel({ difficulty, playerName, settings, onCreateRound,
               onMapClick={canGuess ? handleMapClick : () => {}}
               markerPosition={showLocation ? { lat: activeLocation.lat, lng: activeLocation.lng } : selectedPosition}
               centerOnMarker={showLocation}
-              pastGuesses={showLocation ? pastGuessPoints : undefined}
+              pastGuesses={pastGuessPoints}
             />
             {showLocation && (
               <div className="absolute top-2 left-2 z-[1000] bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-semibold shadow-lg">
