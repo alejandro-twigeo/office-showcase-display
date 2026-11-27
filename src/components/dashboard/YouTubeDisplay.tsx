@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { ListMusic, Volume2, Play } from "lucide-react";
+import { ListMusic, Volume2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ import { parseQueuedBy } from "@/lib/dedication";
 import { useNavigate } from "react-router-dom";
 import { ACTIONABLE, useMe } from "@/hooks/useMe";
 import { QueueAdder } from "./QueueAdder";
+import { QueueStrip } from "./QueueStrip";
+import { NowPlayingIcon } from "./NowPlayingIcon";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -67,25 +69,14 @@ function loadYouTubeAPI(onReady: () => void) {
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
   const { currentVideo, queue, addToQueue, reorderQueue } = useYoutubeQueue();
   const me = useMe();
-  // On a laptop: drag queued songs up and down to change the order
-  const dragFrom = useRef<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
-  const dropAt = (to: number) => {
-    const from = dragFrom.current;
-    dragFrom.current = null;
-    setDragOver(null);
-    if (from === null || from === to) return;
-    const ids = queue.map((q) => q.id);
-    const [moved] = ids.splice(from, 1);
-    ids.splice(to, 0, moved);
-    reorderQueue.mutate(ids);
-  };
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
     onPlayingChange?.(!!currentVideo);
   }, [currentVideo, onPlayingChange]);
   const gameSpotlight = useSpotlight();
   const navigate = useNavigate();
+  const openMusic = () => navigate("/play?tab=music");
+  const addSong = (videoId: string) => me && addToQueue.mutate({ video_id: videoId, queued_by: me });
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const playerReadyRef = useRef(false);
@@ -132,7 +123,8 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     spotlightTimerRef.current = setTimeout(() => setSpotlight(null), 10_000);
   }, [queue]);
   useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
-  const sidebarWidth = queue.length === 0 ? "0px" : spotlight ? "clamp(180px,12vw,270px)" : "clamp(64px,5vw,110px)";
+  // Always at least the slim strip, so the ＋ under the queue is always there
+  const sidebarWidth = spotlight ? "clamp(180px,12vw,270px)" : "clamp(64px,5vw,110px)";
 
   // Next song: the TV isn't logged in, so it uses the database function made for exactly this.
   // The queue updates itself through realtime afterwards.
@@ -298,7 +290,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     <Card className="relative h-full min-h-0 flex flex-col p-[clamp(11px,0.95vw,22px)] gap-[clamp(10px,0.9vw,18px)]">
       {/* The song goes on the same line as "Now playing", so the video gets the room below */}
       <div className="flex min-w-0 items-center gap-[clamp(6px,0.5vw,10px)]">
-        <Play className="h-[clamp(14px,1vw,20px)] w-[clamp(14px,1vw,20px)] shrink-0 fill-primary text-primary" aria-label="Now playing" />
+        <NowPlayingIcon songId={currentVideo?.id} />
         {currentVideo && (
           <span className="min-w-0 truncate text-[clamp(13px,1vw,21px)]">
             <span className="font-semibold">{currentVideo.title}</span>
@@ -314,13 +306,11 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               </span>
             ) : null;
           })()}
-        {/* ＋ : add a song, by search or link (on a laptop; otherwise it opens the Play page) */}
-        <span className="ml-auto" />
-        <QueueAdder
-          me={me}
-          onLogin={() => navigate("/play?tab=music")}
-          onAdd={(videoId) => me && addToQueue.mutate({ video_id: videoId, queued_by: me })}
-        />
+        {/* ＋ on small screens, where the queue strip is hidden; on big ones it sits under the queue */}
+        <span className="ml-auto lg:hidden" />
+        <span className="lg:hidden">
+          <QueueAdder me={me} onLogin={openMusic} onAdd={addSong} />
+        </span>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -373,7 +363,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
             )}
           </div>
 
-          {/* Right — queue. Hidden when empty, big for a moment when someone adds a video, then a slim thumbnail strip */}
+          {/* Right — queue. Big for a moment when someone adds a video, otherwise a slim scrolling strip with the ＋ under it */}
           {queue.length > 0 && (
             <div className="flex lg:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
               <ListMusic className="h-3.5 w-3.5" />
@@ -381,14 +371,11 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               <span className="truncate">— Next: {queue[0]?.title}</span>
             </div>
           )}
-          <div
-            className="hidden lg:flex min-h-0 flex-col overflow-hidden transition-opacity duration-500"
-            style={{ opacity: queue.length ? 1 : 0 }}
-          >
+          <div className="hidden lg:flex min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)] overflow-hidden">
             {spotlight ? (
               <div
                 key={spotlight.id}
-                className="flex h-full min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 p-[clamp(8px,0.7vw,14px)] animate-in fade-in slide-in-from-right-4 duration-500"
+                className="flex min-h-0 flex-1 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 p-[clamp(8px,0.7vw,14px)] animate-in fade-in slide-in-from-right-4 duration-500"
               >
                 <span className="font-semibold text-primary text-[clamp(12px,0.85vw,18px)]">Just added</span>
                 {spotlight.thumbnail_url ? (
@@ -413,39 +400,15 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 )}
               </div>
             ) : (
-              // As many as fit (whole thumbnails only); hover shows the song, and on a laptop you can drag to reorder
-              <div className="flex h-full min-h-0 flex-col flex-wrap content-start gap-[clamp(6px,0.5vw,10px)] overflow-hidden">
-                {queue.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    title={`${idx + 1}. ${item.title}${me ? "  (drag to reorder)" : ""}`}
-                    draggable={!!me}
-                    onDragStart={() => (dragFrom.current = idx)}
-                    onDragOver={(e) => {
-                      if (dragFrom.current === null) return;
-                      e.preventDefault();
-                      setDragOver(idx);
-                    }}
-                    onDragLeave={() => setDragOver((d) => (d === idx ? null : d))}
-                    onDrop={() => dropAt(idx)}
-                    onDragEnd={() => {
-                      dragFrom.current = null;
-                      setDragOver(null);
-                    }}
-                    className={`relative w-full shrink-0 rounded-[clamp(4px,0.4vw,8px)] transition-shadow ${me ? "cursor-grab active:cursor-grabbing" : ""} ${
-                      dragOver === idx ? "shadow-[0_0_0_2px_hsl(var(--primary))]" : ""
-                    }`}
-                  >
-                    {item.thumbnail_url ? (
-                      <img src={item.thumbnail_url} alt={item.title} draggable={false} className="w-full aspect-video rounded-[inherit] object-cover" />
-                    ) : (
-                      <div className="w-full aspect-video rounded-[inherit] bg-secondary" />
-                    )}
-                    <span className="absolute left-[3px] top-[3px] rounded-full bg-background/85 px-[0.4em] text-[clamp(9px,0.6vw,13px)] font-semibold tabular-nums">{idx + 1}</span>
-                  </div>
-                ))}
-              </div>
+              // Scrolls when there are more than fit; on a laptop, drag to reorder
+              <QueueStrip
+                items={queue}
+                canReorder={!!me}
+                onReorder={(ids, onFail) => reorderQueue.mutate(ids, { onError: onFail })}
+              />
             )}
+            {/* ＋ : add a song, by search or link (on a laptop; otherwise it opens the Play page) */}
+            <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
           </div>
         </div>
       </div>

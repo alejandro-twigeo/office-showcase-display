@@ -14,20 +14,37 @@ function videoIdFrom(text: string): string | null {
 /**
  * The ＋ on the TV's Now playing tile. On a laptop it opens a small box to search YouTube or paste
  * a link, the same as on the Play page; not logged in, it sends you to Music on the Play page.
+ * `slot` is the version that sits under the last song in the queue strip.
  */
-export function QueueAdder({ me, onAdd, onLogin }: { me: string | null; onAdd: (videoId: string) => void; onLogin: () => void }) {
+export function QueueAdder({
+  me,
+  onAdd,
+  onLogin,
+  variant = "round",
+}: {
+  me: string | null;
+  onAdd: (videoId: string) => void;
+  onLogin: () => void;
+  variant?: "round" | "slot";
+}) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [added, setAdded] = useState<string | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const search = useYouTubeSearch();
-  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number }>({ top: 0, right: 0 });
 
   const toggle = () => {
     if (!me) return onLogin();
     const r = btn.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    // Opens below the ＋, or above it when it's low on the screen (the box grows with results)
+    if (r)
+      setPos(
+        window.innerHeight - r.bottom > 380
+          ? { top: r.bottom + 8, right: window.innerWidth - r.right }
+          : { bottom: window.innerHeight - r.top + 8, right: window.innerWidth - r.right }
+      );
     setOpen((o) => !o);
     setAdded(null);
   };
@@ -69,17 +86,21 @@ export function QueueAdder({ me, onAdd, onLogin }: { me: string | null; onAdd: (
           e.stopPropagation();
           toggle();
         }}
-        className="flex h-[clamp(24px,1.7vw,36px)] w-[clamp(24px,1.7vw,36px)] shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary transition-colors [@media(hover:hover)]:hover:bg-primary/10"
+        className={
+          variant === "slot"
+            ? `flex h-[clamp(26px,1.9vw,40px)] w-full shrink-0 items-center justify-center rounded-[clamp(4px,0.4vw,8px)] border border-dashed border-primary/35 text-primary transition-colors [@media(hover:hover)]:hover:border-primary/60 [@media(hover:hover)]:hover:bg-primary/[0.06] ${open ? "border-primary/60 bg-primary/[0.06]" : ""}`
+            : "flex h-[clamp(24px,1.7vw,36px)] w-[clamp(24px,1.7vw,36px)] shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary transition-colors [@media(hover:hover)]:hover:bg-primary/10"
+        }
         aria-label="Add a song"
         title={me ? "Add a song" : "Add a song on the Play page"}
       >
-        <Plus className="h-[60%] w-[60%]" />
+        <Plus className={variant === "slot" ? "h-[55%] w-auto" : "h-[60%] w-[60%]"} />
       </button>
       {open &&
         createPortal(
           <div
             ref={box}
-            style={{ top: pos.top, right: pos.right }}
+            style={pos}
             className="tv-2027 fixed z-[80] w-[min(440px,90vw)] space-y-2 rounded-2xl border bg-[hsl(var(--card))] p-3 text-sm shadow-[0_20px_60px_-20px_hsl(var(--foreground)/0.35)] animate-in fade-in zoom-in-95 duration-150"
           >
             <form onSubmit={submit} className="flex gap-2">
