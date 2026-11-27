@@ -7,6 +7,7 @@ import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, see
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock } from 'lucide-react';
+import { GameCelebration } from '../GameCelebration';
 
 const GAME_ID = 'sudoku';
 
@@ -276,6 +277,14 @@ export function SudokuGame({ playerName, roundId }: SudokuGameProps) {
             )}
           </div>
         </div>
+
+        <GameCelebration
+          open={done && finalScore !== null}
+          emoji="🧩"
+          title="Solved!"
+          points={finalScore}
+          details={[`in ${formatTime(elapsed)}`, ...(hintUsed ? [`hint used (−${settings.sudoku_hint_penalty} pts)`] : [])]}
+        />
 
         {done && (
           <div className="text-center py-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
