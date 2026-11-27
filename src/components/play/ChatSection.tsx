@@ -20,8 +20,10 @@ const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
 /**
  * Office chat: one shared conversation, also on the TV. Newest at the bottom, scroll up for
  * the rest. Every message keeps the chat alive; it clears after 2 hours without messages.
+ * `fill`: the chat column on desktop, where the messages take all the height and the box to
+ * write in stays at the bottom.
  */
-export function ChatSection({ playerName }: { playerName: string }) {
+export function ChatSection({ playerName, fill = false }: { playerName: string; fill?: boolean }) {
   const { messages, isLoading, post, remove, now } = useChat();
   const { typing, notify, stop } = useChatTyping(playerName);
   const { data: isAdmin = false } = useIsAdmin();
@@ -82,7 +84,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
   };
 
   return (
-    <Card className="flex flex-col">
+    <Card className={`flex flex-col ${fill ? "h-full min-h-0" : ""}`}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageCircle className="h-4 w-4 text-primary" />
@@ -90,8 +92,8 @@ export function ChatSection({ playerName }: { playerName: string }) {
         </CardTitle>
         <p className="text-xs text-muted-foreground">Everyone at the office, and on the TV. It clears after 2 hours without messages.</p>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div ref={listRef} className="max-h-[55vh] min-h-[160px] space-y-2 overflow-y-auto overscroll-contain rounded-lg border bg-muted/20 p-3">
+      <CardContent className={`space-y-3 ${fill ? "flex min-h-0 flex-1 flex-col [&>*]:shrink-0" : ""}`}>
+        <div ref={listRef} className={`${fill ? "!shrink min-h-0 flex-1" : "max-h-[55vh] min-h-[160px]"} space-y-2 overflow-y-auto overscroll-contain rounded-lg border bg-muted/20 p-3`}>
           {isLoading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
           ) : messages.length === 0 ? (

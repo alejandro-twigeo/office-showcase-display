@@ -1,5 +1,5 @@
 import { PlayerAvatar } from '@/components/PlayerAvatar';
-import { Component, type ReactNode, useState } from 'react';
+import { Component, type ReactNode, useEffect, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { useIsMobile } from '../hooks/use-mobile';
 import { PlayerAuth } from '../components/play/PlayerAuth';
@@ -60,9 +60,23 @@ class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasErr
   }
 }
 
+/** Desktop (lg and up): the chat gets its own column on the right, like on the TV */
+const WIDE = '(min-width: 1024px)';
+function useWide() {
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia(WIDE).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(WIDE);
+    const on = () => setWide(mql.matches);
+    mql.addEventListener('change', on);
+    return () => mql.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
 export default function PlayPage() {
   const { player, isLoading, setup, sendCode, verifyCode, claimProfile, createProfile, logout, updateProfile } = usePlayer();
   const isMobile = useIsMobile();
+  const wide = useWide();
   const navigate = useNavigate();
   const deviceId = useDeviceId();
   const [params] = useSearchParams();
@@ -104,7 +118,9 @@ export default function PlayPage() {
     { value: 'news' as const, icon: Newspaper, label: 'News' },
     { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
     { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
-  ];
+  ].filter((t) => !(wide && t.value === 'chat')); // on desktop the chat is always open on the right
+  // A link to the chat on desktop: the chat is already there, so the left side shows the games
+  const shownTab: TabValue = wide && activeTab === 'chat' ? 'guess' : activeTab;
   const openTab = (value: TabValue) => {
     setActiveTab(value);
     if (value === 'guess') {
@@ -120,7 +136,7 @@ export default function PlayPage() {
 
       {/* Top bar: floating frosted glass, like the TV */}
       <header className="sticky top-0 z-20 px-3 pt-3 sm:px-6">
-        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-full pl-4 pr-1.5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center lg:max-w-[88rem] justify-between gap-3 rounded-full pl-4 pr-1.5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <div className="flex min-w-0 items-center gap-3 lg:justify-self-start">
             <img src={twigeoLogo} alt="Twigeo" className="h-6 w-auto object-contain" />
             <PlantStatus playerName={player.name} compact />
@@ -132,10 +148,10 @@ export default function PlayPage() {
                 type="button"
                 key={value}
                 onClick={() => openTab(value)}
-                aria-current={activeTab === value ? 'page' : undefined}
+                aria-current={shownTab === value ? 'page' : undefined}
                 className="seg-tab h-9 px-3.5 text-sm"
               >
-                <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary' : ''}`} />
+                <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'fill-primary' : ''}`} />
                 {label}
               </button>
             ))}
@@ -178,7 +194,9 @@ export default function PlayPage() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-[75rem] px-3 pb-10 pt-5 sm:px-6">
+      {/* Desktop: games, polls, music, news and kudos on the left (about 3/4), the chat always open on the right */}
+      <main className="mx-auto max-w-[75rem] px-3 pb-10 pt-5 sm:px-6 lg:grid lg:max-w-[88rem] lg:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)] lg:items-start lg:gap-5">
+        <div className="min-w-0">
         {/* Tablets: the tabs sit under the bar */}
         <nav className="glass-bar mb-4 grid grid-cols-6 gap-0.5 rounded-full p-1 lg:hidden">
           {tabs.map(({ value, icon: Icon, label }) => (
@@ -186,10 +204,10 @@ export default function PlayPage() {
               type="button"
               key={value}
               onClick={() => openTab(value)}
-              aria-current={activeTab === value ? 'page' : undefined}
+              aria-current={shownTab === value ? 'page' : undefined}
               className="seg-tab h-9 px-2 text-sm"
             >
-              <Icon className={`h-4 w-4 ${value === 'vibes' && activeTab === 'vibes' ? 'fill-primary' : ''}`} />
+              <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'fill-primary' : ''}`} />
               <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
@@ -197,19 +215,29 @@ export default function PlayPage() {
 
         {/* Tab content */}
         <DesktopSectionBoundary>
-          {activeTab === 'guess' && (
+          {shownTab === 'guess' && (
             <div className="space-y-4">
               <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
                 setGamesSubTab(tab);
               }} forcedTab={gamesSubTab} resetKey={gamesResetKey} initialGame={linkedGame && linkedGame !== 'geoguessr' ? linkedGame : null} />
             </div>
           )}
-          {activeTab === 'polls' && <PollSection playerName={player.name} />}
-          {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
-          {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
-          {activeTab === 'news' && <NewsSection />}
-          {activeTab === 'chat' && <ChatSection playerName={player.name} />}
+          {shownTab === 'polls' && <PollSection playerName={player.name} />}
+          {shownTab === 'youtube' && <YouTubeSection playerName={player.name} />}
+          {shownTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
+          {shownTab === 'news' && <NewsSection />}
+          {shownTab === 'chat' && <ChatSection playerName={player.name} />}
         </DesktopSectionBoundary>
+        </div>
+
+        {/* The chat column: stays in view while the left side scrolls, the box to write in always at the bottom */}
+        {wide && (
+          <aside className="sticky top-[5.5rem] h-[calc(100vh-6.75rem)] min-h-[420px]">
+            <DesktopSectionBoundary>
+              <ChatSection playerName={player.name} fill />
+            </DesktopSectionBoundary>
+          </aside>
+        )}
       </main>
 
       {/* Profile editor dialog */}
