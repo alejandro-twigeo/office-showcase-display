@@ -196,7 +196,7 @@ export function KudosTile() {
   const react = (kudosId: string) => (emoji: string) => (me ? toggle.mutate({ kudosId, emoji }) : openKudos());
 
   return (
-    <Card onClick={openKudos} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] ${ACTIONABLE}`}>
+    <Card onClick={openKudos} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${ACTIONABLE}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="tile-label flex items-center gap-[0.4em]">
           <HandHeart key={latest?.id ?? "none"} className="h-[1.15em] w-auto" />
