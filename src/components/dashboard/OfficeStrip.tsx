@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HandCircle } from "@/components/Squiggles";
 import { useQuery } from "@tanstack/react-query";
 import { useOfficeActivity, OFFICES } from "@/hooks/useOfficeActivity";
 import { CountUp } from "@/components/ui/count-up";
@@ -74,9 +75,7 @@ export function OfficeStrip() {
         return (
           <div
             key={office}
-            className={`flex min-w-0 items-center gap-[clamp(8px,0.7vw,14px)] rounded-[clamp(12px,1vw,20px)] bg-[hsl(var(--card))] px-[clamp(10px,0.9vw,18px)] py-[clamp(6px,0.5vw,10px)] transition-shadow duration-500 ${
-              leading ? "shadow-[0_0_0_2px_hsl(var(--primary)/0.5)]" : ""
-            }`}
+            className="glass flex min-w-0 items-center gap-[clamp(8px,0.7vw,14px)] rounded-[clamp(12px,1vw,20px)] bg-[hsl(var(--card))] px-[clamp(10px,0.9vw,18px)] py-[clamp(6px,0.5vw,10px)]"
           >
             <span className="leading-none text-[clamp(20px,1.6vw,34px)]">{info.flag}</span>
             <div className="min-w-0 leading-tight">
@@ -87,7 +86,13 @@ export function OfficeStrip() {
               </p>
             </div>
             <div className="ml-[clamp(4px,0.4vw,8px)] text-right leading-tight">
-              <p className="font-bold tabular-nums text-primary text-[clamp(15px,1.1vw,24px)]"><CountUp value={points} /></p>
+              <p className="font-bold tabular-nums text-primary text-[clamp(15px,1.1vw,24px)]">
+                {/* The leading office gets a hand-drawn ring around its points */}
+                <span className="relative inline-block">
+                  <CountUp value={points} />
+                  {leading && <HandCircle key={office} className="absolute -left-[45%] -top-[38%] h-[176%] w-[190%]" />}
+                </span>
+              </p>
               <p className="whitespace-nowrap text-muted-foreground text-[clamp(10px,0.68vw,14px)]">{rank > 0 ? `${ordinal(rank)} this week` : "this week"}</p>
             </div>
           </div>
