@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +38,7 @@ function Tag({ name, known, avatar, big = false }: { name: string; known: boolea
         known ? "bg-primary/15 text-foreground" : "outline outline-1 outline-dashed outline-foreground/35 text-foreground"
       } ${big ? "" : ""}`}
     >
-      {known && avatar ? <span className="mr-[0.2em]">{avatar}</span> : null}
+      {known ? <PlayerAvatar avatar={avatar} name={name} size="1.3em" tv still className="mr-[0.2em]" /> : null}
       {name}
     </span>
   );
@@ -103,7 +104,7 @@ function KudosCelebration({ msg, avatars, playerNames }: { msg: PositiveMessage;
       <div className="relative mx-[6vw] max-w-[60vw] rounded-[clamp(18px,1.6vw,32px)] bg-[hsl(var(--card))] px-[clamp(28px,3vw,64px)] py-[clamp(24px,2.6vw,56px)] text-center shadow-[0_24px_80px_-24px_hsl(var(--foreground)/0.35)] animate-in zoom-in-90 fade-in duration-500">
         <p className="tile-label">Kudos 🎉</p>
         <h2 className="mt-[clamp(6px,0.6vw,12px)] font-semibold tracking-tight leading-[1.05] text-[clamp(32px,3.6vw,80px)]">
-          {tagged.length && avatars.get(tagged[0].name) ? <span className="mr-[0.2em]">{avatars.get(tagged[0].name)}</span> : null}
+          {tagged.length ? <PlayerAvatar avatar={avatars.get(tagged[0].name)} name={tagged[0].name} size="1.2em" tv state="working" className="mr-[0.2em]" /> : null}
           {headline}
         </h2>
         <p className="mx-auto mt-[clamp(10px,1vw,20px)] max-w-[40ch] leading-snug text-[clamp(18px,1.6vw,34px)]">
@@ -214,7 +215,7 @@ export function KudosTile() {
             {/* Who sent it and the reactions share one line, so they still fit when the tile is short */}
             <div className="mt-[clamp(4px,0.4vw,8px)] flex flex-wrap items-center gap-x-[clamp(8px,0.7vw,14px)] gap-y-1">
               <span className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
-                {latest.created_by && <>from {avatars.get(latest.created_by) ?? ""} {latest.created_by} · </>}
+                {latest.created_by && <>from <PlayerAvatar avatar={avatars.get(latest.created_by)} name={latest.created_by} size="1.3em" tv still /> {latest.created_by} · </>}
                 {ago(latest.created_at)}
               </span>
               <ReactionBar size="tv" reactions={forKudos(latest.id)} onReact={react(latest.id)} />
