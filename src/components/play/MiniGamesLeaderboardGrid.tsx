@@ -1,7 +1,7 @@
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Medal, ChevronLeft, ChevronRight, Swords, ArrowRight } from 'lucide-react';
 import { dateFromIso, dedupeMinigameScores, todayDate, type MinigameScoreRow } from '@/hooks/useMinigameScore';
 import { MINI_GAMES } from './miniGamesList';
 import { calculateScore, calculateWordleScore, useScoring } from '@/hooks/useScoring';
@@ -20,6 +20,16 @@ interface GeoGuess {
   player_name: string;
   distance_km: number;
   guess_number: number | null;
+}
+
+/** A challenge sent that round: who, whom, which game, and how it went */
+interface RoundChallenge {
+  key: string;
+  from: string;
+  to: string;
+  game: string;
+  target: number;
+  answer: number | null;
 }
 
 interface WordlePlayer extends TopPlayer {
@@ -45,7 +55,7 @@ function usePlayersAllGames(selectedRound: Round | null, distanceSettings: Retur
       JSON.stringify(distanceSettings.difficulty_weights),
     ],
     queryFn: async () => {
-      if (!selectedRound?.id) return new Map<string, TopPlayer[]>();
+      if (!selectedRound?.id) return { byGame: new Map<string, TopPlayer[]>(), challenges: [] as RoundChallenge[], avatars: new Map<string, string>() };
 
       const { data: rawScores } = await supabase
         .from('minigame_scores')
@@ -65,6 +75,10 @@ function usePlayersAllGames(selectedRound: Round | null, distanceSettings: Retur
         if (!rawScoresByGame.has(score.game_id)) rawScoresByGame.set(score.game_id, []);
         rawScoresByGame.get(score.game_id)!.push(score);
       }
+
+      // Challenges are saved as rows too ("Ana>Ben>wordle"); they get their own card, not a leaderboard
+      const challengeRows = rawScoresByGame.get('challenge') ?? [];
+      rawScoresByGame.delete('challenge');
 
       for (const [gameId, gameScores] of rawScoresByGame.entries()) {
         byGame.set(gameId, dedupeMinigameScores(gameScores).map((score) => ({
@@ -158,7 +172,17 @@ function usePlayersAllGames(selectedRound: Round | null, distanceSettings: Retur
         }
       }
 
-      return byGame;
+      // How each challenge went: the challenged player's score in that game this round
+      const challenges: RoundChallenge[] = challengeRows
+        .filter((r) => r.meta?.from && r.meta?.to && r.meta?.game)
+        .map((r) => {
+          const game = r.meta.game === 'geo' ? 'geoguessr' : r.meta.game;
+          const theirs = byGame.get(game)?.find((p) => p.player_name === r.meta.to);
+          return { key: r.player_name, from: r.meta.from, to: r.meta.to, game, target: Number(r.meta.target) || 0, answer: theirs ? theirs.score : null };
+        })
+        .sort((a, b) => b.key.localeCompare(a.key));
+
+      return { byGame, challenges, avatars: avatarMap as Map<string, string> };
     },
     refetchInterval: 30000,
   });
@@ -197,8 +221,9 @@ export function MiniGamesLeaderboardGrid() {
 
   if (isLoading || isLoadingRounds) return null;
 
-  const games = gameData ? [...gameData.entries()].filter(([, players]) => players.length > 0) : [];
-  if (games.length === 0) return null;
+  const games = gameData ? [...gameData.byGame.entries()].filter(([, players]) => players.length > 0) : [];
+  const challenges = gameData?.challenges ?? [];
+  if (games.length === 0 && challenges.length === 0) return null;
 
   const canGoPrev = roundIdx < sortedRounds.length - 1;
   const canGoNext = roundIdx > 0;
@@ -228,7 +253,7 @@ export function MiniGamesLeaderboardGrid() {
           return (
             <div
               key={gameId}
-              className="rounded-xl border bg-secondary/20 p-3 sm:p-2.5 space-y-2 sm:space-y-1.5 min-w-0"
+              className="glass-panel rounded-2xl p-3 sm:p-2.5 space-y-2 sm:space-y-1.5 min-w-0"
             >
               <p className="text-sm sm:text-xs font-semibold truncate">
                 {label.emoji} {label.name}
@@ -259,6 +284,35 @@ export function MiniGamesLeaderboardGrid() {
           );
         })}
       </div>
+
+      {challenges.length > 0 && (
+        <div className="glass-panel mt-2 space-y-1.5 rounded-2xl p-3 sm:p-2.5">
+          <p className="flex items-center gap-1.5 text-sm font-semibold sm:text-xs">
+            <Swords className="h-3.5 w-3.5 text-primary" /> Challenges
+          </p>
+          {challenges.map((c) => {
+            const status = c.answer === null ? 'open' : c.answer > c.target ? 'beaten' : 'held';
+            return (
+              <div key={c.key} className="flex min-w-0 items-center gap-1.5 text-sm sm:text-xs">
+                <PlayerAvatar avatar={gameData?.avatars.get(c.from)} name={c.from} size="1.7em" />
+                <span className="truncate font-medium">{c.from}</span>
+                <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <PlayerAvatar avatar={gameData?.avatars.get(c.to)} name={c.to} size="1.7em" />
+                <span className="truncate font-medium">{c.to}</span>
+                <span className="hidden truncate text-muted-foreground sm:inline">· {GAME_LABELS[c.game]?.name ?? c.game}</span>
+                <span
+                  className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold tabular-nums ${
+                    status === 'beaten' ? 'bg-green-600/15 text-green-700' : status === 'held' ? 'bg-primary/15 text-primary' : 'bg-foreground/[0.06] text-muted-foreground'
+                  }`}
+                  title={`${GAME_LABELS[c.game]?.name ?? c.game}: beat ${c.target}`}
+                >
+                  {status === 'open' ? `Beat ${c.target}` : status === 'beaten' ? `${c.to.split(' ')[0]} won · ${c.answer}` : `${c.from.split(' ')[0]} held · ${c.target}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

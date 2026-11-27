@@ -42,8 +42,9 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
+/** Music opens on Live Share (the office queue); My Music is one tap away */
 function getModeFromStorage(): MusicMode {
-  return (localStorage.getItem("music-mode") as MusicMode) || "private";
+  return "live";
 }
 
 export function YouTubeSection({ playerName }: YouTubeSectionProps) {
@@ -250,17 +251,6 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
         {/* Mode toggle */}
         <div className="flex gap-1 p-1 rounded-lg bg-muted">
           <button
-            onClick={() => switchMode("private")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-              mode === "private"
-                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Headphones className="h-4 w-4" />
-            My Music
-          </button>
-          <button
             onClick={() => switchMode("live")}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
               mode === "live"
@@ -270,6 +260,17 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
           >
             <Radio className="h-4 w-4" />
             Live Share
+          </button>
+          <button
+            onClick={() => switchMode("private")}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+              mode === "private"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Headphones className="h-4 w-4" />
+            My Music
           </button>
         </div>
 

@@ -1,11 +1,11 @@
 import { Component, type ReactNode, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { usePolls } from '@/hooks/usePolls';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { BarChart3, Vote, Settings } from 'lucide-react';
 import { PollVoteCard } from './PollVoteCard';
 import { PollManagement } from './PollManagement';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PollSectionProps {
   playerName: string;
@@ -54,6 +54,54 @@ export function PollSection({ playerName }: PollSectionProps) {
   const deviceId = useDeviceId();
   const { activePolls } = usePolls();
   const [tab, setTab] = useState<'vote' | 'manage'>('vote');
+  const isMobile = useIsMobile();
+
+  const voting = (
+    <PollPaneBoundary>
+      {activePolls.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No active polls right now. {isMobile ? 'Create one in Manage.' : 'Create one below.'}
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {activePolls.map((poll) => (
+            <PollVoteCard key={poll.id} poll={poll} deviceId={deviceId} playerName={playerName} />
+          ))}
+        </div>
+      )}
+    </PollPaneBoundary>
+  );
+  const managing = (
+    <PollPaneBoundary>
+      <PollManagement playerName={playerName} />
+    </PollPaneBoundary>
+  );
+
+  // Desktop has room for both: vote first, then create and manage underneath
+  if (!isMobile) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Vote className="h-5 w-5 text-primary" />
+              Vote
+            </CardTitle>
+          </CardHeader>
+          <CardContent>{voting}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Settings className="h-5 w-5 text-primary" />
+              Create and manage polls
+            </CardTitle>
+          </CardHeader>
+          <CardContent>{managing}</CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -64,55 +112,17 @@ export function PollSection({ playerName }: PollSectionProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-1 mb-4 bg-muted p-1 rounded-lg">
-          <button
-            onClick={() => setTab('vote')}
-            className={`flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              tab === 'vote'
-                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
+        <div className="mb-4 grid grid-cols-2 gap-0.5 rounded-full bg-foreground/[0.05] p-1">
+          <button onClick={() => setTab('vote')} aria-current={tab === 'vote' ? 'page' : undefined} className="seg-tab h-9 text-sm">
             <Vote className="h-4 w-4" />
             Vote
           </button>
-          <button
-            onClick={() => setTab('manage')}
-            className={`flex items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
-              tab === 'manage'
-                ? 'bg-background text-foreground shadow-sm ring-1 ring-border/50'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
+          <button onClick={() => setTab('manage')} aria-current={tab === 'manage' ? 'page' : undefined} className="seg-tab h-9 text-sm">
             <Settings className="h-4 w-4" />
             Manage
           </button>
         </div>
-
-        {tab === 'vote' ? (
-          <PollPaneBoundary>
-            {activePolls.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4 text-sm">
-                No active polls. Create one in Manage tab!
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {activePolls.map((poll) => (
-                  <PollVoteCard
-                    key={poll.id}
-                    poll={poll}
-                    deviceId={deviceId}
-                    playerName={playerName}
-                  />
-                ))}
-              </div>
-            )}
-          </PollPaneBoundary>
-        ) : (
-          <PollPaneBoundary>
-            <PollManagement playerName={playerName} />
-          </PollPaneBoundary>
-        )}
+        {tab === 'vote' ? voting : managing}
       </CardContent>
     </Card>
   );
