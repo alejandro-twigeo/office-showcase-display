@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, TrendingUp, Gamepad2, CalendarIcon } from 'lucide-react';
+import { Users, TrendingUp, Gamepad2, CalendarIcon, UserCheck, UserMinus, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DayStat {
@@ -13,6 +13,16 @@ interface DayStat {
   uniqueVisitors: number;
   totalVisits: number;
   playerNames: string[];
+}
+
+/** One person in the People list */
+interface PersonRow {
+  name: string;
+  avatar: string;
+  detail: string;
+  days: number;
+  games: number;
+  lastSeen: string | null;
 }
 
 interface GameStat {
@@ -26,6 +36,11 @@ export function UsageAnalytics() {
   const [totalDailyUniques, setTotalDailyUniques] = useState(0);
   const [distinctPersons, setDistinctPersons] = useState(0);
   const [loading, setLoading] = useState(true);
+  // Who came, who didn't, and who never signed up
+  const [active, setActive] = useState<PersonRow[]>([]);
+  const [notSeen, setNotSeen] = useState<PersonRow[]>([]);
+  const [neverJoined, setNeverJoined] = useState<PersonRow[]>([]);
+  const [rosterOk, setRosterOk] = useState(true);
 
   const [fromDate, setFromDate] = useState<Date>(() => {
     const d = new Date();
@@ -81,19 +96,68 @@ export function UsageAnalytics() {
       // Build visitor map from visit_logs
       const byDate = new Map<string, Set<string>>();
       const allUsers = new Set<string>();
+      const daysByPerson = new Map<string, Set<string>>();
       const addVisitor = (name: string, date: string) => {
         if (!name || !date) return;
         if (!byDate.has(date)) byDate.set(date, new Set());
         byDate.get(date)!.add(name);
         allUsers.add(name);
+        if (!daysByPerson.has(name)) daysByPerson.set(name, new Set());
+        daysByPerson.get(name)!.add(date);
       };
 
       for (const v of (visits || [])) {
         if (v.player_name) addVisitor(v.player_name, v.visited_at.slice(0, 10));
       }
-      for (const s of (minigameData || [])) addVisitor(s.player_name, s.date);
+      // Challenges are stored as "from>to>game", not as a person playing: leave them out
+      const plays = (minigameData || []).filter((s) => s.game_id !== 'challenge');
+      for (const s of plays) addVisitor(s.player_name, s.date);
       for (const w of (wordleData || [])) addVisitor(w.player_name, (w.created_at || '').slice(0, 10));
       for (const g of (guessData || [])) addVisitor(g.player_name, (g.created_at || '').slice(0, 10));
+
+      // Games per person: minigame scores (not challenges), Wordle, and one GeoGuessr game per day
+      const gamesByPerson = new Map<string, number>();
+      const addGame = (name: string) => name && gamesByPerson.set(name, (gamesByPerson.get(name) ?? 0) + 1);
+      for (const s of plays) addGame(s.player_name);
+      for (const w of (wordleData || [])) addGame(w.player_name);
+      const geoDayKeys = new Set((guessData || []).map((g) => `${g.player_name}|${(g.created_at || '').slice(0, 10)}`));
+      for (const k of geoDayKeys) addGame(k.split('|')[0]);
+
+      // Everyone with a profile, and the team list (admin only; empty if the step isn't run yet)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const [{ data: players }, roster] = await Promise.all([
+        db.from('players').select('name, avatar, office, department'),
+        db.rpc('admin_roster'),
+      ]);
+      setRosterOk(!roster.error);
+      const OFFICE: Record<string, string> = { Sweden: 'Stockholm', US: 'New York', Bulgaria: 'Varna' };
+      const rowFor = (p: { name: string; avatar?: string | null; office?: string | null; department?: string | null }): PersonRow => {
+        const days = daysByPerson.get(p.name);
+        return {
+          name: p.name,
+          avatar: p.avatar ?? '👤',
+          detail: [p.department, p.office ? OFFICE[p.office] ?? p.office : null].filter(Boolean).join(' · '),
+          days: days?.size ?? 0,
+          games: gamesByPerson.get(p.name) ?? 0,
+          lastSeen: days ? [...days].sort().at(-1) ?? null : null,
+        };
+      };
+      const everyone = ((players ?? []) as { name: string; avatar: string | null; office: string | null; department: string | null }[]).map(rowFor);
+      setActive(everyone.filter((r) => r.days > 0).sort((a, b) => b.days - a.days || b.games - a.games || a.name.localeCompare(b.name)));
+      setNotSeen(everyone.filter((r) => r.days === 0).sort((a, b) => a.name.localeCompare(b.name)));
+      setNeverJoined(
+        ((roster.data ?? []) as { full_name: string; department: string; office: string | null; player_name: string | null }[])
+          .filter((r) => !r.player_name)
+          .map((r) => ({
+            name: r.full_name,
+            avatar: '·',
+            detail: [r.department, r.office ? OFFICE[r.office] ?? r.office : null].filter(Boolean).join(' · '),
+            days: 0,
+            games: 0,
+            lastSeen: null,
+          }))
+      );
 
       const dayCount = Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       const stats: DayStat[] = [];
@@ -117,7 +181,7 @@ export function UsageAnalytics() {
 
       // Build game stats from already-fetched data using player_name
       const gameByDay = new Map<string, Map<string, Set<string>>>();
-      for (const s of (minigameData || [])) {
+      for (const s of plays) {
         if (!gameByDay.has(s.game_id)) gameByDay.set(s.game_id, new Map());
         const dateMap = gameByDay.get(s.game_id)!;
         if (!dateMap.has(s.date)) dateMap.set(s.date, new Set());
@@ -168,7 +232,9 @@ export function UsageAnalytics() {
     this_or_that: '⚖️ This or That',
     sudoku: '🔢 Sudoku',
     pairs: '🃏 Pairs',
-    labyrinth: '🌀 Labyrinth',
+    labyrinth: '🌀 Zip',
+    riddle: '🧩 Riddle',
+    team_riddle: '🧠 Team riddle',
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -288,6 +354,43 @@ export function UsageAnalytics() {
               </div>
             </div>
 
+            {/* People: who came in this period, who didn't, who never signed up */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">People</p>
+              <PeopleGroup
+                icon={<UserCheck className="h-3.5 w-3.5 text-green-600" />}
+                title={`Active in this period (${active.length})`}
+                rows={active}
+                right={(r) => (
+                  <span className="tabular-nums">
+                    {r.days} {r.days === 1 ? 'day' : 'days'} · {r.games} {r.games === 1 ? 'game' : 'games'}
+                    <span className="text-muted-foreground"> · last {r.lastSeen ? format(new Date(r.lastSeen + 'T12:00:00'), 'd/M') : '–'}</span>
+                  </span>
+                )}
+              />
+              <PeopleGroup
+                icon={<UserMinus className="h-3.5 w-3.5 text-amber-600" />}
+                title={`Signed up, not seen in this period (${notSeen.length})`}
+                rows={notSeen}
+              />
+              {rosterOk ? (
+                <PeopleGroup
+                  icon={<UserX className="h-3.5 w-3.5 text-muted-foreground" />}
+                  title={`On the team list, never signed up (${neverJoined.length})`}
+                  rows={neverJoined}
+                  muted
+                />
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  To see who never signed up, run <code>docs/sql/05_admin_roster.sql</code> in Lovable.
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                A day counts when someone opened the Play page while logged in, or played a game. Opening the page was only
+                logged from 27 Nov; before that, only games count.
+              </p>
+            </div>
+
             {/* Game popularity */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
@@ -320,5 +423,47 @@ export function UsageAnalytics() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** A small labelled list of people */
+function PeopleGroup({
+  icon,
+  title,
+  rows,
+  right,
+  muted = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  rows: PersonRow[];
+  right?: (r: PersonRow) => React.ReactNode;
+  muted?: boolean;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon} {title}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <p className="flex items-center gap-1.5 text-xs font-medium">
+        {icon} {title}
+      </p>
+      <div className="divide-y rounded-lg border">
+        {rows.map((r) => (
+          <div key={r.name} className={`flex items-center gap-2 px-2.5 py-1.5 text-xs ${muted ? 'text-muted-foreground' : ''}`}>
+            <span className="w-5 text-center text-base leading-none">{r.avatar}</span>
+            <span className="min-w-0 flex-1">
+              <span className="font-medium">{r.name}</span>
+              {r.detail && <span className="ml-1.5 text-muted-foreground">{r.detail}</span>}
+            </span>
+            {right && <span className="shrink-0 text-right">{right(r)}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
