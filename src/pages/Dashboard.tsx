@@ -25,6 +25,10 @@ import twigeoLogo from "@/assets/twigeo-logo.png";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { usePresenceTrack } from "@/hooks/usePresenceCount";
 import { useTvFeatureMode, useTvFlowFullscreen } from "@/hooks/useGameIcons";
+import { HandArrow } from "@/components/Squiggles";
+
+/** Moving background + frosted tiles. ?noglass in the address turns them off. */
+const GLASS = typeof window === "undefined" || !new URLSearchParams(window.location.search).has("noglass");
 
 /**
  * When "Desktop mode" is active on a small screen we render the full
@@ -254,8 +258,16 @@ function DashboardContent() {
 
   // Normal responsive mode
   return (
-    <div className="tv-2027 min-h-[100dvh] lg:h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden bg-background text-foreground">
-      <div className="h-full w-full p-2 lg:p-[clamp(16px,1.4vw,28px)]">
+    <div className={`tv-2027 ${GLASS ? "tv-glass" : ""} relative min-h-[100dvh] lg:h-[100dvh] w-full overflow-x-hidden lg:overflow-hidden bg-background text-foreground`}>
+      {GLASS && (
+        <div className="tv-backdrop" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+      )}
+      <div className="relative z-[1] h-full w-full p-2 lg:p-[clamp(16px,1.4vw,28px)]">
         <div className="h-full w-full grid grid-rows-[auto_auto_1fr] gap-3 lg:gap-[clamp(8px,0.7vw,14px)]">
           {/* Header: logo, the three offices (weather, time, race points), clock, plant, QR to play */}
           <header className="flex items-center gap-2 lg:gap-[clamp(12px,1.2vw,24px)]">
@@ -295,6 +307,8 @@ function DashboardContent() {
                 className="hidden lg:flex shrink-0 items-center gap-[clamp(6px,0.5vw,10px)] text-left"
                 aria-label="Open the Play page"
               >
+                {/* A hand-drawn arrow, so new people see where to start */}
+                <HandArrow className="h-[clamp(16px,1.3vw,28px)] w-auto -mr-[clamp(2px,0.25vw,5px)]" />
                 <span className="rounded-[clamp(4px,0.3vw,6px)] bg-white p-[3px] ring-2 ring-primary">
                   <PlayQr className="h-[clamp(40px,3.2vw,68px)] w-[clamp(40px,3.2vw,68px)]" />
                 </span>
