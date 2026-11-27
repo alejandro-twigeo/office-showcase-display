@@ -9,6 +9,7 @@ import {
   OFFICE_GOAL_REWARD,
   TEAM_RIDDLE_CLUE_AT,
   weekIndex,
+  GAME_NAMES,
 } from "@/hooks/useOfficeActivity";
 import { teamRiddleForWeek } from "@/lib/teamRiddles";
 import { HandUnderline } from "@/components/Squiggles";
@@ -27,6 +28,50 @@ function isRevealTime(now = new Date()) {
   return parts.weekday === "Fri" && Number(parts.hour) >= 15;
 }
 
+const NUDGE_EVERY_MS = 30_000;
+const NUDGE_SHOW_MS = 6_000;
+const firstName = (n: string) => n.trim().split(/\s+/)[0];
+
+/**
+ * Every 30 seconds, a quick reminder in place of "Leading the week" (for 6 seconds): games only score
+ * when two people play them, so solo games today are named, and challenges are the way to get someone in.
+ */
+function useNudge(a: ReturnType<typeof useOfficeActivity>, names: Record<string, string>) {
+  const [nudge, setNudge] = useState<string | null>(null);
+  const latest = useRef(a);
+  latest.current = a;
+  useEffect(() => {
+    let last = "";
+    let hide: ReturnType<typeof setTimeout>;
+    const show = () => {
+      const x = latest.current;
+      const solo = [...x.todayByGame.entries()].filter(([, l]) => new Set(l.map((e) => e.player)).size === 1);
+      const options: string[] = [
+        "Points only count when 2+ people play a game",
+        "Playing alone scores 0. Bring someone along",
+        "Challenge a colleague: it makes the game count",
+        "A win needs a rival. Send a challenge ⚔️",
+      ];
+      for (const [game, [e]] of solo) {
+        const g = names[game] ?? game;
+        options.push(`${firstName(e.player)} is alone in ${g}. Play it so it counts`, `${g} has no points yet: it needs a second player`);
+      }
+      const open = x.challenges.filter((c) => c.status === "open");
+      for (const c of open.slice(0, 3)) options.push(`${firstName(c.to)}, ${firstName(c.from)} is waiting in ${names[c.game] ?? c.game} ⚔️`);
+      const pool = options.filter((m) => m !== last);
+      last = pool[Math.floor(Math.random() * pool.length)];
+      setNudge(last);
+      hide = setTimeout(() => setNudge(null), NUDGE_SHOW_MS);
+    };
+    const id = setInterval(show, NUDGE_EVERY_MS);
+    return () => {
+      clearInterval(id);
+      clearTimeout(hide);
+    };
+  }, [names]);
+  return nudge;
+}
+
 /**
  * This week at a glance: who's leading, the office goal, and the office race.
  * Shown in the news tile when there's no news, and every other minute when there is.
@@ -38,6 +83,7 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
   const goalPct = Math.min(100, (a.playsThisWeek / OFFICE_GOAL) * 100);
   const goalDone = a.playsThisWeek >= OFFICE_GOAL;
   const maxOffice = Math.max(1, ...a.officePoints.map((o) => o.points));
+  const nudge = useNudge(a, GAME_NAMES);
 
   // Every 10 games the bar gives a little pulse
   const [pulse, setPulse] = useState(0);
@@ -62,7 +108,15 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
           {leader && <span className="absolute -top-[0.45em] left-1/2 -translate-x-1/2 text-[0.55em] crown-bob">👑</span>}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">{reveal ? "Champion of the week" : "Leading the week"}</p>
+          {nudge ? (
+            <p key={nudge} className="truncate font-medium text-primary text-[clamp(12px,0.85vw,18px)] animate-in fade-in slide-in-from-bottom-1 duration-300">
+              {nudge}
+            </p>
+          ) : (
+            <p key="label" className="text-muted-foreground text-[clamp(12px,0.85vw,18px)] animate-in fade-in duration-300">
+              {reveal ? "Champion of the week" : "Leading the week"}
+            </p>
+          )}
           <p className="truncate font-semibold tracking-tight text-[clamp(20px,1.7vw,36px)] leading-tight">
             {leader ? (
               // A hand-drawn underline under the leader, drawn again whenever the lead changes

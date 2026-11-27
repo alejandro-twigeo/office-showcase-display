@@ -33,7 +33,7 @@ export const GAME_NAMES: Record<string, string> = {
 /** Rows in minigame_scores that aren't games */
 const NOT_GAMES = new Set(["challenge", "team_riddle"]);
 
-/* ── Types ────────────────────────────────────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────────────────────────────── */
 
 export interface PlayEvent {
   player: string;
@@ -97,7 +97,10 @@ function workdayStreak(days: Set<string>, today: string): number {
   return n;
 }
 
-/** Ranking points per game per day: 1st 5, 2nd 3, 3rd 2, everyone else who played 1. */
+/**
+ * Ranking points per game per day: 1st 5, 2nd 3, 3rd 2, everyone else who played 1.
+ * A game only scores on a day when at least two people played it: winning alone isn't a win.
+ */
 function pointsFor(events: PlayEvent[]): Map<string, number> {
   const groups = new Map<string, PlayEvent[]>();
   for (const e of events) {
@@ -106,6 +109,7 @@ function pointsFor(events: PlayEvent[]): Map<string, number> {
   }
   const pts = new Map<string, number>();
   for (const list of groups.values()) {
+    if (new Set(list.map((e) => e.player)).size < 2) continue; // played alone: no points (yet)
     const sorted = [...list].sort((a, b) => b.score - a.score);
     let rank = 0;
     let prev: number | null = null;
@@ -119,7 +123,7 @@ function pointsFor(events: PlayEvent[]): Map<string, number> {
   return pts;
 }
 
-/* ── The hook ─────────────────────────────────────────────────────────────────────── */
+/* ── The hook ───────────────────────────────────────────────────────────────────── */
 
 /**
  * Everything the "play together" features need, from the tables that already exist.
