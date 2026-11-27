@@ -52,7 +52,7 @@ export function NewsDisplay({ standalone = false }: { standalone?: boolean }) {
   if (!standalone && !isLoading && (!item || showWeek)) return <ThisWeekCard />;
 
   return (
-    <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
+    <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(10px,0.9vw,18px)]">
       <div className="flex items-center justify-between gap-3">
         <span className="tile-label">Daily news</span>
         {items.length > 1 && (
