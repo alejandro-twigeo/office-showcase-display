@@ -80,6 +80,18 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
         )}
       </div>
 
+      {/* 2nd and 3rd on one line, when the full ranking isn't shown */}
+      {!ranking && a.weekRanking.length > 1 && (
+        <p className="-mt-[clamp(2px,0.2vw,4px)] truncate text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
+          {a.weekRanking.slice(1, 3).map(([name, pts], i) => (
+            <span key={name}>
+              {i > 0 && " · "}
+              {i === 0 ? "🥈" : "🥉"} {avatarOf(a, name)} <span className="font-medium text-foreground/80">{name}</span> {pts}
+            </span>
+          ))}
+        </p>
+      )}
+
       {/* Office goal */}
       <div className="space-y-[clamp(5px,0.4vw,8px)]">
         <div className="flex items-baseline justify-between gap-2 text-[clamp(13px,0.95vw,20px)]">
