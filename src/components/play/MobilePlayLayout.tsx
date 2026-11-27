@@ -8,7 +8,7 @@ import { PollSection } from './PollSection';
 import { YouTubeSection } from './YouTubeSection';
 import { PositiveMessagesSection } from './PositiveMessagesSection';
 import { ChatSection } from './ChatSection';
-import { PlantStatus } from '@/components/dashboard/PlantStatus';
+import twigeoLogo from '@/assets/twigeo-logo.png';
 import { ProfileEditor } from './ProfileEditor';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { WordleGame } from './WordleGame';
@@ -127,7 +127,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
       <header className="relative z-30 px-2 pt-2 safe-area-top">
         <div className="glass-bar flex h-14 items-center justify-between rounded-full pl-3 pr-1.5">
           <div className="flex items-center gap-2">
-            <PlantStatus playerName={player.name} compact />
+            <img src={twigeoLogo} alt="Twigeo" className="h-5 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-1">
             <button

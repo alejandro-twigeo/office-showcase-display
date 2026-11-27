@@ -9,7 +9,6 @@ import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { ChatSection } from '../components/play/ChatSection';
-import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Shield, MessageCircle } from 'lucide-react';
@@ -137,7 +136,6 @@ export default function PlayPage() {
         <div className="glass-bar mx-auto flex h-14 max-w-6xl items-center lg:max-w-[88rem] justify-between gap-3 rounded-full pl-4 pr-1.5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <div className="flex min-w-0 items-center gap-3 lg:justify-self-start">
             <img src={twigeoLogo} alt="Twigeo" className="h-6 w-auto object-contain" />
-            <PlantStatus playerName={player.name} compact />
           </div>
 
           <nav className="hidden items-center gap-0.5 rounded-full bg-foreground/[0.04] p-1 lg:flex lg:justify-self-center">
