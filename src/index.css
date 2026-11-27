@@ -156,7 +156,7 @@
    Bump root font-size so every clamp() / vw-based size grows proportionally
    on screens typical of office display TVs (≥75").
    Laptop / phone / tablet breakpoints are unaffected (<1920px).
-   ────────────────────────────────────────────────────────────────── */
+   ───────────────────────────────────────────────────────────────── */
 @media (min-width: 1920px) {
   :root {
     font-size: 120%;   /* 1080p FHD TV */
@@ -289,32 +289,53 @@
   border-radius: clamp(12px, 1vw, 20px);
 }
 
-/* ── Moving background + frosted tiles (TV only; ?noglass turns it off) ── */
-/* Soft colour fields drifting very slowly. Radial gradients, not blur filters, so TVs keep up. */
+/* ── Moving background + frosted tiles (TV and Play page; ?noglass turns it off on the TV) ── */
+/* A calm, misty landscape: a pale mint sky and four soft teal ridges with fine contour lines
+   (public/backdrop/ridge-1…4.svg), each drifting sideways very slowly at its own pace. A ridge is a
+   wide strip of a seamless tile that slides by exactly one tile and starts again, so it loops
+   without a jump. Only transforms move (nothing is repainted), so the frosted tiles stay smooth. */
 .tv-backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  background:
+    radial-gradient(60vw 45vh at 78% 8%, hsl(55 70% 96% / 0.95), transparent 70%),
+    linear-gradient(to bottom, hsl(80 40% 95%) 0%, hsl(150 32% 91%) 42%, hsl(168 30% 84%) 100%);
 }
 .tv-backdrop i {
   position: absolute;
-  border-radius: 50%;
+  left: 0;
+  bottom: 0;
+  width: 240vw;
+  background-repeat: repeat-x;
+  background-size: 120vw 100%;
   will-change: transform;
-  animation: tv-drift 80s ease-in-out infinite alternate;
+  animation: tv-wave 200s linear infinite;
 }
-.tv-backdrop i:nth-child(1) { width: 60vw; height: 60vw; left: -16vw; top: -24vw; background: radial-gradient(circle, hsl(22 100% 70% / 0.55), transparent 66%); }
-.tv-backdrop i:nth-child(2) { width: 64vw; height: 64vw; right: -18vw; top: 4vh; background: radial-gradient(circle, hsl(22 100% 88% / 0.9), transparent 66%); animation-duration: 95s; animation-direction: alternate-reverse; }
-.tv-backdrop i:nth-child(3) { width: 52vw; height: 52vw; left: 22vw; bottom: -30vw; background: radial-gradient(circle, hsl(62 90% 80% / 0.6), transparent 66%); animation-duration: 110s; }
-.tv-backdrop i:nth-child(4) { width: 40vw; height: 40vw; right: 8vw; bottom: -18vw; background: radial-gradient(circle, hsl(203 85% 72% / 0.35), transparent 66%); animation-duration: 70s; animation-direction: alternate-reverse; }
-@keyframes tv-drift {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(7vw, 5vh) scale(1.08); }
-  100% { transform: translate(-5vw, 9vh) scale(0.94); }
+.tv-backdrop i:nth-child(1) { height: 80vh; opacity: 0.75; filter: blur(1.5px); animation-duration: 320s; background-image: url("/backdrop/ridge-1.svg"); }
+.tv-backdrop i:nth-child(2) { height: 64vh; opacity: 0.85; animation-duration: 260s; animation-direction: reverse; background-image: url("/backdrop/ridge-2.svg"); background-position-x: 37vw; }
+.tv-backdrop i:nth-child(3) { height: 48vh; opacity: 0.8; animation-duration: 210s; background-image: url("/backdrop/ridge-3.svg"); background-position-x: 81vw; }
+.tv-backdrop i:nth-child(4) { height: 32vh; opacity: 0.7; animation-duration: 170s; animation-direction: reverse; background-image: url("/backdrop/ridge-4.svg"); background-position-x: 18vw; }
+/* A soft haze over the ridges, like morning mist, slowly thinning and thickening */
+.tv-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, hsl(80 40% 96% / 0.35), transparent 35%, hsl(160 30% 96% / 0.18) 70%, transparent);
+  animation: tv-mist 40s ease-in-out infinite alternate;
+}
+@keyframes tv-wave {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-120vw, 0, 0); }
+}
+@keyframes tv-mist {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tv-backdrop i { animation: none; }
+  .tv-backdrop i, .tv-backdrop::after { animation: none; }
 }
 /* Frosted tiles over the moving colours */
 .tv-2027.tv-glass .bg-card,
@@ -500,7 +521,7 @@
   .map-pin, .grow-x { animation: none; }
 }
 
-/* ── Weekly champion crown ─────────────────────────────────────────────────── */
+/* ── Weekly champion crown ─────────────────────────────────────────────────────────────────────── */
 @keyframes crown-bob {
   0%, 100% { transform: translate(-50%, 0) rotate(-6deg); }
   50% { transform: translate(-50%, -3px) rotate(6deg); }

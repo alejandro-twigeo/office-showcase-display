@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" preserveAspectRatio="none">
+  <!-- TV background, near ridge. One seamless tile: the ends are flat at the same height, so tiles join without a seam. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="hsl(173 36% 60%)"/>
+      <stop offset="1" stop-color="hsl(178 32% 70%)"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 180 C 160 180, 260 75, 470 75 S 760 250, 960 201 S 1180 133, 1300 159 S 1400 180, 1440 180 V400 H0Z" fill="url(#g)"/>
+  <path d="M0 198 C 160 198, 260 106, 470 106 S 760 260, 960 217 S 1180 157, 1300 180 S 1400 198, 1440 198" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1.3"/>
+  <path d="M0 220 C 160 220, 260 140, 470 140 S 760 273, 960 236 S 1180 184, 1300 204 S 1400 220, 1440 220" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1.3"/>
+  <path d="M0 246 C 160 246, 260 179, 470 179 S 760 291, 960 260 S 1180 216, 1300 233 S 1400 246, 1440 246" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1.3"/>
+  <path d="M0 278 C 160 278, 260 223, 470 223 S 760 314, 960 289 S 1180 253, 1300 267 S 1400 278, 1440 278" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1.3"/>
+  <path d="M0 316 C 160 316, 260 274, 470 274 S 760 344, 960 324 S 1180 297, 1300 308 S 1400 316, 1440 316" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="1.3"/>
+</svg>
