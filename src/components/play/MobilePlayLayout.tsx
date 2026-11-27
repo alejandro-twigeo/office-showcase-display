@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
 import { PollSection } from './PollSection';
 import { YouTubeSection } from './YouTubeSection';
 import { PositiveMessagesSection } from './PositiveMessagesSection';
+import { ChatSection } from './ChatSection';
 import { NewsSection } from './NewsSection';
 import { PlantStatus } from '@/components/dashboard/PlantStatus';
 import { ProfileEditor } from './ProfileEditor';
@@ -32,7 +33,7 @@ import { useGameIcons } from '@/hooks/useGameIcons';
 import { useRounds } from '@/hooks/useRounds';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards';
+type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards' | 'chat';
 
 interface MobilePlayLayoutProps {
   player: Player;
@@ -65,6 +66,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
     { value: 'youtube', icon: Youtube, label: 'Music' },
     { value: 'news', icon: Newspaper, label: 'News' },
     { value: 'vibes', icon: Heart, label: 'Kudos' },
+    { value: 'chat', icon: MessageCircle, label: 'Chat' },
   ];
 
   const renderGameContent = () => {
@@ -208,11 +210,12 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
         {activeTab === 'news' && <NewsSection />}
+        {activeTab === 'chat' && <ChatSection playerName={player.name} />}
       </main>
 
       {/* Bottom tab bar - native app style */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur border-t safe-area-bottom">
-        <div className="grid grid-cols-6 h-[5rem] lg:h-[clamp(6rem,10vw,7rem)]">
+        <div className="grid grid-cols-7 h-[5rem] lg:h-[clamp(6rem,10vw,7rem)]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (
@@ -228,8 +231,8 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                     : 'text-muted-foreground'
                 }`}
               >
-                <Icon className={`h-7 w-7 lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
-                <span className="text-[0.78rem] lg:text-xs font-semibold leading-none text-center">{label}</span>
+                <Icon className={`h-6 w-6 lg:h-[clamp(1.9rem,3.5vw,2.4rem)] lg:w-[clamp(1.9rem,3.5vw,2.4rem)] ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <span className="text-[0.72rem] lg:text-xs font-semibold leading-none text-center">{label}</span>
               </button>
             );
           })}
