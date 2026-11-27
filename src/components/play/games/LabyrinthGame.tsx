@@ -6,6 +6,7 @@ import { useMinigameTodayScore, useSubmitMinigameScore, todayDate, dateSeed, see
 import { useMinigameSettings } from '@/hooks/useMinigameSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CheckCircle, Clock, RotateCcw, Undo2 } from 'lucide-react';
+import { GameCelebration } from '../GameCelebration';
 
 const GAME_ID = 'labyrinth';
 
@@ -553,9 +554,11 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
     );
   }
 
+  // Cells fit inside the card on phones, counting the thin grid lines between them
+  const lines = `${puzzle.size + 1}px`;
   const cellSize = isMobile
-    ? `min(calc((100vw - 0.5rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
-    : `min(calc((100vw - 3rem) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 4rem)`;
+    ? `min(calc((100vw - 1.75rem - ${lines}) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 5rem)`
+    : `min(calc((100vw - 3rem - ${lines}) / ${puzzle.size}), calc((100vh - 13rem) / ${puzzle.size}), 4rem)`;
 
   // Determine path connection lines
   const getPathConnections = (r: number, c: number) => {
@@ -630,11 +633,13 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            className={`inline-grid gap-0 rounded-2xl overflow-hidden touch-none w-fit select-none ${error ? 'wordle-shake' : ''}`}
+            className={`inline-grid gap-px rounded-2xl overflow-hidden touch-none w-fit select-none ${error ? 'wordle-shake' : ''}`}
             style={{
               gridTemplateColumns: `repeat(${puzzle.size}, ${cellSize})`,
-              backgroundColor: 'hsl(var(--muted))',
-              padding: '2px',
+              // The 1px gaps between cells show this colour: thin lines that mark out the grid.
+              // Walls (where you can't cross) stay as the thick dark bars.
+              backgroundColor: 'hsl(var(--foreground) / 0.14)',
+              padding: '1px',
               touchAction: 'none',
             }}
           >
@@ -657,8 +662,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
                 return (
                   <div
                     key={`${ri}-${ci}`}
-                    style={{ width: cellSize, height: cellSize, position: 'relative' }}
-                    className="flex items-center justify-center cursor-pointer border-border/40"
+                    style={{ width: cellSize, height: cellSize, position: 'relative', backgroundColor: 'hsl(var(--muted))' }}
+                    className="flex items-center justify-center cursor-pointer"
                   >
                     {/* Path fill with organic rounding */}
                     {isOnPath && (
@@ -713,6 +718,8 @@ export function LabyrinthGame({ playerName, roundId }: LabyrinthGameProps) {
             )}
           </div>
         </div>
+
+        <GameCelebration open={done && finalScore !== null} emoji="🌀" title="Every cell!" points={finalScore} details={[`in ${formatTime(elapsed)}`]} />
 
         {done && (
           <div className="text-center mt-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
