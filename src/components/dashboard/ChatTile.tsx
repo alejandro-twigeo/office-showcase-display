@@ -5,7 +5,8 @@ import { useMe, ACTIONABLE } from "@/hooks/useMe";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { chatAgo, CHAT_MAX_LEN, type ChatMessage } from "@/hooks/useChat";
+import { chatAgo, CHAT_MAX_LEN, useChatTyping, type ChatMessage } from "@/hooks/useChat";
+import { TypingDots } from "@/components/TypingDots";
 import { MentionText } from "@/components/MentionText";
 import { starterAt } from "@/lib/chatStarters";
 import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
@@ -33,6 +34,8 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const colourOf = (n: string) => botColour(avatars.get(n), n);
   const shown = messages.slice(-12);
+  // Someone writing (on a phone or a laptop): small orange dots at the bottom right
+  const { typing, notify, stop } = useChatTyping(me);
 
   return (
     <Card onClick={open} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${composing ? "" : ACTIONABLE}`}>
@@ -77,6 +80,11 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
             </div>
           );
         })}
+        {typing.length > 0 && (
+          <div className="flex shrink-0 justify-end pr-[0.3em] pt-[0.2em] text-[clamp(13px,1vw,21px)] animate-in fade-in duration-300">
+            <TypingDots label={`${typing.join(" & ")} ${typing.length > 1 ? "are" : "is"} writing`} />
+          </div>
+        )}
       </div>
       {composing && me && (
         <form
@@ -86,13 +94,17 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
             e.preventDefault();
             if (!draft.trim()) return;
             onSend?.(draft, me);
+            stop();
             setDraft("");
           }}
         >
           <input
             autoFocus
             value={draft}
-            onChange={(e) => setDraft(e.target.value.slice(0, CHAT_MAX_LEN))}
+            onChange={(e) => {
+              setDraft(e.target.value.slice(0, CHAT_MAX_LEN));
+              notify();
+            }}
             onKeyDown={(e) => e.key === "Escape" && setComposing(false)}
             placeholder={`Message as ${me}…`}
             className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-[clamp(13px,0.95vw,19px)] outline-none focus:border-primary"

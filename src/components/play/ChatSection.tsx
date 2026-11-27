@@ -2,7 +2,8 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useChat, chatAgo, CHAT_MAX_LEN, type ChatMessage } from "@/hooks/useChat";
+import { useChat, useChatTyping, chatAgo, CHAT_MAX_LEN, type ChatMessage } from "@/hooks/useChat";
+import { TypingDots } from "@/components/TypingDots";
 import { useIsAdmin } from "@/hooks/usePlayer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
  */
 export function ChatSection({ playerName }: { playerName: string }) {
   const { messages, isLoading, post, remove, now } = useChat();
+  const { typing, notify, stop } = useChatTyping(playerName);
   const { data: isAdmin = false } = useIsAdmin();
   const { data: players = [] } = useQuery({
     queryKey: ["players-avatars"],
@@ -59,12 +61,13 @@ export function ChatSection({ playerName }: { playerName: string }) {
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, typing.length]);
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.trim()) return;
     setError("");
+    stop();
     post.mutate({ body: draft, created_by: playerName }, { onSuccess: () => setDraft(""), onError: () => setError("Couldn't send. Try again.") });
   };
 
@@ -132,6 +135,11 @@ export function ChatSection({ playerName }: { playerName: string }) {
               );
             })
           )}
+          {typing.length > 0 && (
+            <div className="flex justify-end pr-1 pt-1 text-sm animate-in fade-in duration-300">
+              <TypingDots label={`${typing.join(" & ")} ${typing.length > 1 ? "are" : "is"} writing`} />
+            </div>
+          )}
         </div>
 
         {messages.length < 4 && !draft && (
@@ -169,6 +177,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
             onChange={(e) => {
               setDraft(e.target.value.slice(0, CHAT_MAX_LEN));
               setError("");
+              notify();
             }}
             placeholder="Say something… type @ to tag someone"
             className="h-10 text-sm"

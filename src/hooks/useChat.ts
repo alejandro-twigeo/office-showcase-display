@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -97,4 +97,59 @@ export function chatAgo(iso: string, now = Date.now()) {
   if (m < 1) return "now";
   if (m < 60) return `${m} min`;
   return `${Math.floor(m / 60)} h`;
+}
+
+const TYPING_SHOW_MS = 4_000; // how long the dots stay after the last keystroke
+const TYPING_SEND_EVERY_MS = 1_500;
+
+/**
+ * Who is writing in the chat right now. Nothing is stored: each screen that's typing sends a
+ * small live signal (at most every 1.5 s), and the others show the dots for 4 s after the last one.
+ * Use it once per page: `notify()` on every keystroke, `stop()` when the message is sent.
+ */
+export function useChatTyping(me: string | null) {
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastSent = useRef(0);
+  const [until, setUntil] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const channel = supabase.channel("chat-typing", { config: { broadcast: { self: false } } });
+    channel
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const name = payload?.name as string | undefined;
+        if (!name) return;
+        setUntil((u) => ({ ...u, [name]: payload?.stop ? 0 : Date.now() + TYPING_SHOW_MS }));
+      })
+      .subscribe();
+    channelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, []);
+
+  // Drop people whose dots have run out
+  const [now, setNow] = useState(() => Date.now());
+  const anyone = Object.values(until).some((t) => t > now);
+  useEffect(() => {
+    if (!anyone) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [anyone]);
+
+  const notify = useCallback(() => {
+    if (!me || Date.now() - lastSent.current < TYPING_SEND_EVERY_MS) return;
+    lastSent.current = Date.now();
+    channelRef.current?.send({ type: "broadcast", event: "typing", payload: { name: me } });
+  }, [me]);
+  const stop = useCallback(() => {
+    if (!me) return;
+    lastSent.current = 0;
+    channelRef.current?.send({ type: "broadcast", event: "typing", payload: { name: me, stop: true } });
+  }, [me]);
+
+  const typing = Object.entries(until)
+    .filter(([n, t]) => t > Date.now() && n !== me)
+    .map(([n]) => n);
+  return { typing, notify, stop };
 }

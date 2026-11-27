@@ -702,7 +702,7 @@ export const GAME_DEMOS: Record<string, { Demo: () => JSX.Element; durationMs: n
   },
 };
 
-/* ── Spotlight scheduler ──────────────────────────────────────────────────────────────── */
+/* ── Spotlight scheduler ──────────────────────────────────────────────────────────────────────── */
 
 const FIRST_AFTER_MS = 60_000;
 const EVERY_MS = 4 * 60_000;
@@ -732,18 +732,40 @@ export function useGameSpotlight(): SpotlightState {
     let i = 0;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
+    // The game comes from the clock, not from a counter that starts again at every reload. The TV
+    // reloads itself after each new version (and when it wakes up), and a counter from zero meant
+    // the first game in the list was explained far more often than the rest. Now every 4-minute
+    // slot of the day has its turn, so all games come round equally, and every TV shows the same one.
+    const slotKey = () => keys[Math.floor(Date.now() / EVERY_MS) % keys.length];
+
     const run = () => {
-      const gameKey = keys[i++ % keys.length];
+      const gameKey = preview ? keys[i++ % keys.length] : slotKey();
       setState({ gameKey, phase: "highlight" });
       timers.push(setTimeout(() => setState({ gameKey, phase: "demo" }), HIGHLIGHT_MS));
       timers.push(setTimeout(() => setState(null), HIGHLIGHT_MS + GAME_DEMOS[gameKey].durationMs));
     };
 
-    const first = setTimeout(run, preview ? 1_500 : FIRST_AFTER_MS);
-    const every = setInterval(run, preview ? 25_000 : EVERY_MS);
+    if (preview) {
+      const first = setTimeout(run, 1_500);
+      const every = setInterval(run, 25_000);
+      return () => {
+        clearTimeout(first);
+        clearInterval(every);
+        timers.forEach(clearTimeout);
+      };
+    }
+    // Run 15 seconds into each slot, so every TV starts the same game together
+    let next: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const wait = EVERY_MS - (Date.now() % EVERY_MS) + FIRST_AFTER_MS / 4;
+      next = setTimeout(() => {
+        run();
+        schedule();
+      }, wait);
+    };
+    schedule();
     return () => {
-      clearTimeout(first);
-      clearInterval(every);
+      clearTimeout(next);
       timers.forEach(clearTimeout);
     };
   }, []);
