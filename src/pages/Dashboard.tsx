@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
 import { NewsDisplay } from "@/components/dashboard/NewsDisplay";
 import { KudosTile } from "@/components/dashboard/PositiveMessagesBanner";
@@ -14,6 +14,8 @@ import { useAutoReload } from "@/hooks/useAutoReload";
 import { GameSpotlightProvider, useSpotlight } from "@/components/dashboard/GameSpotlight";
 import { LiveMoments } from "@/components/dashboard/LiveMoments";
 import { SwapTimer } from "@/components/dashboard/SwapTimer";
+import { ChatTile } from "@/components/dashboard/ChatTile";
+import { useChat } from "@/hooks/useChat";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +72,13 @@ function ZoneLabel({ children }: { children: string }) {
 
 const POLL_NEWS_SWAP_MS = 45_000;
 
-/** The poll and today's news take turns in one slot (just the poll when there's no news). */
+type SlotName = "poll" | "news" | "chat";
+
+/**
+ * The poll, today's news and the office chat take turns in one slot, 45 s each
+ * (news only when there is some, chat only while a conversation is going).
+ * A new chat message jumps straight to the chat, so people see it.
+ */
 function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
   // Just "is there news?". The news tile has its own live connection; a second one under the same name would clash.
   const { data: hasNews } = useQuery({
@@ -81,23 +89,59 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
       return Array.isArray(data?.items) && data.items.length > 0;
     },
   });
-  // ?newsfirst in the address starts on the news (preview)
-  const [showNews, setShowNews] = useState(() => new URLSearchParams(window.location.search).has("newsfirst"));
+  const { threads, now, isLoading: chatLoading } = useChat();
+  const hasChat = threads.length > 0;
+  const slots = useMemo<SlotName[]>(() => ["poll", ...(hasNews ? (["news"] as const) : []), ...(hasChat ? (["chat"] as const) : [])], [hasNews, hasChat]);
+
+  // ?newsfirst / ?chatfirst in the address start there (preview)
+  const [slot, setSlot] = useState<SlotName>(() => {
+    const q = new URLSearchParams(window.location.search);
+    return q.has("chatfirst") ? "chat" : q.has("newsfirst") ? "news" : "poll";
+  });
+  const [cycle, setCycle] = useState(0);
+  const shown: SlotName = slots.includes(slot) ? slot : "poll";
+
+  // Move on every 45 s (restarts after a jump to the chat)
   useEffect(() => {
-    if (hasNews === undefined) return; // still checking
-    if (!hasNews) {
-      setShowNews(false);
+    if (slots.length < 2) return;
+    const id = setTimeout(() => {
+      setSlot((cur) => slots[(slots.indexOf(cur) + 1) % slots.length] ?? "poll");
+      setCycle((c) => c + 1);
+    }, POLL_NEWS_SWAP_MS);
+    return () => clearTimeout(id);
+  }, [slots, cycle]);
+
+  // A new message: show the chat now
+  const latest = useMemo(
+    () => threads.reduce((m, t) => [t.created_at, ...t.replies.map((r) => r.created_at)].reduce((a, b) => (b > a ? b : a), m), ""),
+    [threads]
+  );
+  const seenLatest = useRef<string | null>(null);
+  useEffect(() => {
+    if (chatLoading) return; // what's there when the TV loads isn't "new"
+    if (seenLatest.current === null) {
+      seenLatest.current = latest;
       return;
     }
-    const id = setInterval(() => setShowNews((v) => !v), POLL_NEWS_SWAP_MS);
-    return () => clearInterval(id);
-  }, [hasNews]);
+    if (latest && latest > seenLatest.current) {
+      setSlot("chat");
+      setCycle((c) => c + 1);
+    }
+    seenLatest.current = latest;
+  }, [latest, chatLoading]);
+
   return (
     <div className="relative h-full">
-      <div key={showNews ? "news" : "poll"} className="h-full animate-in fade-in duration-700">
-        {showNews && hasNews ? <NewsDisplay standalone /> : <TvFeatureDisplay mode={tvFeatureMode} />}
+      <div key={shown} className="h-full animate-in fade-in duration-700">
+        {shown === "chat" ? (
+          <ChatTile threads={threads} now={now} />
+        ) : shown === "news" ? (
+          <NewsDisplay standalone />
+        ) : (
+          <TvFeatureDisplay mode={tvFeatureMode} />
+        )}
       </div>
-      {hasNews && <SwapTimer durationMs={POLL_NEWS_SWAP_MS} cycleKey={showNews ? "news" : "poll"} />}
+      {slots.length > 1 && <SwapTimer durationMs={POLL_NEWS_SWAP_MS} cycleKey={cycle} />}
     </div>
   );
 }
@@ -107,8 +151,8 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then the riddle of the day / GeoGuessr photos
  *  - Together: now playing (compact, or big while a video plays), then kudos (fills)
- *  - This week: who's leading, the fika goal, the team riddle and the ranking (fills), then the poll
- *    and the news taking turns in one slot
+ *  - This week: who's leading, the fika goal, the team riddle and the ranking (fills), then the poll,
+ *    the news and the office chat taking turns in one slot
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
   const [videoPlaying, setVideoPlaying] = useState(false);

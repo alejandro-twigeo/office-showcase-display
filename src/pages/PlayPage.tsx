@@ -7,18 +7,19 @@ import { GuessMap } from '../components/play/GuessMap';
 import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
+import { ChatSection } from '../components/play/ChatSection';
 import { NewsSection } from '../components/play/NewsSection';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper, Shield } from 'lucide-react';
+import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper, Shield, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceTrack } from '@/hooks/usePresenceCount';
 
-type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news';
+type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news' | 'chat';
 
 class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -192,6 +193,7 @@ export default function PlayPage() {
                 { value: 'youtube' as const, icon: Youtube, label: 'Music' },
                 { value: 'news' as const, icon: Newspaper, label: 'News' },
                 { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
+                { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
               ]).map(({ value, icon: Icon, label }) => (
                 <button
                   type="button"
@@ -251,13 +253,14 @@ export default function PlayPage() {
       {/* Content */}
       <main className="max-w-[96vw] sm:max-w-lg lg:max-w-[90vw] xl:max-w-[92vw] mx-auto px-2 sm:px-4 py-4">
         {/* Tab buttons */}
-        <div className="grid grid-cols-5 gap-1 bg-muted/70 p-1 rounded-lg mb-4 lg:hidden">
+        <div className="grid grid-cols-6 gap-1 bg-muted/70 p-1 rounded-lg mb-4 lg:hidden">
           {([
             { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
             { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
             { value: 'youtube' as const, icon: Youtube, label: 'Music' },
             { value: 'news' as const, icon: Newspaper, label: 'News' },
             { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
+            { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
           ]).map(({ value, icon: Icon, label }) => (
             <button
               type="button"
@@ -288,6 +291,7 @@ export default function PlayPage() {
           {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
           {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
           {activeTab === 'news' && <NewsSection />}
+          {activeTab === 'chat' && <ChatSection playerName={player.name} />}
         </DesktopSectionBoundary>
       </main>
 
