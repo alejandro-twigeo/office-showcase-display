@@ -77,7 +77,7 @@ export function ProfileEditor({ player, onUpdate, onClose }: ProfileEditorProps)
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex gap-2 border-t bg-background px-6 pb-6 pt-3">
+          <div className="sticky bottom-0 -mx-6 flex gap-2 border-t bg-background px-6 pt-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={handleSave} disabled={!hasChanges || loading || !name.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}

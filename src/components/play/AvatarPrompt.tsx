@@ -48,16 +48,16 @@ export function AvatarPrompt({ player, onSave }: {
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) later(); }}>
-      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[94dvh] max-w-lg gap-3 overflow-y-auto p-5 sm:p-6">
         <DialogHeader>
           <DialogTitle>Pick your avatar</DialogTitle>
           <DialogDescription>
-            It replaces your icon on the leaderboards and the TV. You can change it later in Edit profile.
+            Shows on the leaderboards and the TV. Change it any time in Edit profile.
           </DialogDescription>
         </DialogHeader>
         <AvatarPicker value={bot} onChange={setBot} name={player.name} caption={player.department ?? undefined} />
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="sticky bottom-0 -mx-6 -mb-6 flex gap-2 border-t bg-background px-6 pb-6 pt-3">
+        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t bg-background px-5 pt-3 sm:-mx-6 sm:px-6">
           <Button variant="outline" className="flex-1" onClick={later}>Later</Button>
           <Button className="flex-1" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save avatar'}

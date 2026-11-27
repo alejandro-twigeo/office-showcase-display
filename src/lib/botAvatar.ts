@@ -15,7 +15,6 @@ export const BOT_SHAPES = [
 ] as const;
 
 export const BOT_COLOURS = [
-  { id: 'own', label: 'Shape’s own', value: null },
   { id: 'orange', label: 'Twigeo orange', value: '#FF5C02' },
   { id: 'sun', label: 'Sun', value: '#FFB224' },
   { id: 'pink', label: 'Pink', value: '#F2588E' },
@@ -28,9 +27,9 @@ export const BOT_COLOURS = [
 ] as const;
 
 export const BOT_FINISHES = [['fabric', 'Plush'], ['plastic', 'Glossy'], ['crisp', 'Clean']] as const;
-export const BOT_FACES = [['eyes', 'Eyes'], ['mouth', 'Eyes and mouth']] as const;
-export const BOT_HATS = [['none', 'No hat'], ['beanie', 'Beanie'], ['beret', 'Beret'], ['party', 'Party hat'], ['crown', 'Crown']] as const;
-export const BOT_GLASSES = [['none', 'No glasses'], ['round', 'Round'], ['square', 'Square'], ['shades', 'Shades']] as const;
+export const BOT_FACES = [['eyes', 'Eyes'], ['mouth', 'Eyes + mouth']] as const;
+export const BOT_HATS = [['none', 'None'], ['beanie', 'Beanie'], ['beret', 'Beret'], ['party', 'Party'], ['crown', 'Crown']] as const;
+export const BOT_GLASSES = [['none', 'None'], ['round', 'Round'], ['square', 'Square'], ['shades', 'Shades']] as const;
 
 export type BotShape = (typeof BOT_SHAPES)[number][0];
 export type BotFinish = (typeof BOT_FINISHES)[number][0];
