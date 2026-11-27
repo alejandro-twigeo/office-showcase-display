@@ -27,7 +27,7 @@ function isRevealTime(now = new Date()) {
  * This week at a glance: who's leading, the office goal, and the office race.
  * Shown in the news tile when there's no news, and every other minute when there is.
  */
-export function ThisWeekCard({ compact = false, ranking = false }: { compact?: boolean; ranking?: boolean }) {
+export function ThisWeekCard({ compact = false, ranking = false, riddle = false }: { compact?: boolean; ranking?: boolean; riddle?: boolean }) {
   const a = useOfficeActivity();
   const [leader, leaderPts] = a.weekRanking[0] ?? [];
   const reveal = isRevealTime();
@@ -87,6 +87,9 @@ export function ThisWeekCard({ compact = false, ranking = false }: { compact?: b
         </div>
       </div>
 
+      {/* Team riddle of the week: the latest clue and how close the next one is */}
+      {riddle && <TeamRiddleStrip />}
+
       {/* The week's ranking: as many rows as fit (the leader is already shown above) */}
       {ranking && a.weekRanking.length > 1 && (
         <ol className="flex-1 min-h-0 overflow-hidden flex flex-col gap-[clamp(5px,0.45vw,9px)] border-t border-border/70 pt-[clamp(8px,0.7vw,14px)] [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
@@ -122,6 +125,52 @@ export function ThisWeekCard({ compact = false, ranking = false }: { compact?: b
         ))}
       </div>
     </Card>
+  );
+}
+
+/** Compact team riddle for the This week tile. Never shows the answer. */
+function TeamRiddleStrip() {
+  const a = useOfficeActivity();
+  const r = teamRiddleForWeek(weekIndex(a.today));
+  const open = TEAM_RIDDLE_CLUE_AT.filter((n) => a.playsThisWeek >= n).length;
+  const next = TEAM_RIDDLE_CLUE_AT[open];
+  const prev = TEAM_RIDDLE_CLUE_AT[open - 1] ?? 0;
+  const toNext = next === undefined ? 1 : Math.min(1, (a.playsThisWeek - prev) / (next - prev));
+  const first = a.teamRiddleSolves[0];
+  return (
+    <div className="space-y-[clamp(5px,0.4vw,8px)] border-t border-border/70 pt-[clamp(8px,0.7vw,14px)]">
+      <div className="flex items-baseline justify-between gap-2 text-[clamp(13px,0.95vw,20px)]">
+        <span className="font-medium">🧠 Team riddle</span>
+        <span className="tabular-nums text-muted-foreground">
+          {open}/{TEAM_RIDDLE_CLUE_AT.length} clues
+        </span>
+      </div>
+      {open > 0 && (
+        <p key={open} className="line-clamp-2 leading-snug text-[clamp(14px,1.05vw,22px)] animate-in fade-in duration-700">
+          “{r.clues[open - 1]}”
+        </p>
+      )}
+      {next !== undefined && (
+        <div className="flex items-center gap-[clamp(8px,0.6vw,12px)]">
+          <div className="h-[clamp(6px,0.45vw,9px)] flex-1 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-out" style={{ width: `${toNext * 100}%` }} />
+          </div>
+          <span className="shrink-0 tabular-nums text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
+            {next - a.playsThisWeek} more {next - a.playsThisWeek === 1 ? "game" : "games"} → clue {open + 1}
+          </span>
+        </div>
+      )}
+      <p className="text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
+        {first ? (
+          <>
+            ✅ Cracked by {a.players.get(first.player)?.avatar ?? ""} <b className="text-foreground">{first.player}</b>
+            {a.teamRiddleSolves.length > 1 && ` and ${a.teamRiddleSolves.length - 1} more`}
+          </>
+        ) : (
+          "Nobody has cracked it yet. Guess on the Play page"
+        )}
+      </p>
+    </div>
   );
 }
 
