@@ -1,0 +1,25 @@
+/*
+ * On a screen with a mouse: while you hover something clickable, everything else frosts over a
+ * little (softer, a bit see-through), so the thing under the pointer stands out as the one you can
+ * click. Clickable things carry the `actionable` class (see ACTIONABLE in src/hooks/useMe.ts).
+ * Never on the TV or phones (no hover there).
+ */
+@media (hover: hover) {
+  .tv-2027 .actionable {
+    transition: all 0.3s ease;
+  }
+  .tv-2027 :is(.bg-card, .glass) {
+    transition: filter 0.3s ease, opacity 0.3s ease;
+  }
+  /* Every tile and clickable thing that isn't the hovered one, and doesn't hold it */
+  .tv-2027:has(.actionable:hover) :is(.bg-card, .glass, .actionable):not(:hover):not(:has(.actionable:hover)) {
+    filter: blur(1.5px) saturate(0.85);
+    opacity: 0.7;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: reduce) {
+  .tv-2027 .actionable,
+  .tv-2027 :is(.bg-card, .glass) {
+    transition: none;
+  }
+}

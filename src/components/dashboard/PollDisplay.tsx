@@ -6,6 +6,7 @@ import { CountUp } from "@/components/ui/count-up";
 import { useNavigate } from "react-router-dom";
 import { useMe } from "@/hooks/useMe";
 import { getDeviceId } from "@/hooks/useDeviceId";
+import { AvatarStack } from "@/components/AvatarStack";
 
 export const ROTATE_SECONDS = 30;
 
@@ -140,7 +141,9 @@ export function PollDisplay() {
       <div className="flex items-center justify-between gap-3">
         <span className="tile-label">Poll{byline === "Daily poll ✨" ? " of the day" : ""}</span>
         {currentPoll && rows.length > 0 && (
-          <span className="tile-label tabular-nums">
+          // Who has voted: their characters, slightly overlapping, then the count
+          <span className="tile-label flex items-center gap-[0.5em] tabular-nums">
+            <AvatarStack names={votes.map((v) => v.player_name)} />
             {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
           </span>
         )}
@@ -172,7 +175,7 @@ export function PollDisplay() {
                     type="button"
                     key={key}
                     onClick={() => vote(key)}
-                    className="block w-full min-w-0 rounded-md text-left [@media(hover:hover)]:hover:bg-primary/[0.06] [@media(hover:hover)]:hover:shadow-[0_0_0_4px_hsl(var(--primary)/0.06)]"
+                    className="actionable block w-full min-w-0 rounded-md text-left [@media(hover:hover)]:hover:bg-primary/[0.06] [@media(hover:hover)]:hover:shadow-[0_0_0_4px_hsl(var(--primary)/0.06)]"
                     title={me ? (mine ? "Your vote" : "Vote for this") : "Log in on the Play page to vote"}
                   >
                     {/* Tall bar with the answer and the % inside it */}

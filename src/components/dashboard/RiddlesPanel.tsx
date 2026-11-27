@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Brain, Check, Eye, Lock, Puzzle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { AvatarStack } from "@/components/AvatarStack";
 import { useRounds } from "@/hooks/useRounds";
 import { useMinigameLeaderboardRound, todayDate, dateSeed } from "@/hooks/useMinigameScore";
 import { useOfficeActivity, TEAM_RIDDLE_CLUE_AT, weekIndex } from "@/hooks/useOfficeActivity";
@@ -47,11 +48,12 @@ function DailyRiddleCard() {
   // Same pick as the phone game, so the TV and phones show the same riddle
   const riddle = RIDDLES[dateSeed(`${roundId ?? todayDate()}-riddle`) % RIDDLES.length];
   const { data: scores = [] } = useMinigameLeaderboardRound("riddle", roundId);
-  const { right, total } = useMemo(() => {
+  const { right, total, solvers } = useMemo(() => {
     const byPlayer = new Map<string, boolean>();
     for (const s of scores) byPlayer.set(s.player_name, (byPlayer.get(s.player_name) ?? false) || s.score > 0);
     const v = [...byPlayer.values()];
-    return { right: v.filter(Boolean).length, total: v.length };
+    const solvers = [...byPlayer.entries()].filter(([, ok]) => ok).map(([n]) => n);
+    return { right: v.filter(Boolean).length, total: v.length, solvers };
   }, [scores]);
   const pct = total ? Math.round((right / total) * 100) : 0;
 
@@ -68,11 +70,11 @@ function DailyRiddleCard() {
         </p>
       </div>
       <div className="space-y-[clamp(4px,0.35vw,8px)]">
-        <div className="flex items-baseline justify-between tabular-nums text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
-          <span>
+        <div className="flex items-center justify-between tabular-nums text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
+          <span className="flex min-w-0 items-center gap-[0.45em]">
             {right > 0 ? (
               <>
-                Solved by <b className="font-semibold text-foreground">{right}</b> {right === 1 ? "person" : "people"}
+                Solved by <AvatarStack names={solvers} max={4} /> <b className="font-semibold text-foreground">{right}</b> {right === 1 ? "person" : "people"}
               </>
             ) : total > 0 ? (
               "Nobody has cracked it yet"

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+// While something clickable is hovered, the rest of the page frosts over a little
+import "@/styles/hover-focus.css";
 
 /**
  * The logged-in person's name on this screen, or null (the office TV is never logged in).
@@ -28,6 +30,9 @@ export function useMe() {
   return me;
 }
 
-/** Tailwind classes: a soft highlight on hover, only on screens with a mouse (never on the TV or phones) */
+/**
+ * Tailwind classes: a soft highlight on hover, only on screens with a mouse (never on the TV or phones).
+ * `actionable` also frosts the rest of the page while this is hovered (src/styles/hover-focus.css).
+ */
 export const ACTIONABLE =
-  "cursor-pointer transition-shadow [@media(hover:hover)]:hover:shadow-[0_0_0_2px_hsl(var(--primary)/0.35)]";
+  "actionable cursor-pointer transition-shadow [@media(hover:hover)]:hover:shadow-[0_0_0_2px_hsl(var(--primary)/0.35)]";
