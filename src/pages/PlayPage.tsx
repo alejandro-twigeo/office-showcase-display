@@ -9,11 +9,10 @@ import { PollSection } from '../components/play/PollSection';
 import { YouTubeSection } from '../components/play/YouTubeSection';
 import { PositiveMessagesSection } from '../components/play/PositiveMessagesSection';
 import { ChatSection } from '../components/play/ChatSection';
-import { NewsSection } from '../components/play/NewsSection';
 import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper, Shield, MessageCircle } from 'lucide-react';
+import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Shield, MessageCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
@@ -27,7 +26,7 @@ type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news' | 'chat';
 
 /** Links from the TV page: /play?tab=chat, /play?game=sudoku */
 const TAB_FROM_LINK: Record<string, TabValue> = {
-  games: 'guess', ranks: 'guess', polls: 'polls', music: 'youtube', news: 'news', kudos: 'vibes', chat: 'chat',
+  games: 'guess', ranks: 'guess', polls: 'polls', music: 'youtube', news: 'chat', kudos: 'vibes', chat: 'chat', // news now lives in the chat
 };
 
 class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -115,7 +114,6 @@ export default function PlayPage() {
     { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
     { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
     { value: 'youtube' as const, icon: Youtube, label: 'Music' },
-    { value: 'news' as const, icon: Newspaper, label: 'News' },
     { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
     { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
   ].filter((t) => !(wide && t.value === 'chat')); // on desktop the chat is always open on the right
@@ -194,11 +192,11 @@ export default function PlayPage() {
       </header>
 
       {/* Content */}
-      {/* Desktop: games, polls, music, news and kudos on the left (about 3/4), the chat always open on the right */}
+      {/* Desktop: games, polls, music and kudos on the left (about 3/4), the chat always open on the right */}
       <main className="mx-auto max-w-[75rem] px-3 pb-10 pt-5 sm:px-6 lg:grid lg:max-w-[88rem] lg:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)] lg:items-start lg:gap-5">
         <div className="min-w-0">
         {/* Tablets: the tabs sit under the bar */}
-        <nav className="glass-bar mb-4 grid grid-cols-6 gap-0.5 rounded-full p-1 lg:hidden">
+        <nav className="glass-bar mb-4 grid grid-cols-5 gap-0.5 rounded-full p-1 lg:hidden">
           {tabs.map(({ value, icon: Icon, label }) => (
             <button
               type="button"
@@ -225,7 +223,6 @@ export default function PlayPage() {
           {shownTab === 'polls' && <PollSection playerName={player.name} />}
           {shownTab === 'youtube' && <YouTubeSection playerName={player.name} />}
           {shownTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
-          {shownTab === 'news' && <NewsSection />}
           {shownTab === 'chat' && <ChatSection playerName={player.name} />}
         </DesktopSectionBoundary>
         </div>

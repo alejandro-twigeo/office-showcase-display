@@ -8,7 +8,8 @@ import { useIsAdmin } from "@/hooks/usePlayer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, Trash2, Loader2 } from "lucide-react";
+import { MessageCircle, Send, Trash2, Loader2, Newspaper, ArrowUpRight } from "lucide-react";
+import { useNewsTopic } from "@/hooks/useNewsTopic";
 import { MentionText } from "@/components/MentionText";
 import { CHAT_STARTERS } from "@/lib/chatStarters";
 import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
@@ -26,6 +27,8 @@ const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
 export function ChatSection({ playerName, fill = false }: { playerName: string; fill?: boolean }) {
   const { messages, isLoading, post, remove, now } = useChat();
   const { typing, notify, stop } = useChatTyping(playerName);
+  // Something to talk about: today's news, one headline at a time, with its link
+  const topic = useNewsTopic();
   const { data: isAdmin = false } = useIsAdmin();
   const { data: players = [] } = useQuery({
     queryKey: ["players-avatars"],
@@ -93,6 +96,32 @@ export function ChatSection({ playerName, fill = false }: { playerName: string; 
         <p className="text-xs text-muted-foreground">Everyone at the office, and on the TV. It clears after 2 hours without messages.</p>
       </CardHeader>
       <CardContent className={`space-y-3 ${fill ? "flex min-h-0 flex-1 flex-col [&>*]:shrink-0" : ""}`}>
+        {topic && (
+          <div key={topic.url} className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.06] p-2.5 animate-in fade-in slide-in-from-top-1 duration-500">
+            <Newspaper className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Topic of the moment</p>
+              <a href={topic.url} target="_blank" rel="noreferrer" className="line-clamp-2 text-sm font-medium leading-snug hover:underline">
+                {topic.headline}
+                <ArrowUpRight className="ml-0.5 inline h-3.5 w-3.5 text-muted-foreground" />
+              </a>
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                {topic.source && <span className="truncate">{topic.source}</span>}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Start a message about it: the headline (shortened if long), then a nudge
+                    const h = topic.headline.length > 100 ? `${topic.headline.slice(0, 100).trimEnd()}…` : topic.headline;
+                    setDraft(`📰 ${h} Thoughts? `);
+                  }}
+                  className="ml-auto shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary hover:bg-primary/20"
+                >
+                  Talk about it
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={listRef} className={`${fill ? "!shrink min-h-0 flex-1" : "max-h-[55vh] min-h-[160px]"} space-y-2 overflow-y-auto overscroll-contain rounded-lg border bg-muted/20 p-3`}>
           {isLoading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>

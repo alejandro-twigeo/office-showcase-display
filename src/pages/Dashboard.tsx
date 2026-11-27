@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { YouTubeDisplay } from "@/components/dashboard/YouTubeDisplay";
-import { NewsDisplay } from "@/components/dashboard/NewsDisplay";
 import { KudosTile } from "@/components/dashboard/PositiveMessagesBanner";
 import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
@@ -12,12 +11,9 @@ import { PlayQr } from "@/components/dashboard/JoinCard";
 import { useAutoReload } from "@/hooks/useAutoReload";
 import { GameSpotlightProvider, useSpotlight } from "@/components/dashboard/GameSpotlight";
 import { LiveMoments } from "@/components/dashboard/LiveMoments";
-import { SwapTimer } from "@/components/dashboard/SwapTimer";
 import { ChatTile } from "@/components/dashboard/ChatTile";
 import { useChat } from "@/hooks/useChat";
 import { useDailyPoll } from "@/hooks/useDailyPoll";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Gamepad2, Monitor } from "lucide-react";
 import twigeoLogo from "@/assets/twigeo-logo.png";
@@ -64,36 +60,11 @@ export default function Dashboard() {
   );
 }
 
-const POLL_NEWS_SWAP_MS = 45_000;
-
-/** The poll and today's news take turns in one slot (just the poll when there's no news). */
+/** The poll slot. Today's news no longer takes turns here: it's a topic in the chat now. */
 function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
-  // Just "is there news?". The news tile has its own live connection; a second one under the same name would clash.
-  const { data: hasNews } = useQuery({
-    queryKey: ["tv-has-news"],
-    refetchInterval: 5 * 60_000,
-    queryFn: async () => {
-      const { data } = await supabase.from("daily_news").select("items").order("run_date", { ascending: false }).limit(1).maybeSingle();
-      return Array.isArray(data?.items) && data.items.length > 0;
-    },
-  });
-  // ?newsfirst in the address starts on the news (preview)
-  const [showNews, setShowNews] = useState(() => new URLSearchParams(window.location.search).has("newsfirst"));
-  useEffect(() => {
-    if (hasNews === undefined) return; // still checking
-    if (!hasNews) {
-      setShowNews(false);
-      return;
-    }
-    const id = setInterval(() => setShowNews((v) => !v), POLL_NEWS_SWAP_MS);
-    return () => clearInterval(id);
-  }, [hasNews]);
   return (
     <div className="relative h-full">
-      <div key={showNews ? "news" : "poll"} className="h-full animate-in fade-in duration-700">
-        {showNews && hasNews ? <NewsDisplay standalone /> : <TvFeatureDisplay mode={tvFeatureMode} />}
-      </div>
-      {hasNews && <SwapTimer durationMs={POLL_NEWS_SWAP_MS} cycleKey={showNews ? "news" : "poll"} />}
+      <TvFeatureDisplay mode={tvFeatureMode} />
     </div>
   );
 }
@@ -103,7 +74,7 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then both riddles / GeoGuessr photos
  *  - Together: now playing (compact, or big while a video plays), then kudos (fills)
- *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll and news taking turns,
+ *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll (news is a chat topic now),
  *    and the office chat filling the rest. Every tile keeps its place, chat or no chat.
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
@@ -157,7 +128,7 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
             <TvFeatureDisplay mode={tvFeatureMode} />
           </div>
         ) : (
-          // Poll and news take turns; a fixed height so nothing jumps when they swap
+          // The poll, at a fixed height
           <div className={`${desktop ? "h-[260px]" : "min-h-[280px] lg:min-h-0 lg:h-[clamp(250px,18.5vw,400px)]"} shrink-0 overflow-hidden rounded-xl`}>
             <PollNewsSlot tvFeatureMode={tvFeatureMode} />
           </div>

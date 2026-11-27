@@ -1,6 +1,6 @@
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useRef, useEffect } from 'react';
-import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Trophy, MessageCircle } from 'lucide-react';
+import { BarChart3, Youtube, Heart, Gamepad2, LogOut, UserCog, Shield, Monitor, Trophy, MessageCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
@@ -8,7 +8,6 @@ import { PollSection } from './PollSection';
 import { YouTubeSection } from './YouTubeSection';
 import { PositiveMessagesSection } from './PositiveMessagesSection';
 import { ChatSection } from './ChatSection';
-import { NewsSection } from './NewsSection';
 import { PlantStatus } from '@/components/dashboard/PlantStatus';
 import { ProfileEditor } from './ProfileEditor';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
@@ -38,7 +37,7 @@ type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards
 
 /** Links from the TV page: /play?tab=chat, /play?game=sudoku */
 const TAB_FROM_LINK: Record<string, TabValue> = {
-  games: 'games', ranks: 'leaderboards', polls: 'polls', music: 'youtube', news: 'news', kudos: 'vibes', chat: 'chat',
+  games: 'games', ranks: 'leaderboards', polls: 'polls', music: 'youtube', news: 'chat', kudos: 'vibes', chat: 'chat', // news now lives in the chat
 };
 
 interface MobilePlayLayoutProps {
@@ -71,7 +70,6 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
     { value: 'leaderboards', icon: Trophy, label: 'Ranks' },
     { value: 'polls', icon: BarChart3, label: 'Polls' },
     { value: 'youtube', icon: Youtube, label: 'Music' },
-    { value: 'news', icon: Newspaper, label: 'News' },
     { value: 'vibes', icon: Heart, label: 'Kudos' },
     { value: 'chat', icon: MessageCircle, label: 'Chat' },
   ];
@@ -189,13 +187,12 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
         {activeTab === 'polls' && <PollSection playerName={player.name} />}
         {activeTab === 'youtube' && <YouTubeSection playerName={player.name} />}
         {activeTab === 'vibes' && <PositiveMessagesSection playerName={player.name} />}
-        {activeTab === 'news' && <NewsSection />}
         {activeTab === 'chat' && <ChatSection playerName={player.name} />}
       </main>
 
       {/* Bottom tabs: a floating frosted bar */}
       <nav className="fixed inset-x-2 z-30 bottom-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="glass-bar grid h-16 grid-cols-7 gap-0.5 rounded-[1.75rem] p-1 lg:h-[clamp(4.5rem,8vw,5.5rem)]">
+        <div className="glass-bar grid h-16 grid-cols-6 gap-0.5 rounded-[1.75rem] p-1 lg:h-[clamp(4.5rem,8vw,5.5rem)]">
           {tabs.map(({ value, icon: Icon, label }) => {
             const isActive = activeTab === value;
             return (

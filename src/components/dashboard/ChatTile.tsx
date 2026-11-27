@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { chatAgo, CHAT_MAX_LEN, useChatTyping, type ChatMessage } from "@/hooks/useChat";
 import { TypingDots } from "@/components/TypingDots";
+import { useNewsTopic } from "@/hooks/useNewsTopic";
+import { ArrowUpRight, Newspaper } from "lucide-react";
 import { MentionText } from "@/components/MentionText";
 import { starterAt } from "@/lib/chatStarters";
 import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
@@ -36,10 +38,31 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
   const shown = messages.slice(-12);
   // Someone writing (on a phone or a laptop): small orange dots at the bottom right
   const { typing, notify, stop } = useChatTyping(me);
+  // Something to talk about: today's news, one headline at a time, with its link
+  const topic = useNewsTopic();
 
   return (
     <Card onClick={open} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${composing ? "" : ACTIONABLE}`}>
       <span className="tile-label">💬 Chat</span>
+      {topic && (
+        <a
+          key={topic.url}
+          href={topic.url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title="Open the article"
+          className="actionable -mt-[clamp(2px,0.2vw,4px)] flex shrink-0 items-center gap-[0.6em] rounded-[clamp(10px,0.8vw,16px)] border border-primary/20 bg-primary/[0.06] px-[0.8em] py-[0.5em] text-[clamp(12px,0.85vw,18px)] leading-snug animate-in fade-in slide-in-from-top-1 duration-500"
+        >
+          <Newspaper className="h-[1.1em] w-[1.1em] shrink-0 text-primary" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.8em] font-medium uppercase tracking-wide text-primary">Topic of the moment</span>
+            <span className="line-clamp-2 font-medium text-foreground">{topic.headline}</span>
+            {topic.source && <span className="block text-[0.8em] text-muted-foreground">{topic.source}</span>}
+          </span>
+          <ArrowUpRight className="h-[1em] w-[1em] shrink-0 text-muted-foreground" />
+        </a>
+      )}
       {/* Anchored to the bottom: the newest message is always in view */}
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(4px,0.35vw,7px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)]">
         {/* Nobody has written for a while: invite people in */}
