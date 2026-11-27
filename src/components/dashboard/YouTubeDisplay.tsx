@@ -6,6 +6,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpotlight, GameDemoOverlay } from "./GameSpotlight";
 import { parseQueuedBy } from "@/lib/dedication";
+import { useNavigate } from "react-router-dom";
+import { ACTIONABLE } from "@/hooks/useMe";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -59,7 +61,7 @@ function loadYouTubeAPI(onReady: () => void) {
   document.head.appendChild(script);
 }
 
-/* ── Component ──────────────────────────────────────────────────────────── */
+/* ── Component ────────────────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
   const { currentVideo, queue } = useYoutubeQueue();
@@ -68,6 +70,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     onPlayingChange?.(!!currentVideo);
   }, [currentVideo, onPlayingChange]);
   const gameSpotlight = useSpotlight();
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const playerReadyRef = useRef(false);
@@ -289,7 +292,10 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           <div className="min-h-0 flex flex-col">
             {!currentVideo ? (
               // Nothing playing: musicians and text side by side, so the tile stays short
-              <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-[clamp(16px,1.6vw,36px)] text-center lg:text-left">
+              <div
+                onClick={() => navigate("/play?tab=music")}
+                className={`flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-[clamp(16px,1.6vw,36px)] rounded-xl text-center lg:text-left ${ACTIONABLE}`}
+              >
                 {/* Multiply blends the video's white into the tile colour */}
                 <video
                   src={partitureVideo}
