@@ -233,17 +233,24 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideo?.video_id]);
 
-  // ResizeObserver — keep player sized to its container
+  // Keep the player the size of its box. The box only exists while a video plays (and the tile
+  // grows when one starts), so this is set up whenever a video appears, not just on first load.
   useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver(() => {
-      if (!containerRef.current || !playerRef.current) return;
-      const { offsetWidth: w, offsetHeight: h } = containerRef.current;
-      if (w && h) playerRef.current.setSize(w, h);
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
+    const box = containerRef.current;
+    if (!box) return;
+    const fit = () => {
+      const { offsetWidth: w, offsetHeight: h } = box;
+      if (w && h && playerRef.current && playerReadyRef.current) playerRef.current.setSize(w, h);
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    // the tile's grow animation takes ~0.7 s; fit once more when it has settled
+    const t = setTimeout(fit, 900);
+    return () => {
+      observer.disconnect();
+      clearTimeout(t);
+    };
+  }, [currentVideo?.id]);
 
   // Periodically persist playback position (every 5s)
   useEffect(() => {
@@ -304,7 +311,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 <div className="flex-1 min-h-0 relative">
                   <div
                     ref={containerRef}
-                    className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden"
+                    className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden [&_iframe]:!h-full [&_iframe]:!w-full"
                   />
                   {soundBlocked && (
                     <button
