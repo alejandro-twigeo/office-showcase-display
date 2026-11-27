@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,7 +165,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
     }
   };
 
-  /* ── Drag-to-reorder ────────────────────────────── */
+  /* ── Drag-to-reorder ───────────────────────────── */
   const handleDragStart = (idx: number) => { dragIndex.current = idx; setDraggingIdx(idx); };
   const handleDragEnter = (idx: number) => {
     setOverIdx(idx);
@@ -314,7 +315,7 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                       onClick={() => setDedicateTo(p.name)}
                       className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium hover:bg-primary/15"
                     >
-                      <span>{p.avatar}</span> {p.name}
+                      <PlayerAvatar avatar={p.avatar} name={p.name} size="1.7em" still /> {p.name}
                     </button>
                   ))}
               </div>
