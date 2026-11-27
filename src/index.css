@@ -293,7 +293,8 @@
 /* A calm, misty landscape: a pale mint sky and four soft teal ridges with fine contour lines
    (public/backdrop/ridge-1…4.svg), each drifting sideways very slowly at its own pace. A ridge is a
    wide strip of a seamless tile that slides by exactly one tile and starts again, so it loops
-   without a jump. Only transforms move (nothing is repainted), so the frosted tiles stay smooth. */
+   without a jump. Each ridge is softly blurred (more the further away it is), like mist.
+   Only transforms move (nothing is repainted), so the frosted tiles stay smooth. */
 .tv-backdrop {
   position: fixed;
   inset: 0;
@@ -314,10 +315,10 @@
   will-change: transform;
   animation: tv-wave 200s linear infinite;
 }
-.tv-backdrop i:nth-child(1) { height: 80vh; opacity: 0.75; filter: blur(1.5px); animation-duration: 320s; background-image: url("/backdrop/ridge-1.svg"); }
-.tv-backdrop i:nth-child(2) { height: 64vh; opacity: 0.85; animation-duration: 260s; animation-direction: reverse; background-image: url("/backdrop/ridge-2.svg"); background-position-x: 37vw; }
-.tv-backdrop i:nth-child(3) { height: 48vh; opacity: 0.8; animation-duration: 210s; background-image: url("/backdrop/ridge-3.svg"); background-position-x: 81vw; }
-.tv-backdrop i:nth-child(4) { height: 32vh; opacity: 0.7; animation-duration: 170s; animation-direction: reverse; background-image: url("/backdrop/ridge-4.svg"); background-position-x: 18vw; }
+.tv-backdrop i:nth-child(1) { height: 80vh; opacity: 0.75; filter: blur(7px); animation-duration: 320s; background-image: url("/backdrop/ridge-1.svg"); }
+.tv-backdrop i:nth-child(2) { height: 64vh; opacity: 0.85; filter: blur(5px); animation-duration: 260s; animation-direction: reverse; background-image: url("/backdrop/ridge-2.svg"); background-position-x: 37vw; }
+.tv-backdrop i:nth-child(3) { height: 48vh; opacity: 0.8; filter: blur(4px); animation-duration: 210s; background-image: url("/backdrop/ridge-3.svg"); background-position-x: 81vw; }
+.tv-backdrop i:nth-child(4) { height: 32vh; opacity: 0.7; filter: blur(3px); animation-duration: 170s; animation-direction: reverse; background-image: url("/backdrop/ridge-4.svg"); background-position-x: 18vw; }
 /* A soft haze over the ridges, like morning mist, slowly thinning and thickening */
 .tv-backdrop::after {
   content: "";
@@ -521,7 +522,7 @@
   .map-pin, .grow-x { animation: none; }
 }
 
-/* ── Weekly champion crown ─────────────────────────────────────────────────────────────────────── */
+/* ── Weekly champion crown ─────────────────────────────────────────────────── */
 @keyframes crown-bob {
   0%, 100% { transform: translate(-50%, 0) rotate(-6deg); }
   50% { transform: translate(-50%, -3px) rotate(6deg); }
