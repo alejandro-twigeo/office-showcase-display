@@ -128,8 +128,8 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
   );
 }
 
-/** Compact team riddle for the This week tile. Never shows the answer. */
-function TeamRiddleStrip() {
+/** Compact team riddle (latest clue, clues open, games to the next one). Never shows the answer. */
+export function TeamRiddleStrip({ bare = false }: { bare?: boolean }) {
   const a = useOfficeActivity();
   const r = teamRiddleForWeek(weekIndex(a.today));
   const open = TEAM_RIDDLE_CLUE_AT.filter((n) => a.playsThisWeek >= n).length;
@@ -138,7 +138,7 @@ function TeamRiddleStrip() {
   const toNext = next === undefined ? 1 : Math.min(1, (a.playsThisWeek - prev) / (next - prev));
   const first = a.teamRiddleSolves[0];
   return (
-    <div className="space-y-[clamp(5px,0.4vw,8px)] border-t border-border/70 pt-[clamp(8px,0.7vw,14px)]">
+    <div className={`space-y-[clamp(5px,0.4vw,8px)] ${bare ? "" : "border-t border-border/70 pt-[clamp(8px,0.7vw,14px)]"}`}>
       <div className="flex items-baseline justify-between gap-2 text-[clamp(13px,0.95vw,20px)]">
         <span className="font-medium">🧠 Team riddle</span>
         <span className="tabular-nums text-muted-foreground">
