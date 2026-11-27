@@ -281,7 +281,25 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
 
   return (
     <Card className="relative h-full min-h-0 flex flex-col p-[clamp(14px,1.3vw,28px)] gap-[clamp(10px,0.9vw,18px)]">
-      <span className="tile-label">Now playing</span>
+      {/* The song goes on the same line as "Now playing", so the video gets the room below */}
+      <div className="flex min-w-0 items-baseline gap-[clamp(6px,0.5vw,10px)]">
+        <span className="tile-label shrink-0">Now playing</span>
+        {currentVideo && (
+          <span className="min-w-0 truncate text-[clamp(13px,1vw,21px)]">
+            <span className="font-semibold">{currentVideo.title}</span>
+            {currentVideo.channel_title && <span className="text-muted-foreground"> · {currentVideo.channel_title}</span>}
+          </span>
+        )}
+        {currentVideo &&
+          (() => {
+            const d = parseQueuedBy(currentVideo.queued_by);
+            return d.to ? (
+              <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-[clamp(8px,0.6vw,12px)] py-[clamp(1px,0.15vw,3px)] font-medium text-[clamp(11px,0.85vw,18px)]">
+                🎵 For <strong>{d.to}</strong> <span className="text-muted-foreground">from {d.from}</span>
+              </span>
+            ) : null;
+          })()}
+      </div>
 
       <div className="flex-1 min-h-0">
         <div
@@ -327,24 +345,6 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                       <Volume2 className="h-4 w-4 lg:h-[clamp(16px,1.2vw,24px)] lg:w-[clamp(16px,1.2vw,24px)]" />
                       Turn sound on
                     </button>
-                  )}
-                </div>
-                <div className="space-y-0.5">
-                  {(() => {
-                    const d = parseQueuedBy(currentVideo.queued_by);
-                    return d.to ? (
-                      <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-[clamp(10px,0.7vw,14px)] py-[clamp(2px,0.2vw,4px)] font-medium text-[clamp(12px,0.9vw,19px)] animate-in fade-in duration-700">
-                        🎵 For <strong>{d.to}</strong> <span className="text-muted-foreground">from {d.from}</span>
-                      </p>
-                    ) : null;
-                  })()}
-                  <h4 className="font-semibold tracking-tight line-clamp-1 text-sm lg:text-[clamp(17px,1.3vw,28px)]">
-                    {currentVideo.title}
-                  </h4>
-                  {currentVideo.channel_title && (
-                    <p className="text-xs lg:text-[clamp(12px,0.85vw,16px)] text-muted-foreground line-clamp-1">
-                      {currentVideo.channel_title}
-                    </p>
                   )}
                 </div>
               </div>
