@@ -17,6 +17,9 @@ import { botColour } from "@/lib/botColour";
 /**
  * The office chat on the TV: like a chat app, newest at the bottom. When there are more
  * messages than fit, the oldest fade out at the top (phones can scroll up for them).
+ * Nobody needs to log in to see it. On the office TV (not logged in) every message sits on the
+ * left; on a laptop where someone is logged in, their own messages move to the right, like any
+ * chat app.
  */
 export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; now: number; onSend?: (body: string, me: string) => void }) {
   // On a laptop: click the tile to write (or log in first)
@@ -36,6 +39,7 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const colourOf = (n: string) => botColour(avatars.get(n), n);
   const shown = messages.slice(-12);
+  const isMe = (n: string) => !!me && n.trim().toLowerCase() === me.trim().toLowerCase();
   // Someone writing (on a phone or a laptop): small orange dots at the bottom right
   const { typing, notify, stop } = useChatTyping(me);
   // Something to talk about: today's news, one headline at a time, with its link
@@ -80,9 +84,10 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
         {shown.map((m, i) => {
           // Messages in a row from the same person share one name line, under the last one
           const lastOfRun = i === shown.length - 1 || shown[i + 1].created_by !== m.created_by;
+          const mine = isMe(m.created_by);
           return (
-            <div key={m.id} className={`flex shrink-0 flex-col items-start animate-in fade-in slide-in-from-bottom-1 duration-500 text-[clamp(13px,1vw,21px)] ${lastOfRun ? "mb-[0.35em]" : ""}`}>
-              <div className="flex max-w-[94%] items-end gap-[0.55em]">
+            <div key={m.id} className={`flex shrink-0 flex-col ${mine ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-1 duration-500 text-[clamp(13px,1vw,21px)] ${lastOfRun ? "mb-[0.35em]" : ""}`}>
+              <div className={`flex max-w-[94%] items-end gap-[0.55em] ${mine ? "flex-row-reverse" : ""}`}>
                 {/* The speaker sits under their last bubble of a run; earlier ones keep the space */}
                 <span className="flex w-[2.1em] shrink-0 justify-center">
                   {lastOfRun && (
@@ -91,13 +96,13 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
                     </ChatSpeaker>
                   )}
                 </span>
-                <ChatBubble color={colourOf(m.created_by)} tail={lastOfRun} className="px-[0.85em] py-[0.4em] leading-snug">
+                <ChatBubble color={colourOf(m.created_by)} side={mine ? "right" : "left"} tail={lastOfRun} className="px-[0.85em] py-[0.4em] leading-snug">
                   <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
                 </ChatBubble>
               </div>
               {lastOfRun && (
-                <span className="mt-[0.3em] pl-[2.65em] text-muted-foreground text-[0.72em]">
-                  <span className="font-medium text-foreground/75">{m.created_by}</span> · {chatAgo(m.created_at, now)}
+                <span className={`mt-[0.3em] text-muted-foreground text-[0.72em] ${mine ? "pr-[2.65em]" : "pl-[2.65em]"}`}>
+                  <span className="font-medium text-foreground/75">{mine ? "You" : m.created_by}</span> · {chatAgo(m.created_at, now)}
                 </span>
               )}
             </div>
