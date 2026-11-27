@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Component, type ReactNode, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -16,6 +17,7 @@ import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
+import { AvatarPrompt } from '@/components/play/AvatarPrompt';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceTrack } from '@/hooks/usePresenceCount';
 
@@ -85,11 +87,17 @@ export default function PlayPage() {
   }
 
   if (isMobile) {
-    return <MobilePlayLayout player={player} logout={logout} updateProfile={updateProfile} />;
+    return (
+      <>
+        <MobilePlayLayout player={player} logout={logout} updateProfile={updateProfile} />
+        <AvatarPrompt key={player.id} player={player} onSave={updateProfile} />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <AvatarPrompt key={player.id} player={player} onSave={updateProfile} />
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
         <style>{`
@@ -224,7 +232,7 @@ export default function PlayPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" className="flex items-center gap-1.5 p-1 rounded-full hover:bg-secondary/60 transition-colors">
-                  <span className="text-lg">{player.avatar}</span>
+                  <PlayerAvatar avatar={player.avatar} name={player.name} size={30} />
                   <span className="text-sm">{player.name}</span>
                   <span className="text-xs">{OFFICE_FLAGS[player.office]}</span>
                 </button>
