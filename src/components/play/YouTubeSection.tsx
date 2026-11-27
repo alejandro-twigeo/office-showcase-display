@@ -17,7 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Youtube, Play, ListMusic, Search, Trash2, Clock, User,
   GripVertical, Heart, ChevronLeft, ChevronRight, ListPlus,
-  CheckSquare, Square, X, BookMarked, Headphones, Radio, Loader2, Plus,
+  CheckSquare, Square, X, BookMarked, Headphones, Radio, Loader2, Plus, SkipForward,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -203,6 +203,28 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
   };
 
   /* ── Favourite toggle ───────────────────────────── */
+  // Skip the song playing on the TV: anyone logged in, two taps (so nobody skips by accident).
+  // Uses the same database step the TV uses when a song ends, so the next one starts right away.
+  const [confirmSkip, setConfirmSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  useEffect(() => {
+    if (!confirmSkip) return;
+    const t = setTimeout(() => setConfirmSkip(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmSkip]);
+  const skipCurrent = async (id: string) => {
+    if (!confirmSkip) {
+      setConfirmSkip(true);
+      return;
+    }
+    setConfirmSkip(false);
+    setSkipping(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("tv_advance_queue", { p_current: id });
+    setSkipping(false);
+    toast(error ? { title: "Couldn't skip", description: "Try again in a moment." } : { title: "Skipped", description: "The next song is starting on the TV." });
+  };
+
   const handleFavourite = (id: string, current: boolean) =>
     toggleFavorite.mutate({ id, is_favorite: !current });
 
@@ -326,8 +348,23 @@ export function YouTubeSection({ playerName }: YouTubeSectionProps) {
                 />
               </button>
             </div>
-            <p className="font-medium line-clamp-1 text-sm">{currentVideo.title}</p>
-            <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
+            <div className="flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium line-clamp-1 text-sm">{currentVideo.title}</p>
+                <p className="text-xs text-muted-foreground">by {currentVideo.queued_by}</p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={confirmSkip ? "destructive" : "outline"}
+                className="h-8 shrink-0 gap-1 px-3 text-xs"
+                disabled={skipping}
+                onClick={() => skipCurrent(currentVideo.id)}
+              >
+                {skipping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SkipForward className="h-3.5 w-3.5" />}
+                {confirmSkip ? "Skip this song?" : "Skip"}
+              </Button>
+            </div>
           </div>
         )}
 
