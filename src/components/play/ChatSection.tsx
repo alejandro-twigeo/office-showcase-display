@@ -7,6 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, Trash2, Loader2 } from "lucide-react";
+import { MentionText } from "@/components/MentionText";
+import { CHAT_STARTERS } from "@/lib/chatStarters";
+
+/** "@sa" at the end of the text → "sa", so we can suggest people to tag */
+const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
 
 /**
  * Office chat: one shared conversation, also on the TV. Newest at the bottom, scroll up for
@@ -24,12 +29,28 @@ export function ChatSection({ playerName }: { playerName: string }) {
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
   const av = (n: string) => avatars.get(n) ?? "👤";
+  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const isMe = (n: string) => n.trim().toLowerCase() === playerName.trim().toLowerCase();
 
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  // @-tagging: suggest people while typing "@na…"
+  const query = mentionQuery(draft);
+  const suggestions = useMemo(() => {
+    if (query === undefined) return [];
+    const q = query.toLowerCase();
+    return players.filter((p) => p.name.toLowerCase().startsWith(q) && !isMe(p.name)).slice(0, 6);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, query]);
+  const insertMention = (name: string) => setDraft((d) => d.replace(/@([\p{L}\d'\-]*)$/u, `@${name} `).slice(0, CHAT_MAX_LEN));
+
+  // A quiet chat: three starters to tap, a different set each few minutes
+  const starters = useMemo(() => {
+    const k = Math.floor(now / (5 * 60_000));
+    return [0, 1, 2].map((i) => CHAT_STARTERS[(k * 3 + i) % CHAT_STARTERS.length]);
+  }, [now]);
   // Keep the newest message in view
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -72,37 +93,60 @@ export function ChatSection({ playerName }: { playerName: string }) {
           ) : (
             messages.map((m, i) => {
               const mine = isMe(m.created_by);
-              // Messages from the same person in a row share one name line
-              const sameAsPrev = i > 0 && messages[i - 1].created_by === m.created_by;
+              // Messages in a row from the same person share one name line, under the last one
+              const lastOfRun = i === messages.length - 1 || messages[i + 1].created_by !== m.created_by;
               return (
-                <div key={m.id} className={`flex items-end gap-2 animate-in fade-in duration-300 ${mine ? "flex-row-reverse" : ""}`}>
-                  <span className={`w-6 shrink-0 text-center text-lg leading-none ${sameAsPrev ? "invisible" : ""}`}>{av(m.created_by)}</span>
-                  <div className={`max-w-[78%] min-w-0 ${mine ? "items-end text-right" : ""} flex flex-col`}>
-                    {!sameAsPrev && (
-                      <span className="mb-0.5 text-[11px] text-muted-foreground">
-                        {mine ? "You" : m.created_by} · {chatAgo(m.created_at, now)}
-                      </span>
-                    )}
-                    <div className="group flex items-center gap-1">
-                      {mine && (
-                        <DeleteButton confirming={confirmDelete === m.id} onClick={() => askDelete(m)} />
-                      )}
-                      <p
-                        className={`break-words rounded-2xl px-3 py-1.5 text-left text-sm leading-snug ${
-                          mine ? "bg-primary text-primary-foreground" : "bg-card border"
-                        }`}
-                      >
-                        {m.body}
-                      </p>
-                      {isAdmin && !mine && <DeleteButton confirming={confirmDelete === m.id} onClick={() => askDelete(m)} />}
-                    </div>
+                <div key={m.id} className={`flex flex-col animate-in fade-in duration-300 ${mine ? "items-end" : "items-start"} ${lastOfRun ? "mb-1" : ""}`}>
+                  <div className={`group flex max-w-[85%] items-center gap-1 ${mine ? "flex-row-reverse" : ""}`}>
+                    <p
+                      className={`break-words px-3 py-1.5 text-left text-sm leading-snug ${
+                        mine ? "bg-primary text-primary-foreground" : "border bg-card"
+                      } ${lastOfRun ? (mine ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md") : "rounded-2xl"}`}
+                    >
+                      <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
+                    </p>
+                    {(mine || isAdmin) && <DeleteButton confirming={confirmDelete === m.id} onClick={() => askDelete(m)} />}
                   </div>
+                  {lastOfRun && (
+                    <span className="mt-0.5 px-1 text-[11px] text-muted-foreground">
+                      {av(m.created_by)} <span className="font-medium text-foreground/75">{mine ? "You" : m.created_by}</span> · {chatAgo(m.created_at, now)}
+                    </span>
+                  )}
                 </div>
               );
             })
           )}
         </div>
 
+        {messages.length < 4 && !draft && (
+          <div className="flex flex-wrap gap-1.5">
+            {starters.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setDraft(t)}
+                className="rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-left text-xs text-muted-foreground hover:bg-primary/10"
+              >
+                💡 {t}
+              </button>
+            ))}
+          </div>
+        )}
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {suggestions.map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => insertMention(p.name)}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium hover:bg-primary/20"
+              >
+                <span>{p.avatar ?? "👤"}</span>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
         <form onSubmit={send} className="flex gap-2">
           <Input
             value={draft}
@@ -110,7 +154,7 @@ export function ChatSection({ playerName }: { playerName: string }) {
               setDraft(e.target.value.slice(0, CHAT_MAX_LEN));
               setError("");
             }}
-            placeholder="Say something to the office…"
+            placeholder="Say something… type @ to tag someone"
             className="h-10 text-sm"
             enterKeyHint="send"
           />

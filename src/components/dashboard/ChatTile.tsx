@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { chatAgo, CHAT_MAX_LEN, type ChatMessage } from "@/hooks/useChat";
+import { MentionText } from "@/components/MentionText";
+import { starterAt } from "@/lib/chatStarters";
 
 /**
  * The office chat on the TV: like a chat app, newest at the bottom. When there are more
@@ -25,6 +27,7 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
     },
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
+  const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
   const av = (n: string) => avatars.get(n) ?? "👤";
   const shown = messages.slice(-12);
 
@@ -32,18 +35,31 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
     <Card onClick={open} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] ${composing ? "" : ACTIONABLE}`}>
       <span className="tile-label">💬 Chat</span>
       {/* Anchored to the bottom: the newest message is always in view */}
-      <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(6px,0.55vw,11px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_22%)]">
+      <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(4px,0.35vw,7px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)]">
+        {/* A quiet chat gets a nudge: a conversation starter that changes every half minute */}
+        {shown.length < 4 && (
+          <p key={starterAt(now)} className="mb-[clamp(4px,0.4vw,8px)] self-start rounded-2xl border border-dashed border-primary/40 px-[0.9em] py-[0.45em] text-muted-foreground text-[clamp(12px,0.9vw,19px)] animate-in fade-in duration-700">
+            💡 {starterAt(now)}
+          </p>
+        )}
         {shown.map((m, i) => {
-          const sameAsPrev = i > 0 && shown[i - 1].created_by === m.created_by;
+          // Messages in a row from the same person share one name line, under the last one
+          const lastOfRun = i === shown.length - 1 || shown[i + 1].created_by !== m.created_by;
           return (
-            <p key={m.id} className="flex shrink-0 items-baseline gap-[0.45em] text-[clamp(13px,1vw,21px)] leading-snug animate-in fade-in slide-in-from-bottom-1 duration-500">
-              <span className={`w-[1.3em] shrink-0 text-center leading-none ${sameAsPrev ? "invisible" : ""}`}>{av(m.created_by)}</span>
-              <span className="min-w-0 break-words">
-                {!sameAsPrev && <b className="font-semibold">{m.created_by} </b>}
-                {m.body}
-                {i === shown.length - 1 && <span className="text-muted-foreground text-[0.8em]"> · {chatAgo(m.created_at, now)}</span>}
-              </span>
-            </p>
+            <div key={m.id} className={`flex shrink-0 flex-col items-start animate-in fade-in slide-in-from-bottom-1 duration-500 ${lastOfRun ? "mb-[clamp(4px,0.35vw,7px)]" : ""}`}>
+              <p
+                className={`max-w-[92%] break-words bg-[hsl(var(--card))] px-[0.85em] py-[0.4em] leading-snug text-[clamp(13px,1vw,21px)] shadow-[0_1px_0_hsl(var(--foreground)/0.06)] ${
+                  lastOfRun ? "rounded-[1.1em] rounded-bl-[0.3em]" : "rounded-[1.1em]"
+                }`}
+              >
+                <MentionText text={m.body} playerNames={playerNames} avatars={avatars} />
+              </p>
+              {lastOfRun && (
+                <span className="mt-[0.25em] pl-[0.5em] text-muted-foreground text-[clamp(10px,0.72vw,15px)]">
+                  {av(m.created_by)} <span className="font-medium text-foreground/75">{m.created_by}</span> · {chatAgo(m.created_at, now)}
+                </span>
+              )}
+            </div>
           );
         })}
       </div>
