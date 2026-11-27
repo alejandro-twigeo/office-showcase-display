@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+          last_activity_at: string
+          thread_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          id?: string
+          last_activity_at?: string
+          thread_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_activity_at?: string
+          thread_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_news: {
         Row: {
           created_at: string
@@ -832,6 +867,7 @@ export type Database = {
         Args: { p_option_text: string; p_poll_id: string }
         Returns: number
       }
+      chat_thread_open: { Args: { p_id: string }; Returns: boolean }
       claim_player: { Args: { p_id: string }; Returns: Json }
       close_poll: {
         Args: {
