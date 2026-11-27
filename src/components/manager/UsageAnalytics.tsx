@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -468,7 +469,7 @@ function PeopleGroup({
               title={[r.name, r.department, r.office ? CITY[r.office] ?? r.office : null, stats?.(r)].filter(Boolean).join(' · ')}
               className={`flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs ${muted ? 'bg-transparent text-muted-foreground' : 'bg-secondary/20'}`}
             >
-              <span className="shrink-0 text-sm leading-none">{r.avatar}</span>
+              {r.avatar === '·' ? <span className="shrink-0 text-sm leading-none">·</span> : <PlayerAvatar avatar={r.avatar} name={r.name} size="1.9em" still />}
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{r.name}</span>
                 {stats && <span className="block truncate text-[10px] text-muted-foreground tabular-nums">{stats(r)}</span>}
