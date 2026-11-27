@@ -30,10 +30,7 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
 
   return (
     <Card onClick={open} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)] ${composing ? "" : ACTIONABLE}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="tile-label">💬 Chat</span>
-        <span className="tile-label">Write on the Play page</span>
-      </div>
+      <span className="tile-label">💬 Chat</span>
       {/* Anchored to the bottom: the newest message is always in view */}
       <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(6px,0.55vw,11px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_22%)]">
         {shown.map((m, i) => {
