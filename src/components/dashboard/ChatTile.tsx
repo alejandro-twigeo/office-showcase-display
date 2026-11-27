@@ -2,10 +2,13 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { chatAgo, chatTimeLeft, type ChatThread } from "@/hooks/useChat";
+import { chatAgo, type ChatMessage } from "@/hooks/useChat";
 
-/** The office chat on the TV: live conversations, most recently active first, replies underneath. */
-export function ChatTile({ threads, now }: { threads: ChatThread[]; now: number }) {
+/**
+ * The office chat on the TV: like a chat app, newest at the bottom. When there are more
+ * messages than fit, the oldest fade out at the top (phones can scroll up for them).
+ */
+export function ChatTile({ messages, now }: { messages: ChatMessage[]; now: number }) {
   const { data: players = [] } = useQuery({
     queryKey: ["players-avatars"],
     queryFn: async () => {
@@ -15,6 +18,7 @@ export function ChatTile({ threads, now }: { threads: ChatThread[]; now: number 
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
   const av = (n: string) => avatars.get(n) ?? "👤";
+  const shown = messages.slice(-12);
 
   return (
     <Card className="h-full min-h-0 flex flex-col overflow-hidden p-[clamp(14px,1.3vw,28px)] gap-[clamp(8px,0.7vw,14px)]">
@@ -22,30 +26,21 @@ export function ChatTile({ threads, now }: { threads: ChatThread[]; now: number 
         <span className="tile-label">💬 Chat</span>
         <span className="tile-label">Write on the Play page</span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-[clamp(10px,0.9vw,18px)] overflow-hidden [mask-image:linear-gradient(to_bottom,black_85%,transparent)]">
-        {threads.slice(0, 4).map((t) => (
-          <div key={t.id} className="space-y-[clamp(3px,0.3vw,6px)] animate-in fade-in slide-in-from-bottom-1 duration-500">
-            <p className="flex items-baseline gap-[0.4em] text-[clamp(14px,1.05vw,22px)] leading-snug">
-              <span className="shrink-0 leading-none">{av(t.created_by)}</span>
+      {/* Anchored to the bottom: the newest message is always in view */}
+      <div className="flex min-h-0 flex-1 flex-col justify-end gap-[clamp(6px,0.55vw,11px)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_22%)]">
+        {shown.map((m, i) => {
+          const sameAsPrev = i > 0 && shown[i - 1].created_by === m.created_by;
+          return (
+            <p key={m.id} className="flex shrink-0 items-baseline gap-[0.45em] text-[clamp(13px,1vw,21px)] leading-snug animate-in fade-in slide-in-from-bottom-1 duration-500">
+              <span className={`w-[1.3em] shrink-0 text-center leading-none ${sameAsPrev ? "invisible" : ""}`}>{av(m.created_by)}</span>
               <span className="min-w-0 break-words">
-                <b className="font-semibold">{t.created_by}</b> {t.body}
+                {!sameAsPrev && <b className="font-semibold">{m.created_by} </b>}
+                {m.body}
+                {i === shown.length - 1 && <span className="text-muted-foreground text-[0.8em]"> · {chatAgo(m.created_at, now)}</span>}
               </span>
             </p>
-            {t.replies.slice(-2).map((r) => (
-              <p key={r.id} className="ml-[1.6em] flex items-baseline gap-[0.4em] text-[clamp(12px,0.9vw,19px)] leading-snug text-foreground/85">
-                <span className="shrink-0 leading-none">{av(r.created_by)}</span>
-                <span className="min-w-0 break-words">
-                  <b className="font-semibold">{r.created_by}</b> {r.body}
-                  <span className="text-muted-foreground"> · {chatAgo(r.created_at, now)}</span>
-                </span>
-              </p>
-            ))}
-            {t.replies.length > 2 && (
-              <p className="ml-[1.6em] text-muted-foreground text-[clamp(11px,0.8vw,16px)]">+{t.replies.length - 2} earlier replies</p>
-            )}
-            <p className="ml-[1.6em] text-muted-foreground/80 text-[clamp(10px,0.75vw,15px)]">disappears in {chatTimeLeft(t.endsAt, now)}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );
