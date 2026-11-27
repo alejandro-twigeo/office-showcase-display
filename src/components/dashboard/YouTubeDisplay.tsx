@@ -321,7 +321,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                   loop
                   muted
                   playsInline
-                  className="h-28 lg:h-[clamp(96px,8vw,180px)] aspect-square w-auto object-contain mix-blend-multiply scale-[1.3]"
+                  className="h-28 lg:h-[clamp(96px,8vw,180px)] aspect-square w-auto object-contain mix-blend-multiply scale-[1.3] [mask-image:radial-gradient(closest-side,black_62%,transparent)]"
                 />
                 <div>
                   <p className="font-medium text-xs lg:text-[clamp(16px,1.2vw,25px)]">No video playing</p>
