@@ -7,20 +7,25 @@ import { useFlip } from "@/hooks/useFlip";
 import { PlayQr } from "./JoinCard";
 import { useNavigate } from "react-router-dom";
 import { ACTIONABLE } from "@/hooks/useMe";
+import { useGameIcons } from "@/hooks/useGameIcons";
+import { Users, Play, Swords } from "lucide-react";
 
-const GAME_EMOJI: Record<string, string> = {
-  wordle: "🟩",
-  geo: "🌍",
-  city_guess: "🏙️",
-  color_memory: "🎨",
-  this_or_that: "⚖️",
-  sudoku: "🔢",
-  pairs: "🃏",
-  labyrinth: "🌀",
+// A soft colour per game, used for the background art when no logo is uploaded in Manager
+const GAME_HUE: Record<string, number> = {
+  wordle: 130,
+  geo: 8,
+  city_guess: 210,
+  color_memory: 320,
+  this_or_that: 28,
+  sudoku: 230,
+  pairs: 350,
+  labyrinth: 35,
 };
-const ALL_GAMES = Object.keys(GAME_EMOJI);
+const ALL_GAMES = Object.keys(GAME_HUE);
+// Logos are uploaded in Manager under the Play page's game ids
+const iconKey = (g: string) => (g === "geo" ? "geoguessr" : g);
 const HOT_MS = 3 * 60_000;
-// All eight games get a card (3 × 3 grid); the ninth slot holds a challenge, a streak or the QR
+// All eight games get a card (3 × 3 grid); the ninth slot holds the challenges, a streak or the QR
 const SHOWN = 8;
 
 /** 0–5 bars for how much has been played in the last hour */
@@ -45,46 +50,70 @@ export function ActivityMeter({ level, label }: { level: number; label?: string 
   );
 }
 
+const MEDAL = ["bg-amber-200/70 text-amber-900", "bg-stone-200/80 text-stone-700", "bg-orange-200/60 text-orange-900"];
+
 /**
- * Top three of one game. Every row is the same element keyed by player, so when someone
- * overtakes, the rows slide into their new places and the score counts up.
+ * Top three of one game: rank, name, score, one quiet row each. Every row is the same element
+ * keyed by player, so when someone overtakes, the rows slide into their new places and the score
+ * counts up.
  */
-function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => string; badges: (n: string) => JSX.Element | null }) {
+function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JSX.Element | null }) {
   const ref = useFlip<HTMLDivElement>([rows.map((r) => r.player).join("|")]);
   return (
     // flex-wrap: a row that doesn't fit wraps out of view instead of showing half
-    <div ref={ref} className="flex min-h-0 flex-1 flex-col flex-wrap content-start gap-[clamp(4px,0.35vw,8px)] overflow-hidden">
-      {rows.map((e, i) =>
-        i === 0 ? (
-          <div
-            key={e.player}
-            data-flip={e.player}
-            className="flex w-full items-center gap-[clamp(5px,0.4vw,9px)] rounded-[clamp(7px,0.5vw,11px)] bg-[hsl(var(--card))] px-[clamp(6px,0.5vw,11px)] py-[clamp(4px,0.3vw,7px)]"
+    <div ref={ref} className="relative z-[1] mt-[clamp(2px,0.3vw,8px)] flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
+      {rows.map((e, i) => (
+        <div
+          key={e.player}
+          data-flip={e.player}
+          className={`flex w-[78%] items-center gap-[clamp(6px,0.5vw,10px)] py-[clamp(4px,0.4vw,9px)] text-[clamp(13px,0.95vw,20px)] ${
+            i > 0 ? "border-t border-foreground/[0.07]" : ""
+          }`}
+        >
+          <span
+            className={`flex h-[1.6em] w-[1.6em] shrink-0 items-center justify-center rounded-full text-[0.8em] font-semibold tabular-nums ${MEDAL[i]}`}
           >
-            <span className="leading-none text-[clamp(16px,1.2vw,27px)]">{av(e.player)}</span>
-            <span className="flex min-w-0 flex-1 items-center gap-1 font-semibold text-[clamp(12px,0.9vw,20px)]">
-              <span className="truncate">{e.player}</span>
-              {badges(e.player)}
-            </span>
-            <CountUp value={e.score} className="shrink-0 font-semibold tabular-nums text-primary text-[clamp(14px,1.05vw,24px)]" />
-          </div>
-        ) : (
-          <div
-            key={e.player}
-            data-flip={e.player}
-            className="flex w-full items-center gap-[clamp(5px,0.4vw,8px)] px-[clamp(4px,0.3vw,6px)] py-[clamp(2px,0.25vw,5px)] text-[clamp(12px,0.85vw,18px)]"
-          >
-            <span className="w-[1.1em] text-center font-semibold text-muted-foreground tabular-nums">{i + 1}</span>
-            <span className="leading-none">{av(e.player)}</span>
-            <span className="flex min-w-0 flex-1 items-center gap-1">
-              <span className="truncate">{e.player}</span>
-              {badges(e.player)}
-            </span>
-            <CountUp value={e.score} className="tabular-nums" />
-          </div>
-        )
-      )}
+            {i + 1}
+          </span>
+          <span className={`flex min-w-0 flex-1 items-center gap-1 ${i === 0 ? "font-semibold" : "font-medium"}`}>
+            <span className="truncate">{e.player}</span>
+            {badges(e.player)}
+          </span>
+          <CountUp value={e.score} className="shrink-0 tabular-nums" />
+        </div>
+      ))}
     </div>
+  );
+}
+
+/** The game's logo as soft background art in the card's corner (or a soft colour if there's none) */
+function GameArt({ src, hue }: { src?: string; hue: number }) {
+  return src ? (
+    <img
+      src={src}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className="pointer-events-none absolute -bottom-[22%] -right-[8%] h-[78%] w-auto max-w-[42%] rotate-[-10deg] object-contain opacity-[0.2] blur-[1.5px] saturate-[1.2] [mask-image:linear-gradient(to_top_left,black_35%,transparent_85%)]"
+    />
+  ) : (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -bottom-[30%] -right-[15%] aspect-square h-[95%] rounded-full opacity-60 blur-[18px]"
+      style={{ background: `radial-gradient(closest-side, hsl(${hue} 85% 75% / 0.55), transparent)` }}
+    />
+  );
+}
+
+/** A small round play button in the corner: the whole card opens the game, this just says so */
+function PlayButton() {
+  return (
+    <span
+      aria-hidden
+      className="absolute bottom-[clamp(8px,0.65vw,14px)] right-[clamp(8px,0.65vw,14px)] z-[1] flex h-[clamp(24px,1.7vw,38px)] w-[clamp(24px,1.7vw,38px)] items-center justify-center rounded-full bg-[hsl(var(--card))] text-foreground/80 shadow-[0_4px_14px_-6px_hsl(var(--foreground)/0.3)]"
+    >
+      <Play className="ml-[8%] h-[38%] w-[38%] fill-current" />
+    </span>
   );
 }
 
@@ -95,6 +124,7 @@ function Podium({ rows, av, badges }: { rows: PlayEvent[]; av: (n: string) => st
 export function GamesTile() {
   const a = useOfficeActivity();
   const spotlight = useSpotlight();
+  const { icons } = useGameIcons();
   // On a laptop a card opens that game on the Play page
   const navigate = useNavigate();
   const openGame = (g: string) => navigate(`/play?game=${g === "geo" ? "geoguessr" : g}`);
@@ -122,8 +152,8 @@ export function GamesTile() {
   const badges = (name: string) =>
     a.lastWeekChampion === name ? <span className="shrink-0" title="Champion of last week">👑</span> : null;
 
-  // Something worth a nudge in the ninth slot: a live challenge, else the longest streak
-  const challenge = a.challenges.find((c) => c.status === "open");
+  // Something worth a nudge in the ninth slot: up to three challenges (open ones first), else the longest streak
+  const challenges = [...a.challenges].sort((x, y) => Number(y.status === "open") - Number(x.status === "open") || y.at.localeCompare(x.at)).slice(0, 3);
   const topStreak = [...a.streaks.entries()].sort((x, y) => y[1] - x[1])[0];
 
   return (
@@ -146,39 +176,71 @@ export function GamesTile() {
             <div
               key={g}
               onClick={() => openGame(g)}
-              className={`relative flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] rounded-[clamp(10px,0.85vw,18px)] p-[clamp(8px,0.65vw,14px)] transition-all duration-500 ${ACTIONABLE} ${
+              className={`relative flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden rounded-[clamp(10px,0.85vw,18px)] p-[clamp(10px,0.8vw,18px)] transition-all duration-500 ${ACTIONABLE} ${
                 hot ? "bg-green-600/10 shadow-[0_0_0_2px_hsl(142_60%_45%/0.45)]" : lead ? "bg-background" : "border border-dashed border-foreground/15"
               } ${lit ? "shadow-[0_0_0_3px_hsl(var(--primary))] scale-[1.02]" : ""}`}
             >
+              <GameArt src={icons[iconKey(g)]} hue={GAME_HUE[g] ?? 25} />
               {hot && last && (
-                <span className="absolute -top-[0.9em] right-[clamp(8px,0.7vw,14px)] z-10 rounded-full bg-[hsl(var(--card))] px-[0.8em] py-[0.25em] font-semibold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.35)] text-[clamp(12px,0.85vw,18px)] animate-in fade-in zoom-in-90 duration-500">
+                <span className="absolute right-[clamp(8px,0.7vw,14px)] top-[clamp(6px,0.5vw,10px)] z-10 rounded-full bg-[hsl(var(--card))] px-[0.8em] py-[0.25em] font-semibold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.35)] text-[clamp(12px,0.85vw,18px)] animate-in fade-in zoom-in-90 duration-500">
                   +1 {av(last.player)} {last.player}
                 </span>
               )}
-              <div className="flex items-baseline justify-between gap-2">
-                <span className={`truncate font-semibold text-[clamp(13px,0.95vw,21px)] ${lead ? "" : "text-muted-foreground"}`}>
-                  {GAME_EMOJI[g]} {GAME_NAMES[g] ?? g}
+              <div className="relative z-[1] flex items-center justify-between gap-2">
+                <span className={`truncate font-semibold text-[clamp(14px,1.05vw,23px)] ${lead ? "" : "text-muted-foreground"}`}>
+                  {GAME_NAMES[g] ?? g}
                 </span>
-                {board.length > 0 && <span className="shrink-0 text-muted-foreground tabular-nums text-[clamp(11px,0.75vw,16px)]">{board.length} today</span>}
+                {board.length > 0 && (
+                  <span className="flex shrink-0 items-center gap-[0.35em] text-muted-foreground tabular-nums text-[clamp(11px,0.8vw,17px)]" title={`${board.length} played today`}>
+                    <Users className="h-[1.05em] w-[1.05em]" />
+                    {board.length}
+                  </span>
+                )}
               </div>
               {lead ? (
-                <Podium rows={[lead, ...rest].slice(0, 3)} av={av} badges={badges} />
+                <Podium rows={[lead, ...rest].slice(0, 3)} badges={badges} />
               ) : (
-                <p className="m-auto text-center text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
+                <p className="relative z-[1] m-auto text-center text-muted-foreground text-[clamp(11px,0.8vw,16px)]">
                   <span className="font-medium text-foreground/70">Be the first</span>
                 </p>
               )}
+              <PlayButton />
             </div>
           );
         })}
         {/* Ninth slot: something to nudge people with */}
-        <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col justify-center gap-[clamp(4px,0.4vw,8px)] rounded-[clamp(10px,0.85vw,18px)] bg-primary/[0.07] p-[clamp(8px,0.65vw,14px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
-          {challenge ? (
+        <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col ${challenges.length ? "justify-start" : "justify-center"} gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(10px,0.85vw,18px)] ${challenges.length ? "bg-background" : "bg-primary/[0.07]"} p-[clamp(10px,0.8vw,18px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
+          {challenges.length > 0 ? (
             <>
-              <span className="tile-label">Challenge</span>
-              <p>
-                ⚔️ <b>{challenge.from}</b> challenged <b>{challenge.to}</b> in {GAME_NAMES[challenge.game] ?? challenge.game}
-              </p>
+              <span className="flex items-center gap-[0.4em] font-semibold text-[clamp(14px,1.05vw,23px)]">
+                <Swords className="h-[1em] w-[1em] text-primary" />
+                Challenges
+              </span>
+              <div className="flex min-h-0 flex-col overflow-hidden">
+                {challenges.map((c, i) => (
+                  <div
+                    key={`${c.key}-${c.at}`}
+                    className={`flex items-center gap-[clamp(6px,0.5vw,10px)] py-[clamp(4px,0.4vw,9px)] text-[clamp(13px,0.95vw,20px)] ${
+                      i > 0 ? "border-t border-foreground/[0.07]" : ""
+                    } ${c.status === "open" ? "" : "text-muted-foreground"}`}
+                  >
+                    <span className="max-w-[40%] truncate font-medium">{c.from}</span>
+                    <Swords className="h-[0.9em] w-[0.9em] shrink-0 text-primary/70" aria-label="challenged" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{c.to}</span>
+                    {icons[iconKey(c.game)] ? (
+                      <img src={icons[iconKey(c.game)]} alt={GAME_NAMES[c.game] ?? c.game} title={GAME_NAMES[c.game] ?? c.game} className="h-[1.5em] w-[1.5em] shrink-0 rounded-[5px] object-contain" />
+                    ) : (
+                      <span
+                        title={GAME_NAMES[c.game] ?? c.game}
+                        className="flex h-[1.5em] w-[1.5em] shrink-0 items-center justify-center rounded-[5px] text-[0.75em] font-semibold"
+                        style={{ background: `hsl(${GAME_HUE[c.game] ?? 25} 80% 85%)` }}
+                      >
+                        {(GAME_NAMES[c.game] ?? c.game).charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </>
           ) : topStreak && topStreak[1] >= 3 ? (
             <>
