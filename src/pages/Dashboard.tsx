@@ -113,8 +113,8 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then both riddles / GeoGuessr photos
  *  - Together: now playing (compact, or big while a video plays), then kudos (fills)
- *  - This week: who's leading and the fika goal, the poll and news taking turns, and the office chat.
- *    While a conversation is going the chat fills the column; otherwise the week's ranking does.
+ *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll and news taking turns,
+ *    and the office chat filling the rest. Every tile keeps its place, chat or no chat.
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -126,9 +126,8 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   const tile = desktop ? "min-h-0" : "min-h-[280px] lg:min-h-0";
   // sized to its content: never stretched, never squeezed
   const fit = "shrink-0";
-  // The chat gets its own room while a conversation is going
+  // The chat always has its home at the bottom of This week (quiet or not), so nothing moves around
   const { messages: chat, now, post: postChat } = useChat();
-  const chatOn = chat.length > 0;
 
   return (
     <div className={desktop ? "h-full min-h-0 grid grid-cols-[4.2fr_4.4fr_3.4fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[4.2fr_4.4fr_3.4fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
@@ -161,9 +160,9 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
       {/* This week */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <ZoneLabel>This week</ZoneLabel>
-        {/* Leader and goal; with no chat going, the ranking fills the room below */}
-        <div className={chatOn ? fit : `${tile} flex-1`}>
-          <ThisWeekCard compact ranking={!chatOn} />
+        {/* Leader, 2nd and 3rd, and the goal */}
+        <div className={fit}>
+          <ThisWeekCard compact />
         </div>
         {tvFeatureMode === "flow" ? (
           // Flow (a chart) needs room, so it shares the column
@@ -176,12 +175,10 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
             <PollNewsSlot tvFeatureMode={tvFeatureMode} />
           </div>
         )}
-        {/* Office chat: only while a conversation is going, then it takes the rest of the column */}
-        {chatOn && (
-          <div className={`${tile} flex-1 animate-in fade-in slide-in-from-bottom-2 duration-700`}>
-            <ChatTile messages={chat} now={now} onSend={(body, me) => postChat.mutate({ body, created_by: me })} />
-          </div>
-        )}
+        {/* Office chat: always here, takes the rest of the column */}
+        <div className={`${tile} flex-1`}>
+          <ChatTile messages={chat} now={now} onSend={(body, me) => postChat.mutate({ body, created_by: me })} />
+        </div>
       </div>
     </div>
   );
