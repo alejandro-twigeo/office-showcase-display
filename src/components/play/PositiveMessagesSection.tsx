@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Plus, Pencil, Trash2, Check, X, ExternalLink } from "lucide-react";
+import { Heart, Plus, Pencil, Trash2, Check, X, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { KUDOS_DEFAULT_DAYS, KUDOS_MIN_DAYS, KUDOS_MAX_DAYS, kudosDaysLeft } from "@/lib/kudos";
 
 const MAX_LEN = 120;
 const BOB_URL = "https://app.hibob.com/home";
@@ -19,11 +20,45 @@ interface Props {
   playerName: string;
 }
 
+/** "‹ 7 days ›": how long kudos stay on the TV. Arrows step a day at a time (1–30). */
+function DaysStepper({ value, onChange, disabled, label = "On the TV for" }: { value: number; onChange: (d: number) => void; disabled?: boolean; label?: string }) {
+  const step = (d: number) => onChange(Math.min(KUDOS_MAX_DAYS, Math.max(KUDOS_MIN_DAYS, value + d)));
+  return (
+    <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span>{label}</span>
+      <span className="inline-flex items-center rounded-full border bg-background">
+        <button
+          type="button"
+          onClick={() => step(-1)}
+          disabled={disabled || value <= KUDOS_MIN_DAYS}
+          className="rounded-l-full px-1.5 py-1 hover:bg-secondary disabled:opacity-30"
+          aria-label="One day less"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <span className="min-w-[3.6em] text-center font-medium tabular-nums text-foreground">
+          {value} {value === 1 ? "day" : "days"}
+        </span>
+        <button
+          type="button"
+          onClick={() => step(1)}
+          disabled={disabled || value >= KUDOS_MAX_DAYS}
+          className="rounded-r-full px-1.5 py-1 hover:bg-secondary disabled:opacity-30"
+          aria-label="One day more"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </span>
+    </div>
+  );
+}
+
 export function PositiveMessagesSection({ playerName }: Props) {
-  const { messages, isLoading, addMessage, updateMessage, deactivateMessage } = usePositiveMessages();
+  const { messages, isLoading, addMessage, updateMessage, setDaysLeft, deactivateMessage } = usePositiveMessages();
 
   // Add form
   const [newMsg, setNewMsg] = useState("");
+  const [days, setDays] = useState(KUDOS_DEFAULT_DAYS);
   const [addError, setAddError] = useState("");
   const [lastSent, setLastSent] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -88,10 +123,11 @@ export function PositiveMessagesSection({ playerName }: Props) {
     if (err) { setAddError(err); return; }
     setAddError("");
     const text = newMsg.trim();
-    addMessage.mutate({ message: text, created_by: playerName });
+    addMessage.mutate({ message: text, created_by: playerName, days });
     setLastSent(text);
     setCopied(false);
     setNewMsg("");
+    setDays(KUDOS_DEFAULT_DAYS);
   }
 
   function startEdit(msg: { id: string; message: string; created_by: string }) {
@@ -159,6 +195,7 @@ export function PositiveMessagesSection({ playerName }: Props) {
           {query !== undefined && query.length > 1 && suggestions.length === 0 && (
             <p className="text-xs text-muted-foreground">Not playing yet? Tag them anyway, the TV will invite them.</p>
           )}
+          <DaysStepper value={days} onChange={setDays} />
           {addError && <p className="text-xs text-destructive">{addError}</p>}
         </div>
 
@@ -208,9 +245,23 @@ export function PositiveMessagesSection({ playerName }: Props) {
                   </>
                 ) : (
                   <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
+                    <div className={`flex-1 min-w-0 ${kudosDaysLeft(msg) === 0 ? "opacity-60" : ""}`}>
                       <p className="text-sm leading-snug">{msg.message}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">— {msg.created_by}</p>
+                      {canChange(msg.created_by) ? (
+                        <div className="mt-1.5">
+                          <DaysStepper
+                            label={kudosDaysLeft(msg) === 0 ? "Ended · show for" : "On the TV for"}
+                            value={Math.max(KUDOS_MIN_DAYS, kudosDaysLeft(msg))}
+                            onChange={(d) => setDaysLeft.mutate({ id: msg.id, days: d })}
+                            disabled={setDaysLeft.isPending}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {kudosDaysLeft(msg) === 0 ? "No longer on the TV" : `On the TV for ${kudosDaysLeft(msg)} more ${kudosDaysLeft(msg) === 1 ? "day" : "days"}`}
+                        </p>
+                      )}
                     </div>
                     {canChange(msg.created_by) && (
                     <div className="flex gap-1 shrink-0">
