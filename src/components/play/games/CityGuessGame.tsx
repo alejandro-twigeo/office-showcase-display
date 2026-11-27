@@ -11,6 +11,9 @@ import { fetchMapillaryCity, type MapillaryImage } from '@/lib/mapillary';
 import { CheckCircle, MapPin, Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { GameCelebration } from '../GameCelebration';
+
+const fmtDist = (km: number) => (km < 1 ? `${Math.round(km * 1000)} m` : `${Math.round(km)} km`);
 
 const CITIES: { name: string; lat: number; lng: number }[] = [
   { name: 'New York', lat: 40.7128, lng: -74.006 },
@@ -50,6 +53,13 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
   const [loading, setLoading] = useState(false);
   const [guessPos, setGuessPos] = useState<{ lat: number; lng: number } | null>(null);
   const [guesses, setGuesses] = useState<{ distance: number; score: number }[]>([]);
+  // Feedback right after a guess: "+54 pts · 1.2 km" pops up for a moment
+  const [lastGuessPop, setLastGuessPop] = useState<{ key: number; dist: number; points: number } | null>(null);
+  useEffect(() => {
+    if (!lastGuessPop) return;
+    const t = setTimeout(() => setLastGuessPop(null), 2600);
+    return () => clearTimeout(t);
+  }, [lastGuessPop]);
   const [bestScore, setBestScore] = useState(0);
   const [hasCompletedLocalRound, setHasCompletedLocalRound] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -187,6 +197,7 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
     const newGuesses = [...guesses, { distance: dist, score: points }];
     setGuesses(newGuesses);
     buzz([10, 40, 14]);
+    setLastGuessPop({ key: Date.now(), dist, points });
     setGuessPos(null);
 
     const newBest = Math.max(bestScore, points);
@@ -396,12 +407,35 @@ export function CityGuessGame({ playerName, roundId }: CityGuessGameProps) {
         )}
         </div>
 
+        {/* After each guess: a quick pop with the points and how far off it was */}
+        {lastGuessPop && !hasCompletedLocalRound && (
+          <div
+            key={lastGuessPop.key}
+            className="pointer-events-none fixed inset-x-0 top-[22%] z-[60] flex justify-center animate-in fade-in zoom-in-75 slide-in-from-bottom-4 duration-300"
+          >
+            <span className="rounded-full bg-card px-5 py-2.5 text-lg font-bold shadow-[0_16px_40px_-12px_rgba(0,0,0,0.45)]">
+              <span className="text-primary">+{lastGuessPop.points} pts</span>
+              <span className="ml-2 text-base font-medium text-muted-foreground">📍 {fmtDist(lastGuessPop.dist)}</span>
+            </span>
+          </div>
+        )}
+
+        {/* After the last guess: the celebration, with the best guess of the round */}
+        <GameCelebration
+          open={hasCompletedLocalRound && guesses.length > 0}
+          emoji={Math.min(...guesses.map((g) => g.distance)) < 1 ? '🎯' : Math.min(...guesses.map((g) => g.distance)) < 5 ? '📍' : '🗺️'}
+          title={Math.min(...guesses.map((g) => g.distance)) < 1 ? 'Spot on!' : Math.min(...guesses.map((g) => g.distance)) < 5 ? 'So close!' : 'Nice try!'}
+          points={bestScore}
+          details={[`best guess: ${fmtDist(Math.min(...guesses.map((g) => g.distance)))} away`, 'The real spot is now on the map']}
+          confetti={Math.min(...guesses.map((g) => g.distance)) < 5}
+        />
+
         {guesses.length > 0 && (
           <div className="space-y-1 border-t pt-2">
             <p className="text-xs text-muted-foreground font-medium">Your guesses:</p>
             {guesses.map((g, i) => (
               <div key={i} className="text-xs bg-secondary/50 px-2 py-1.5 rounded flex justify-between animate-in fade-in slide-in-from-top-1 duration-300">
-                <span>#{i + 1} — {g.distance < 1 ? `${Math.round(g.distance * 1000)} m` : `${Math.round(g.distance)} km`}</span>
+                <span>#{i + 1} — {fmtDist(g.distance)}</span>
                 <span className="font-mono font-semibold text-accent">{g.score} pts</span>
               </div>
             ))}
