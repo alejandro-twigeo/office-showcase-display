@@ -4,6 +4,7 @@ import { useOfficeActivity, GAME_NAMES, type PlayEvent } from "@/hooks/useOffice
 import { useSpotlight } from "./GameSpotlight";
 import { CountUp } from "@/components/ui/count-up";
 import { useFlip } from "@/hooks/useFlip";
+import { PlayQr } from "./JoinCard";
 
 const GAME_EMOJI: Record<string, string> = {
   wordle: "🟩",
@@ -17,7 +18,8 @@ const GAME_EMOJI: Record<string, string> = {
 };
 const ALL_GAMES = Object.keys(GAME_EMOJI);
 const HOT_MS = 3 * 60_000;
-const SHOWN = 6;
+// All eight games get a card (3 × 3 grid); the ninth slot holds a challenge, a streak or the QR
+const SHOWN = 8;
 
 /** 0–5 bars for how much has been played in the last hour */
 function activityLevel(n: number) {
@@ -115,7 +117,7 @@ export function GamesTile() {
   const badges = (name: string) =>
     a.lastWeekChampion === name ? <span className="shrink-0" title="Champion of last week">👑</span> : null;
 
-  // Something worth a nudge at the bottom: a live challenge and the longest streak
+  // Something worth a nudge in the ninth slot: a live challenge, else the longest streak
   const challenge = a.challenges.find((c) => c.status === "open");
   const topStreak = [...a.streaks.entries()].sort((x, y) => y[1] - x[1])[0];
 
@@ -128,7 +130,7 @@ export function GamesTile() {
         <ActivityMeter level={activityLevel(lastHour)} label="Activity" />
       </div>
 
-      <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-2 gap-[clamp(8px,0.7vw,14px)]">
+      <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-3 gap-[clamp(8px,0.7vw,14px)]">
         {games.shown.map((g) => {
           const board = a.todayByGame.get(g) ?? [];
           const [lead, ...rest] = board;
@@ -165,27 +167,37 @@ export function GamesTile() {
             </div>
           );
         })}
+        {/* Ninth slot: something to nudge people with */}
+        <div className="flex min-h-0 flex-col justify-center gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(12px,1vw,20px)] bg-primary/[0.07] p-[clamp(10px,0.8vw,16px)] text-[clamp(13px,0.95vw,20px)] leading-snug">
+          {challenge ? (
+            <>
+              <span className="tile-label">Challenge</span>
+              <p>
+                ⚔️ <b>{challenge.from}</b> challenged <b>{challenge.to}</b> in {GAME_NAMES[challenge.game] ?? challenge.game}
+              </p>
+            </>
+          ) : topStreak && topStreak[1] >= 3 ? (
+            <>
+              <span className="tile-label">Longest streak</span>
+              <p>
+                🔥 <b>{topStreak[0]}</b> has played {topStreak[1]} days in a row
+              </p>
+            </>
+          ) : (
+            <div className="flex items-center gap-[clamp(8px,0.7vw,14px)]">
+              <span className="shrink-0 rounded-[6px] bg-white p-[3px] ring-2 ring-primary">
+                <PlayQr className="h-[clamp(40px,3.4vw,72px)] w-[clamp(40px,3.4vw,72px)]" />
+              </span>
+              <p>
+                <b>Your turn</b>
+                <br />
+                <span className="text-muted-foreground">Scan to play</span>
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-[clamp(6px,0.5vw,10px)] overflow-hidden whitespace-nowrap text-[clamp(12px,0.85vw,17px)]">
-        {games.rest.length > 0 && (
-          <span className="truncate text-muted-foreground">
-            {games.rest.some((g) => (a.todayByGame.get(g)?.length ?? 0) > 0) ? "Also today" : "Not played yet"}:{" "}
-            {games.rest.map((g) => `${GAME_EMOJI[g]} ${GAME_NAMES[g]} ${a.todayByGame.get(g)?.length ?? 0}`).join(" · ")}
-          </span>
-        )}
-        <span className="flex-1" />
-        {challenge && (
-          <span className="rounded-full bg-background px-[0.9em] py-[0.35em]">
-            ⚔️ <b>{challenge.from}</b> challenged <b>{challenge.to}</b> in {GAME_NAMES[challenge.game] ?? challenge.game}
-          </span>
-        )}
-        {!challenge && topStreak && topStreak[1] >= 3 && (
-          <span className="rounded-full bg-background px-[0.9em] py-[0.35em]">
-            🔥 <b>{topStreak[0]}</b> is on a {topStreak[1]}-day streak
-          </span>
-        )}
-      </div>
     </Card>
   );
 }
