@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Plus, Pencil, Trash2, Check, X, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { KUDOS_DEFAULT_DAYS, KUDOS_MIN_DAYS, KUDOS_MAX_DAYS, kudosDaysLeft } from "@/lib/kudos";
+import { useKudosReactions } from "@/hooks/useKudosReactions";
+import { ReactionBar } from "@/components/ReactionBar";
 
 const MAX_LEN = 120;
 const BOB_URL = "https://app.hibob.com/home";
@@ -58,6 +60,7 @@ function DaysStepper({ value, onChange, disabled, label = "On the TV for" }: { v
 
 export function PositiveMessagesSection({ playerName }: Props) {
   const { messages, isLoading, addMessage, updateMessage, setDaysLeft, deactivateMessage } = usePositiveMessages();
+  const { forKudos, toggle: react } = useKudosReactions(playerName);
 
   // Add form
   const [newMsg, setNewMsg] = useState("");
@@ -300,6 +303,9 @@ export function PositiveMessagesSection({ playerName }: Props) {
                     <div className={`flex-1 min-w-0 ${kudosDaysLeft(msg) === 0 ? "opacity-60" : ""}`}>
                       <p className="text-sm leading-snug">{msg.message}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">— {msg.created_by}</p>
+                      <div className="mt-1.5">
+                        <ReactionBar reactions={forKudos(msg.id)} onReact={(emoji) => react.mutate({ kudosId: msg.id, emoji })} />
+                      </div>
                       {canChange(msg.created_by) ? (
                         <div className="mt-1.5">
                           <DaysStepper
