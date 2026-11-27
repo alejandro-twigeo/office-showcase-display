@@ -9,7 +9,6 @@ import { parseQueuedBy } from "@/lib/dedication";
 import { useNavigate } from "react-router-dom";
 import { ACTIONABLE, useMe } from "@/hooks/useMe";
 import { QueueAdder } from "./QueueAdder";
-import { QueueStrip } from "./QueueStrip";
 import { NowPlayingIcon } from "./NowPlayingIcon";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
@@ -67,7 +66,7 @@ function loadYouTubeAPI(onReady: () => void) {
 /* ── Component ────────────────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
-  const { currentVideo, queue, addToQueue, reorderQueue } = useYoutubeQueue();
+  const { currentVideo, queue, addToQueue } = useYoutubeQueue();
   const me = useMe();
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
@@ -145,8 +144,6 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     spotlightTimerRef.current = setTimeout(() => setSpotlight(null), 10_000);
   }, [queue]);
   useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
-  // Always at least the slim strip, so the ＋ under the queue is always there
-  const sidebarWidth = spotlight ? "clamp(180px,12vw,270px)" : "clamp(64px,5vw,110px)";
 
   // Next song: the TV isn't logged in, so it uses the database function made for exactly this.
   // The queue updates itself through realtime afterwards.
@@ -328,9 +325,9 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               </span>
             ) : null;
           })()}
-        {/* ＋ on small screens, where the queue strip is hidden; on big ones it sits under the queue */}
-        <span className="ml-auto lg:hidden" />
-        <span className="flex items-center gap-1.5 lg:hidden">
+        {/* ＋ (and ⏭) up here on small screens, and on big ones while nothing plays; with a video they sit under it */}
+        <span className={`ml-auto ${currentVideo ? "lg:hidden" : ""}`} />
+        <span className={`flex items-center gap-1.5 ${currentVideo ? "lg:hidden" : ""}`}>
           <QueueAdder me={me} onLogin={openMusic} onAdd={addSong} />
           {currentVideo && (
             <button
@@ -347,123 +344,109 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
         </span>
       </div>
 
-      <div className="flex-1 min-h-0">
-        <div
-          className="h-full flex flex-col lg:grid gap-2 lg:gap-[clamp(8px,0.8vw,16px)] transition-[grid-template-columns] duration-500 ease-out"
-          style={{ gridTemplateColumns: `minmax(0,1fr) ${sidebarWidth}` }}
-        >
-          {/* Left — video + info */}
-          <div className="min-h-0 flex flex-col">
-            {!currentVideo ? (
-              // Nothing playing: musicians and text side by side, so the tile stays short
-              <div
-                onClick={() => navigate("/play?tab=music")}
-                className={`flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-[clamp(16px,1.6vw,36px)] rounded-xl text-center lg:text-left ${ACTIONABLE}`}
+      <div className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-[clamp(8px,0.7vw,14px)]">
+        {!currentVideo ? (
+          // Nothing playing: musicians and text side by side, so the tile stays short
+          <div
+            onClick={() => navigate("/play?tab=music")}
+            className={`flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-[clamp(16px,1.6vw,36px)] rounded-xl text-center lg:text-left ${ACTIONABLE}`}
+          >
+            {/* Multiply blends the video's white into the tile colour */}
+            <video
+              src={partitureVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-28 lg:h-[clamp(96px,8vw,180px)] aspect-square w-auto object-contain mix-blend-multiply scale-[1.3] [mask-image:radial-gradient(closest-side,black_62%,transparent)]"
+            />
+            <div>
+              <p className="font-medium text-xs lg:text-[clamp(16px,1.2vw,25px)]">No video playing</p>
+              <p className="text-muted-foreground text-[10px] lg:text-[clamp(13px,0.9vw,19px)] mt-0.5 lg:mt-1">
+                Queue one from the Play page
+              </p>
+            </div>
+          </div>
+        ) : (
+          // YouTube is 16:9, so the box is too: the video fills it with no bars. The tile is as tall as
+          // this box plus the queue row, and Kudos gets the rest of the column.
+          <div className="relative w-full shrink-0 aspect-video max-h-[58vh]">
+            <div
+              ref={containerRef}
+              className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden [&_iframe]:!h-full [&_iframe]:!w-full"
+            />
+            {soundBlocked && (
+              <button
+                onClick={enableSound}
+                className="absolute bottom-[clamp(8px,0.8vw,16px)] left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-primary px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,12px)] text-primary-foreground font-semibold text-sm lg:text-[clamp(14px,1vw,20px)] shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                {/* Multiply blends the video's white into the tile colour */}
-                <video
-                  src={partitureVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="h-28 lg:h-[clamp(96px,8vw,180px)] aspect-square w-auto object-contain mix-blend-multiply scale-[1.3] [mask-image:radial-gradient(closest-side,black_62%,transparent)]"
-                />
-                <div>
-                  <p className="font-medium text-xs lg:text-[clamp(16px,1.2vw,25px)]">No video playing</p>
-                  <p className="text-muted-foreground text-[10px] lg:text-[clamp(13px,0.9vw,19px)] mt-0.5 lg:mt-1">
-                    Queue one from the Play page
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col flex-1 min-h-0 gap-1 lg:gap-[clamp(8px,0.6vw,16px)]">
-                <div className="flex-1 min-h-0 relative">
-                  <div
-                    ref={containerRef}
-                    className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden [&_iframe]:!h-full [&_iframe]:!w-full"
-                  />
-                  {soundBlocked && (
-                    <button
-                      onClick={enableSound}
-                      className="absolute bottom-[clamp(8px,0.8vw,16px)] left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-full bg-primary px-[clamp(14px,1.2vw,24px)] py-[clamp(8px,0.6vw,12px)] text-primary-foreground font-semibold text-sm lg:text-[clamp(14px,1vw,20px)] shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <Volume2 className="h-4 w-4 lg:h-[clamp(16px,1.2vw,24px)] lg:w-[clamp(16px,1.2vw,24px)]" />
-                      Turn sound on
-                    </button>
-                  )}
-                </div>
+                <Volume2 className="h-4 w-4 lg:h-[clamp(16px,1.2vw,24px)] lg:w-[clamp(16px,1.2vw,24px)]" />
+                Turn sound on
+              </button>
+            )}
+            {/* Someone just added a song: a pill over the video for a few seconds */}
+            {spotlight && (
+              <div
+                key={spotlight.id}
+                className="absolute left-[clamp(8px,0.7vw,14px)] top-[clamp(8px,0.7vw,14px)] z-10 flex max-w-[80%] items-center gap-[0.6em] rounded-full bg-[hsl(var(--card))] py-[0.35em] pl-[0.35em] pr-[1em] text-[clamp(12px,0.85vw,18px)] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)] animate-in fade-in slide-in-from-top-2 duration-500"
+              >
+                {spotlight.thumbnail_url && <img src={spotlight.thumbnail_url} alt="" className="h-[2.2em] aspect-video shrink-0 rounded-full object-cover" />}
+                <span className="min-w-0 truncate">
+                  <span className="font-semibold text-primary">Just added</span> <span className="font-semibold">{spotlight.title}</span>
+                  {(() => {
+                    const d = parseQueuedBy(spotlight.queued_by);
+                    return <span className="text-muted-foreground"> · {d.to ? `for ${d.to}, from ${d.from}` : `by ${d.from}`}</span>;
+                  })()}
+                </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* Right — queue. Big for a moment when someone adds a video, otherwise a slim scrolling strip with the ＋ under it */}
-          {queue.length > 0 && (
-            <div className="flex lg:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
-              <ListMusic className="h-3.5 w-3.5" />
-              <span>{queue.length} in queue</span>
-              <span className="truncate">— Next: {queue[0]?.title}</span>
+        {/* Small screens: one line about the queue */}
+        {queue.length > 0 && (
+          <div className="flex lg:hidden items-center gap-2 text-xs text-muted-foreground border-t border-border pt-1.5">
+            <ListMusic className="h-3.5 w-3.5" />
+            <span>{queue.length} in queue</span>
+            <span className="truncate">— Next: {queue[0]?.title}</span>
+          </div>
+        )}
+
+        {/* Big screens: up next as a row of thumbnails, with ＋ and ⏭ at the end (while it asks "Skip?", ⏭ takes both slots) */}
+        {currentVideo && (
+          <div className="hidden lg:flex shrink-0 items-center gap-[clamp(6px,0.5vw,10px)]">
+            <span className="shrink-0 text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Up next</span>
+            <div className="flex min-w-0 flex-1 gap-[clamp(6px,0.5vw,10px)] overflow-hidden [mask-image:linear-gradient(to_right,black_85%,transparent)]">
+              {queue.length === 0 ? (
+                <span className="truncate text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Nothing queued yet</span>
+              ) : (
+                queue.map((q, i) => (
+                  <div key={q.id} title={q.title} className="relative h-[clamp(36px,2.8vw,60px)] aspect-video shrink-0 overflow-hidden rounded-[clamp(6px,0.5vw,10px)] bg-secondary">
+                    {q.thumbnail_url && <img src={q.thumbnail_url} alt="" className="h-full w-full object-cover" />}
+                    <span className="absolute left-[0.3em] top-[0.3em] grid h-[1.5em] w-[1.5em] place-items-center rounded-full bg-white/85 font-semibold text-[clamp(9px,0.6vw,13px)]">{i + 1}</span>
+                  </div>
+                ))
+              )}
             </div>
-          )}
-          <div className="hidden lg:flex min-h-0 flex-col gap-[clamp(6px,0.5vw,10px)] overflow-hidden">
-            {spotlight ? (
-              <div
-                key={spotlight.id}
-                className="flex min-h-0 flex-1 flex-col gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(8px,0.6vw,12px)] bg-primary/10 p-[clamp(8px,0.7vw,14px)] animate-in fade-in slide-in-from-right-4 duration-500"
-              >
-                <span className="font-semibold text-primary text-[clamp(12px,0.85vw,18px)]">Just added</span>
-                {spotlight.thumbnail_url ? (
-                  <img src={spotlight.thumbnail_url} alt="" className="w-full aspect-video rounded-[clamp(6px,0.5vw,10px)] object-cover" />
-                ) : (
-                  <div className="w-full aspect-video rounded-[clamp(6px,0.5vw,10px)] bg-secondary" />
-                )}
-                <p className="font-semibold leading-snug line-clamp-2 text-[clamp(13px,0.95vw,20px)]">{spotlight.title}</p>
-                {(() => {
-                  const d = parseQueuedBy(spotlight.queued_by);
-                  return d.to ? (
-                    <p className="text-[clamp(12px,0.8vw,17px)]">
-                      🎵 For <strong>{d.to}</strong>
-                      <span className="block text-muted-foreground">from {d.from}</span>
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground text-[clamp(12px,0.8vw,17px)]">by {d.from}</p>
-                  );
-                })()}
-                {queue.length > 1 && (
-                  <p className="mt-auto text-muted-foreground text-[clamp(11px,0.75vw,16px)]">{queue.length} in the queue</p>
-                )}
-              </div>
-            ) : (
-              // Scrolls when there are more than fit; on a laptop, drag to reorder
-              <QueueStrip
-                items={queue}
-                canReorder={!!me}
-                onReorder={(ids, onFail) => reorderQueue.mutate(ids, { onError: onFail })}
-              />
-            )}
-            {/* ＋ adds a song, ⏭ skips to the next one (on a laptop; otherwise both open the Play page).
-                While it asks "Skip?", the ⏭ takes the whole row */}
-            <div className="flex shrink-0 gap-[clamp(4px,0.4vw,8px)]">
+            <div className="flex w-[clamp(80px,6vw,130px)] shrink-0 gap-[clamp(4px,0.4vw,8px)]">
               {!confirmSkip && (
                 <div className="min-w-0 flex-1">
                   <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
                 </div>
               )}
-              {currentVideo && (
-                <button
-                  type="button"
-                  onClick={skip}
-                  aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
-                  title={me ? "Skip to the next song" : "Skip on the Play page"}
-                  className={`flex h-[clamp(26px,1.9vw,40px)] min-w-0 flex-1 items-center justify-center gap-[0.3em] rounded-[clamp(4px,0.4vw,8px)] bg-primary text-primary-foreground font-semibold text-[clamp(11px,0.8vw,17px)] transition-colors [@media(hover:hover)]:hover:bg-primary/90 ${confirmSkip ? "animate-in fade-in duration-150" : ""}`}
-                >
-                  {skipIcon}
-                  {confirmSkip && "Skip?"}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={skip}
+                aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
+                title={me ? "Skip to the next song" : "Skip on the Play page"}
+                className={`flex h-[clamp(26px,1.9vw,40px)] min-w-0 flex-1 items-center justify-center gap-[0.3em] rounded-[clamp(4px,0.4vw,8px)] bg-primary text-primary-foreground font-semibold text-[clamp(11px,0.8vw,17px)] transition-colors [@media(hover:hover)]:hover:bg-primary/90 ${confirmSkip ? "animate-in fade-in duration-150" : ""}`}
+              >
+                {skipIcon}
+                {confirmSkip && "Skip?"}
+              </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
       {/* Game how-to demos play here: the video keeps running (and sounding) underneath */}
       {gameSpotlight?.phase === "demo" && <GameDemoOverlay key={gameSpotlight.gameKey} gameKey={gameSpotlight.gameKey} />}

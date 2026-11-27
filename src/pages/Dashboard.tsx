@@ -73,7 +73,7 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * The three zones. Every section has a fixed home. Tiles are as tall as their content,
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then both riddles / GeoGuessr photos
- *  - Together: now playing (compact, or big while a video plays), then kudos (fills)
+ *  - Together (the widest column): now playing (compact, or a 16:9 video with the queue under it), then kudos (fills)
  *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll (news is a chat topic now),
  *    and the office chat filling the rest. Every tile keeps its place, chat or no chat.
  */
@@ -82,7 +82,8 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   const onPlayingChange = useCallback((p: boolean) => setVideoPlaying(p), []);
   // Game how-to demos also play inside Now playing, so it grows for them too
   const spotlight = useSpotlight();
-  const playing = videoPlaying || spotlight?.phase === "demo";
+  // A video sizes its own tile (16:9 plus the queue row); a how-to demo with no video still needs room
+  const demoOnly = spotlight?.phase === "demo" && !videoPlaying;
   const grow = "transition-[flex-grow] duration-700 ease-out";
   const tile = desktop ? "min-h-0" : "min-h-[280px] lg:min-h-0";
   // sized to its content: never stretched, never squeezed
@@ -91,7 +92,7 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   const { messages: chat, now, post: postChat } = useChat();
 
   return (
-    <div className={desktop ? "h-full min-h-0 grid grid-cols-[4.2fr_4.4fr_3.4fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[4.2fr_4.4fr_3.4fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
+    <div className={desktop ? "h-full min-h-0 grid grid-cols-[3.8fr_4.8fr_3.4fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[3.8fr_4.8fr_3.4fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
       {/* Play */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
         <div className={`${tile} flex-[3.2]`}>
@@ -104,10 +105,11 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
 
       {/* Together */}
       <div className="min-h-0 flex flex-col gap-3 lg:gap-[clamp(12px,1vw,20px)]">
-        {/* Compact when nothing plays; with a video it takes most of the column */}
+        {/* As tall as its content: compact when nothing plays, a 16:9 video plus the queue row when one does.
+            Kudos takes the rest of the column */}
         <div
-          className={`${playing ? tile : fit} ${grow} overflow-hidden rounded-xl`}
-          style={playing ? { flexGrow: 3, flexBasis: 0 } : undefined}
+          className={`${demoOnly ? tile : fit} ${grow} overflow-hidden rounded-xl`}
+          style={demoOnly ? { flexGrow: 3, flexBasis: 0 } : undefined}
         >
           <YouTubeDisplay onPlayingChange={onPlayingChange} />
         </div>
