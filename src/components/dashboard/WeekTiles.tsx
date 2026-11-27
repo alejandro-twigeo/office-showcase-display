@@ -33,7 +33,7 @@ const NUDGE_SHOW_MS = 6_000;
 const firstName = (n: string) => n.trim().split(/\s+/)[0];
 
 /**
- * Every 30 seconds, a quick reminder in place of "Leading the week" (for 6 seconds): games only score
+ * Every 30 seconds, a quick reminder for everyone in place of the "This week" title (for 6 seconds): games only score
  * when two people play them, so solo games today are named, and challenges are the way to get someone in.
  */
 function useNudge(a: ReturnType<typeof useOfficeActivity>, names: Record<string, string>) {
@@ -96,7 +96,16 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
 
   return (
     <Card className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] animate-in fade-in duration-700 ${ranking ? "" : "justify-between"}`}>
-      <span className="tile-label">This week</span>
+      {/* Every 30 s the title gives everyone a quick reminder for a few seconds, then goes back */}
+      {nudge ? (
+        <span key={nudge} className="tile-label truncate !text-primary animate-in fade-in slide-in-from-bottom-1 duration-300">
+          {nudge}
+        </span>
+      ) : (
+        <span key="title" className="tile-label animate-in fade-in duration-300">
+          This week
+        </span>
+      )}
 
       {/* Champion */}
       <div key={leader ?? "none"} className="flex items-center gap-[clamp(10px,0.8vw,16px)] animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -105,15 +114,7 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
           {leader && <span className="absolute -top-[0.45em] left-1/2 -translate-x-1/2 text-[0.55em] crown-bob">👑</span>}
         </span>
         <div className="min-w-0 flex-1">
-          {nudge ? (
-            <p key={nudge} className="truncate font-medium text-primary text-[clamp(12px,0.85vw,18px)] animate-in fade-in slide-in-from-bottom-1 duration-300">
-              {nudge}
-            </p>
-          ) : (
-            <p key="label" className="text-muted-foreground text-[clamp(12px,0.85vw,18px)] animate-in fade-in duration-300">
-              {reveal ? "Champion of the week" : "Leading the week"}
-            </p>
-          )}
+          <p className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">{reveal ? "Champion of the week" : "Leading the week"}</p>
           <p className="truncate font-semibold tracking-tight text-[clamp(20px,1.7vw,36px)] leading-tight">
             {leader ? (
               // A hand-drawn underline under the leader, drawn again whenever the lead changes
