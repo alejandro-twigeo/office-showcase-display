@@ -76,8 +76,22 @@ export function TeamRiddleGame({ playerName, roundId }: TeamRiddleGameProps) {
                 {open ? (
                   <span className="leading-snug animate-in fade-in duration-500">{clue}</span>
                 ) : (
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5" /> Unlocks at {TEAM_RIDDLE_CLUE_AT[i]} office games
+                  // Locked: how far the office is from unlocking it
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5" /> Unlocks at {TEAM_RIDDLE_CLUE_AT[i]} office games
+                      </span>
+                      <span className="shrink-0 tabular-nums text-xs">
+                        {Math.min(a.playsThisWeek, TEAM_RIDDLE_CLUE_AT[i])}/{TEAM_RIDDLE_CLUE_AT[i]}
+                      </span>
+                    </span>
+                    <span className="block h-1.5 overflow-hidden rounded-full bg-muted">
+                      <span
+                        className={`block h-full rounded-full transition-[width] duration-700 ${i === unlocked ? 'bg-primary' : 'bg-primary/40'}`}
+                        style={{ width: `${Math.min(100, (a.playsThisWeek / TEAM_RIDDLE_CLUE_AT[i]) * 100)}%` }}
+                      />
+                    </span>
                   </span>
                 )}
               </li>
