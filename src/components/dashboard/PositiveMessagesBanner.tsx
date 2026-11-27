@@ -38,7 +38,7 @@ function Tag({ name, known, avatar, big = false }: { name: string; known: boolea
         known ? "bg-primary/15 text-foreground" : "outline outline-1 outline-dashed outline-foreground/35 text-foreground"
       } ${big ? "" : ""}`}
     >
-      {known ? <PlayerAvatar avatar={avatar} name={name} size="1.3em" tv still className="mr-[0.2em]" /> : null}
+      {known ? <PlayerAvatar avatar={avatar} name={name} size="1.3em" tv className="mr-[0.2em]" /> : null}
       {name}
     </span>
   );
@@ -178,9 +178,62 @@ const ago = (iso: string) => {
   return d === 1 ? "yesterday" : `${d} days ago`;
 };
 
+const SCROLL_PX_PER_S = 22;
+
 /**
- * Kudos as a tile (Together zone): the latest kudos large, the two before it underneath,
- * and the full-screen celebration when a new one arrives. Each kudos stays until its end date.
+ * A list that scrolls up on its own, slowly and in a loop, when it's taller than its box (and sits
+ * still when it fits). Pauses while the mouse is over it. The loop shows the list twice, so it never jumps.
+ */
+function AutoScroll({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const [scroll, setScroll] = useState<{ distance: number; seconds: number } | null>(null);
+  useEffect(() => {
+    const b = box.current;
+    const l = list.current;
+    if (!b || !l) return;
+    const check = () => {
+      const gap = parseFloat(getComputedStyle(l).rowGap) || 0;
+      const h = l.scrollHeight;
+      const overflow = h > b.clientHeight + 2;
+      setScroll(overflow ? { distance: h + gap, seconds: (h + gap) / SCROLL_PX_PER_S } : null);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(b);
+    ro.observe(l);
+    return () => ro.disconnect();
+  }, []);
+  const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const moving = !!scroll && !reduced;
+  const listClass = "flex flex-col gap-[clamp(6px,0.55vw,11px)]";
+  return (
+    <div
+      ref={box}
+      className={`group min-h-0 overflow-hidden ${moving ? "[mask-image:linear-gradient(to_bottom,transparent,black_12%,black_88%,transparent)]" : ""} ${className}`}
+    >
+      <div
+        className={moving ? "group-hover:[animation-play-state:paused]" : ""}
+        style={moving ? { animation: `kudos-scroll ${scroll!.seconds}s linear infinite`, ["--kudos-scroll" as string]: `-${scroll!.distance}px` } : undefined}
+      >
+        <div ref={list} className={listClass}>
+          {children}
+        </div>
+        {moving && (
+          <div aria-hidden className={`${listClass} pt-[clamp(6px,0.55vw,11px)]`}>
+            {children}
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes kudos-scroll { from { transform: translateY(0) } to { transform: translateY(var(--kudos-scroll)) } }`}</style>
+    </div>
+  );
+}
+
+/**
+ * Kudos as a tile (Together zone): the latest kudos large, the earlier ones underneath (scrolling
+ * when they don't fit), and the full-screen celebration when a new one arrives. Each kudos stays
+ * until its end date.
  */
 export function KudosTile() {
   const { messages: all } = usePositiveMessages();
@@ -198,13 +251,10 @@ export function KudosTile() {
 
   return (
     <Card onClick={openKudos} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${ACTIONABLE}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="tile-label flex items-center gap-[0.4em]">
-          <HandHeart key={latest?.id ?? "none"} className="h-[1.15em] w-auto" />
-          Kudos · {messages.length} on the board
-        </span>
-        <span className="tile-label">Give one on the Play page</span>
-      </div>
+      <span className="tile-label flex items-center gap-[0.4em]">
+        <HandHeart key={latest?.id ?? "none"} className="h-[1.15em] w-auto" />
+        Kudos
+      </span>
       {latest ? (
         // "safe" centring: when it doesn't fit, it starts at the top instead of spilling over the title
         <div className={`flex min-h-0 flex-1 flex-col gap-[clamp(8px,0.7vw,14px)] overflow-hidden ${earlier.length < 2 ? "[justify-content:safe_center]" : ""}`}>
@@ -215,18 +265,15 @@ export function KudosTile() {
             {/* Who sent it and the reactions share one line, so they still fit when the tile is short */}
             <div className="mt-[clamp(4px,0.4vw,8px)] flex flex-wrap items-center gap-x-[clamp(8px,0.7vw,14px)] gap-y-1">
               <span className="text-muted-foreground text-[clamp(12px,0.85vw,18px)]">
-                {latest.created_by && <>from <PlayerAvatar avatar={avatars.get(latest.created_by)} name={latest.created_by} size="1.3em" tv still /> {latest.created_by} · </>}
+                {latest.created_by && <>from <PlayerAvatar avatar={avatars.get(latest.created_by)} name={latest.created_by} size="1.3em" tv /> {latest.created_by} · </>}
                 {ago(latest.created_at)}
               </span>
               <ReactionBar size="tv" reactions={forKudos(latest.id)} onReact={react(latest.id)} />
             </div>
           </div>
-          {/* Earlier kudos: as many as fit, the bottom fades out */}
-          <div className={`flex min-h-0 flex-col gap-[clamp(6px,0.55vw,11px)] overflow-hidden pt-[clamp(2px,0.2vw,4px)] ${earlier.length < 2 ? "" : "flex-1 [mask-image:linear-gradient(to_bottom,black_85%,transparent)]"}`}>
-            {earlier.length === 0 && (
-              <p className="text-muted-foreground text-[clamp(13px,0.95vw,20px)]">💛 Who helped you this week? Tag them with @ on the Play page.</p>
-            )}
-            {earlier.slice(0, 12).map((m) => (
+          {/* Earlier kudos: when they don't all fit, they scroll by slowly on their own */}
+          <AutoScroll className={`pt-[clamp(2px,0.2vw,4px)] ${earlier.length < 2 ? "" : "flex-1"}`}>
+            {earlier.slice(0, 40).map((m) => (
               <p key={m.id} className="truncate text-[clamp(13px,0.95vw,20px)] animate-in fade-in duration-500">
                 💛 <Rendered segments={parseKudos(m.message, playerNames).segments} avatars={avatars} />
                 {m.created_by && <span className="text-muted-foreground"> · {m.created_by}</span>}
@@ -235,7 +282,7 @@ export function KudosTile() {
                 )}
               </p>
             ))}
-          </div>
+          </AutoScroll>
         </div>
       ) : (
         <p className="m-auto text-center text-muted-foreground text-[clamp(14px,1.05vw,22px)]">{EMPTY_MSG} ✨</p>
