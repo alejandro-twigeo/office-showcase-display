@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useOfficeActivity, GAME_NAMES } from "@/hooks/useOfficeActivity";
@@ -6,7 +7,7 @@ import { PlayQr } from "./JoinCard";
 interface Item {
   key: string;
   at: string;
-  avatar: string;
+  avatar: JSX.Element;
   text: JSX.Element;
 }
 
@@ -28,7 +29,7 @@ export function TodayFeed() {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
-  const av = (n: string) => a.players.get(n)?.avatar ?? "👤";
+  const av = (n: string) => <PlayerAvatar avatar={a.players.get(n)?.avatar} name={n} size="1em" tv />;
 
   const items = useMemo<Item[]>(() => {
     const list: Item[] = [];

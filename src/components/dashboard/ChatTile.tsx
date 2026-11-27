@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMe, ACTIONABLE } from "@/hooks/useMe";
@@ -28,7 +29,7 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
   });
   const avatars = useMemo(() => new Map(players.map((p) => [p.name, p.avatar as string | null])), [players]);
   const playerNames = useMemo(() => [...avatars.keys()], [avatars]);
-  const av = (n: string) => avatars.get(n) ?? "👤";
+  const av = (n: string) => <PlayerAvatar avatar={avatars.get(n)} name={n} size="1.6em" tv still />;
   const shown = messages.slice(-12);
 
   return (
