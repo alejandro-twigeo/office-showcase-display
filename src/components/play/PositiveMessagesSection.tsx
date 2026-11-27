@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePositiveMessages } from "@/hooks/usePositiveMessages";
@@ -12,6 +12,9 @@ import { KUDOS_DEFAULT_DAYS, KUDOS_MIN_DAYS, KUDOS_MAX_DAYS, kudosDaysLeft } fro
 
 const MAX_LEN = 120;
 const BOB_URL = "https://app.hibob.com/home";
+/** Set once someone has seen the "Bob opens in 5 seconds" explainer */
+const BOB_EXPLAINED_KEY = "kudos-bob-explained";
+const BOB_COUNTDOWN_S = 5;
 
 /** "@sa" at the end of the text → "sa", so we can suggest players to tag. */
 const mentionQuery = (text: string) => text.match(/@([\p{L}\d'\-]*)$/u)?.[1];
@@ -82,6 +85,21 @@ export function PositiveMessagesSection({ playerName }: Props) {
     setNewMsg((m) => (m.replace(/@([\p{L}\d'\-]*)$/u, `@${name} `)).slice(0, MAX_LEN));
   }
 
+  // The first time: explain what's about to happen, count down, then open Bob.
+  // After that, Bob opens straight away.
+  const [bobCountdown, setBobCountdown] = useState<number | null>(null);
+  useEffect(() => {
+    if (bobCountdown === null) return;
+    if (bobCountdown <= 0) {
+      setBobCountdown(null);
+      // Some browsers block a tab that opens on its own; the button below still works then
+      window.open(BOB_URL, "_blank", "noopener");
+      return;
+    }
+    const t = setTimeout(() => setBobCountdown((n) => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [bobCountdown]);
+
   async function shareToBob(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -89,6 +107,20 @@ export function PositiveMessagesSection({ playerName }: Props) {
     } catch {
       setCopied(false);
     }
+    let explained = false;
+    try {
+      explained = localStorage.getItem(BOB_EXPLAINED_KEY) === "1";
+      localStorage.setItem(BOB_EXPLAINED_KEY, "1");
+    } catch { /* ignore */ }
+    if (explained) {
+      window.open(BOB_URL, "_blank", "noopener");
+    } else {
+      setBobCountdown(BOB_COUNTDOWN_S);
+    }
+  }
+
+  function openBobNow() {
+    setBobCountdown(null);
     window.open(BOB_URL, "_blank", "noopener");
   }
 
@@ -199,7 +231,27 @@ export function PositiveMessagesSection({ playerName }: Props) {
           {addError && <p className="text-xs text-destructive">{addError}</p>}
         </div>
 
-        {lastSent && (
+        {lastSent && bobCountdown !== null && (
+          // First time only: say what's about to happen before Bob opens
+          <div className="space-y-2 rounded-lg bg-primary/10 p-3 animate-in fade-in zoom-in-95 duration-300">
+            <p className="text-sm font-semibold">✓ Your message is copied</p>
+            <p className="text-xs leading-snug">
+              Bob opens in <b className="tabular-nums">{bobCountdown}</b> {bobCountdown === 1 ? "second" : "seconds"}. Tap <b>Give kudos</b> there and paste: your
+              text is ready. (We only explain this once.)
+            </p>
+            <div className="h-1 overflow-hidden rounded-full bg-primary/15">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear"
+                style={{ width: `${((BOB_COUNTDOWN_S - bobCountdown) / BOB_COUNTDOWN_S) * 100}%` }}
+              />
+            </div>
+            <Button size="sm" className="w-full gap-1" onClick={openBobNow}>
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open Bob now
+            </Button>
+          </div>
+        )}
+        {lastSent && bobCountdown === null && (
           <div className="flex items-center gap-3 rounded-lg bg-primary/10 p-3">
             <p className="flex-1 text-xs leading-snug">
               <span className="font-semibold">Sent! Watch the TV 🎉</span>
