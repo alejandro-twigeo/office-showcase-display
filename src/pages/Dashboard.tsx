@@ -123,8 +123,8 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   // sized to its content: never stretched, never squeezed
   const fit = "shrink-0";
   // The chat gets its own room while a conversation is going
-  const { threads, now } = useChat();
-  const chatOn = threads.length > 0;
+  const { messages: chat, now } = useChat();
+  const chatOn = chat.length > 0;
 
   return (
     <div className={desktop ? "h-full min-h-0 grid grid-cols-[5fr_4fr_3fr] gap-3" : "h-auto lg:h-full flex flex-col lg:grid lg:grid-cols-[5fr_4fr_3fr] gap-3 lg:gap-[clamp(12px,1vw,20px)] lg:min-h-0"}>
@@ -175,7 +175,7 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
         {/* Office chat: only while a conversation is going, then it takes the rest of the column */}
         {chatOn && (
           <div className={`${tile} flex-1 animate-in fade-in slide-in-from-bottom-2 duration-700`}>
-            <ChatTile threads={threads} now={now} />
+            <ChatTile messages={chat} now={now} />
           </div>
         )}
       </div>
