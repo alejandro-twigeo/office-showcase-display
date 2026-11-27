@@ -8,6 +8,7 @@ import { JoinCard } from "./JoinCard";
 import { useActiveLocation } from "@/hooks/useActiveLocation";
 import { RotatingLeaderboard } from "./RotatingLeaderboard";
 import { TeamRiddleCard } from "./WeekTiles";
+import { SwapTimer } from "./SwapTimer";
 
 type ActiveLocation = ReturnType<typeof useActiveLocation>["activeLocation"];
 
@@ -113,8 +114,13 @@ export function PlaySideTile() {
     const id = setInterval(() => setSlot((s) => (s + 1) % 2), SWITCH_EVERY_MS);
     return () => clearInterval(id);
   }, []);
-  if (slot === 1 && hasGeo) return <GeoCard easy={easy} hard={hard} fillHeight />;
-  return <RiddleCard fillHeight />;
+  return (
+    <div className="relative h-full">
+      {slot === 1 && hasGeo ? <GeoCard easy={easy} hard={hard} fillHeight /> : <RiddleCard fillHeight />}
+      {/* Only when there's something to switch to */}
+      {hasGeo && <SwapTimer durationMs={SWITCH_EVERY_MS} cycleKey={slot} />}
+    </div>
+  );
 }
 
 export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boolean }) {
