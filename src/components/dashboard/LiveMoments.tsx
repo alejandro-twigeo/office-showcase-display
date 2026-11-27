@@ -1,10 +1,13 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOfficeActivity, GAME_NAMES, type OfficeActivity } from "@/hooks/useOfficeActivity";
 
 interface Moment {
   id: string;
-  avatar: string;
+  avatar: string | null | undefined;
+  /** Whose avatar */
+  who: string;
   title: string;
   detail?: string;
   tone: "lead" | "streak" | "play" | "challenge" | "win";
@@ -40,7 +43,7 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
     if (!prev) return; // first load: nothing is "new"
 
     const found: Moment[] = [];
-    const av = (n: string) => a.players.get(n)?.avatar ?? "👤";
+    const av = (n: string) => a.players.get(n)?.avatar;
 
     // New or improved plays today
     for (const e of a.events) {
@@ -53,13 +56,13 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
       const prevLeader = prev.leaders.get(e.game);
       const streak = a.streaks.get(e.player) ?? 0;
       if (rank === 1 && prevLeader && prevLeader !== e.player) {
-        found.push({ id: `lead-${k}-${e.at}`, avatar: av(e.player), title: `${e.player} took the ${game} lead`, detail: `from ${prevLeader}`, tone: "lead" });
+        found.push({ id: `lead-${k}-${e.at}`, avatar: av(e.player), who: e.player, title: `${e.player} took the ${game} lead`, detail: `from ${prevLeader}`, tone: "lead" });
       } else if (rank === 1 && !prevLeader) {
-        found.push({ id: `first-${k}-${e.at}`, avatar: av(e.player), title: `${e.player} set the first ${game} score`, detail: "Who can beat it?", tone: "lead" });
+        found.push({ id: `first-${k}-${e.at}`, avatar: av(e.player), who: e.player, title: `${e.player} set the first ${game} score`, detail: "Who can beat it?", tone: "lead" });
       } else if (!prev.plays.has(k) && STREAK_MILESTONES.has(streak)) {
-        found.push({ id: `streak-${k}-${e.at}`, avatar: av(e.player), title: `${e.player} is on a ${streak}-day streak`, detail: "🔥 Keep it going", tone: "streak" });
+        found.push({ id: `streak-${k}-${e.at}`, avatar: av(e.player), who: e.player, title: `${e.player} is on a ${streak}-day streak`, detail: "🔥 Keep it going", tone: "streak" });
       } else if (!prev.plays.has(k)) {
-        found.push({ id: `play-${k}-${e.at}`, avatar: av(e.player), title: `${e.player} just played ${game}`, detail: rank > 0 ? `#${rank} today` : undefined, tone: "play" });
+        found.push({ id: `play-${k}-${e.at}`, avatar: av(e.player), who: e.player, title: `${e.player} just played ${game}`, detail: rank > 0 ? `#${rank} today` : undefined, tone: "play" });
       }
     }
 
@@ -68,16 +71,16 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
       const game = GAME_NAMES[c.game] ?? c.game;
       const before = prev.challenges.get(c.key);
       if (!before) {
-        found.push({ id: `ch-${c.key}`, avatar: av(c.from), title: `${c.from} challenged ${c.to}`, detail: `Beat ${c.target} in ${game}`, tone: "challenge" });
+        found.push({ id: `ch-${c.key}`, avatar: av(c.from), who: c.from, title: `${c.from} challenged ${c.to}`, detail: `Beat ${c.target} in ${game}`, tone: "challenge" });
       } else if (before !== "beaten" && c.status === "beaten") {
-        found.push({ id: `chw-${c.key}`, avatar: av(c.to), title: `${c.to} beat ${c.from}'s challenge`, detail: `${c.answer} vs ${c.target} in ${game}`, tone: "win" });
+        found.push({ id: `chw-${c.key}`, avatar: av(c.to), who: c.to, title: `${c.to} beat ${c.from}'s challenge`, detail: `${c.answer} vs ${c.target} in ${game}`, tone: "win" });
       }
     }
 
     // Team riddle cracked
     if (a.teamRiddleSolves.length > prev.solves) {
       const s = a.teamRiddleSolves[a.teamRiddleSolves.length - 1];
-      found.push({ id: `tr-${s.player}-${s.at}`, avatar: av(s.player), title: `${s.player} cracked the team riddle`, detail: prev.solves === 0 ? "First in the office!" : undefined, tone: "win" });
+      found.push({ id: `tr-${s.player}-${s.at}`, avatar: av(s.player), who: s.player, title: `${s.player} cracked the team riddle`, detail: prev.solves === 0 ? "First in the office!" : undefined, tone: "win" });
     }
 
     if (found.length) setQueue((q) => [...q, ...found].slice(-6));
@@ -98,7 +101,7 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("moments")) return;
     const t = setTimeout(
-      () => setQueue((q) => [...q, { id: "demo", avatar: "🐧", title: "Sara took the Wordle lead", detail: "from Neil", tone: "lead" }]),
+      () => setQueue((q) => [...q, { id: "demo", avatar: null, who: "Sara", title: "Sara took the Wordle lead", detail: "from Neil", tone: "lead" }]),
       2500
     );
     return () => clearTimeout(t);
@@ -112,7 +115,7 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
         <span className="tile-label shrink-0">Just now</span>
         {shown ? (
           <span key={shown.id} className={`flex min-w-0 items-center gap-[clamp(6px,0.5vw,10px)] ${current ? "animate-in fade-in slide-in-from-left-2 duration-500" : ""}`}>
-            <span className="leading-none text-[1.2em]">{shown.avatar}</span>
+            <PlayerAvatar avatar={shown.avatar} name={shown.who} size="1.4em" tv />
             <span className="truncate font-semibold">{shown.title}</span>
             {shown.detail && <span className="truncate text-muted-foreground">{shown.detail}</span>}
             {!current && <span className="shrink-0 text-muted-foreground text-[0.8em]">· {mins < 1 ? "just now" : `${mins} min ago`}</span>}
@@ -140,7 +143,7 @@ export function LiveMoments({ variant = "toast" }: { variant?: "toast" | "line" 
         className="flex items-center gap-[clamp(12px,1vw,20px)] rounded-full bg-[hsl(var(--card))] py-[clamp(10px,0.8vw,16px)] pl-[clamp(12px,0.9vw,18px)] pr-[clamp(22px,1.8vw,36px)] shadow-[0_18px_50px_-18px_hsl(var(--foreground)/0.45)] animate-in fade-in slide-in-from-bottom-6 zoom-in-95 duration-500"
       >
         <span className="relative leading-none text-[clamp(28px,2.4vw,52px)]">
-          {current.avatar}
+          <PlayerAvatar avatar={current.avatar} name={current.who} size="1.3em" tv state={current.tone === "play" ? "default" : "working"} />
           <span className={`absolute -right-0.5 -top-0.5 h-[0.3em] w-[0.3em] rounded-full ring-2 ring-[hsl(var(--card))] ${toneDot}`} />
         </span>
         <div className="leading-tight">
