@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Trophy } from "lucide-react";
@@ -63,7 +64,7 @@ function CompactBoardCard({
   avatarMap: Map<string, string | null>;
 }) {
   const [leader, ...rest] = rows;
-  const avatar = (name: string) => avatarMap.get(name) ?? "👤";
+  const avatar = (name: string) => <PlayerAvatar avatar={avatarMap.get(name)} name={name} size="1.3em" tv />;
   const { streaks, lastWeekChampion } = useOfficeActivity();
   // Small extras after a name: last week's champion, and a workday streak of 3+
   const badges = (name: string) => {

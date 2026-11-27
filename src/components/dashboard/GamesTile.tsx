@@ -1,3 +1,4 @@
+import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useOfficeActivity, GAME_NAMES, type PlayEvent } from "@/hooks/useOfficeActivity";
@@ -50,13 +51,13 @@ export function ActivityMeter({ level, label }: { level: number; label?: string 
   );
 }
 
-/** A player's avatar: an emoji today, or a picture if it's a link */
-function Avatar({ value }: { value?: string }) {
-  const v = value || "👤";
+/** A player's avatar: their bot (see PlayerAvatar), or a picture if it's a link */
+function Avatar({ value, name }: { value?: string; name: string }) {
+  const v = value || "";
   return /^(https?:|data:|\/)/.test(v) ? (
     <img src={v} alt="" className="h-[1.35em] w-[1.35em] shrink-0 rounded-full object-cover" draggable={false} />
   ) : (
-    <span className="shrink-0 text-[1.15em] leading-none">{v}</span>
+    <PlayerAvatar avatar={v} name={name} size="1.5em" tv />
   );
 }
 
@@ -111,7 +112,7 @@ function Podium({
           >
             {i + 1}
           </span>
-          <Avatar value={avatar(e.player)} />
+          <Avatar value={avatar(e.player)} name={e.player} />
           <span className={`flex min-w-0 flex-1 items-center gap-1 ${i === 0 ? "font-semibold" : "font-medium"}`} title={e.player}>
             <span className="truncate">{short(e.player)}</span>
             {badges(e.player)}
@@ -171,7 +172,7 @@ export function GamesTile() {
     return () => clearInterval(id);
   }, []);
 
-  const av = (n: string) => a.players.get(n)?.avatar ?? "👤";
+  const av = (n: string) => <PlayerAvatar avatar={a.players.get(n)?.avatar} name={n} size="1.3em" tv />;
   const short = useMemo(
     () =>
       makeShortName([
