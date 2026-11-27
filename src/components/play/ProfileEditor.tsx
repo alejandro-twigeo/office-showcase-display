@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AVATAR_OPTIONS, OFFICE_OPTIONS, OFFICE_FLAGS, type Player } from '@/hooks/usePlayer';
+import { OFFICE_OPTIONS, OFFICE_FLAGS, type Player } from '@/hooks/usePlayer';
 import { Loader2 } from 'lucide-react';
+import { AvatarPicker } from './AvatarPicker';
+import { botFor, serializeBot } from '@/lib/botAvatar';
 
 interface ProfileEditorProps {
   player: Player;
@@ -14,7 +16,8 @@ interface ProfileEditorProps {
 export function ProfileEditor({ player, onUpdate, onClose }: ProfileEditorProps) {
   const [name, setName] = useState(player.name);
   const [office, setOffice] = useState(player.office);
-  const [avatar, setAvatar] = useState(player.avatar);
+  const [bot, setBot] = useState(() => botFor(player.avatar, player.name));
+  const avatar = serializeBot(bot);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,9 +43,9 @@ export function ProfileEditor({ player, onUpdate, onClose }: ProfileEditorProps)
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogTitle>Edit profile</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <Input
@@ -70,43 +73,11 @@ export function ProfileEditor({ player, onUpdate, onClose }: ProfileEditorProps)
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">Avatar</p>
-            <div className="grid grid-cols-8 gap-1">
-              {AVATAR_OPTIONS.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => setAvatar(a)}
-                  className={`text-2xl p-1 rounded-md transition-all ${
-                    avatar === a
-                      ? 'bg-primary/20 ring-2 ring-primary scale-110'
-                      : 'hover:bg-secondary'
-                  }`}
-                >
-                  {a}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-xs text-muted-foreground">Or type your own:</span>
-              <Input
-                type="text"
-                value={AVATAR_OPTIONS.includes(avatar) ? '' : avatar}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val) setAvatar(val);
-                }}
-                placeholder="🎸"
-                maxLength={2}
-                className="w-16 text-center text-xl p-1 h-9"
-              />
-            </div>
-          </div>
+          <AvatarPicker value={bot} onChange={setBot} name={name.trim() || player.name} caption={player.department ?? undefined} />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex gap-2">
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex gap-2 border-t bg-background px-6 pb-6 pt-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={handleSave} disabled={!hasChanges || loading || !name.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
