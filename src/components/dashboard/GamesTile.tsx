@@ -55,7 +55,7 @@ const MEDAL = ["bg-amber-200/70 text-amber-900", "bg-stone-200/80 text-stone-700
 /**
  * Top three of one game: rank, name, score, one quiet row each. Every row is the same element
  * keyed by player, so when someone overtakes, the rows slide into their new places and the score
- * counts up.
+ * counts up. Sizes follow the card's width (cqw), so names fit on the TV and on a laptop alike.
  */
 function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JSX.Element | null }) {
   const ref = useFlip<HTMLDivElement>([rows.map((r) => r.player).join("|")]);
@@ -66,7 +66,7 @@ function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JS
         <div
           key={e.player}
           data-flip={e.player}
-          className={`flex w-[78%] items-center gap-[clamp(6px,0.5vw,10px)] py-[clamp(4px,0.4vw,9px)] text-[clamp(13px,0.95vw,20px)] ${
+          className={`flex w-full items-center gap-[clamp(5px,2cqw,10px)] py-[clamp(4px,1.4cqw,9px)] text-[clamp(12px,3.6cqw,20px)] ${
             i > 0 ? "border-t border-foreground/[0.07]" : ""
           }`}
         >
@@ -79,7 +79,7 @@ function Podium({ rows, badges }: { rows: PlayEvent[]; badges: (n: string) => JS
             <span className="truncate">{e.player}</span>
             {badges(e.player)}
           </span>
-          <CountUp value={e.score} className="shrink-0 tabular-nums" />
+          <CountUp value={e.score} className={`shrink-0 tabular-nums text-primary ${i === 0 ? "font-semibold" : "font-medium"}`} />
         </div>
       ))}
     </div>
@@ -94,12 +94,12 @@ function GameArt({ src, hue }: { src?: string; hue: number }) {
       alt=""
       aria-hidden
       draggable={false}
-      className="pointer-events-none absolute -bottom-[22%] -right-[8%] h-[78%] w-auto max-w-[42%] rotate-[-10deg] object-contain opacity-[0.2] blur-[1.5px] saturate-[1.2] [mask-image:linear-gradient(to_top_left,black_35%,transparent_85%)]"
+      className="pointer-events-none absolute -bottom-[30%] -right-[10%] h-[100%] w-auto max-w-[62%] rotate-[-10deg] object-contain opacity-[0.22] blur-[1px] saturate-[1.2] [mask-image:linear-gradient(to_top_left,black_40%,transparent_90%)]"
     />
   ) : (
     <span
       aria-hidden
-      className="pointer-events-none absolute -bottom-[30%] -right-[15%] aspect-square h-[95%] rounded-full opacity-60 blur-[18px]"
+      className="pointer-events-none absolute -bottom-[25%] -right-[18%] aspect-square h-[120%] rounded-full opacity-70 blur-[18px]"
       style={{ background: `radial-gradient(closest-side, hsl(${hue} 85% 75% / 0.55), transparent)` }}
     />
   );
@@ -110,7 +110,7 @@ function PlayButton() {
   return (
     <span
       aria-hidden
-      className="absolute bottom-[clamp(8px,0.65vw,14px)] right-[clamp(8px,0.65vw,14px)] z-[1] flex h-[clamp(24px,1.7vw,38px)] w-[clamp(24px,1.7vw,38px)] items-center justify-center rounded-full bg-[hsl(var(--card))] text-foreground/80 shadow-[0_4px_14px_-6px_hsl(var(--foreground)/0.3)]"
+      className="absolute bottom-[clamp(8px,0.65vw,14px)] right-[clamp(8px,0.65vw,14px)] z-[1] flex h-[clamp(24px,7cqw,38px)] w-[clamp(24px,7cqw,38px)] items-center justify-center rounded-full bg-[hsl(var(--card))] text-foreground/80 shadow-[0_4px_14px_-6px_hsl(var(--foreground)/0.3)]"
     >
       <Play className="ml-[8%] h-[38%] w-[38%] fill-current" />
     </span>
@@ -176,7 +176,7 @@ export function GamesTile() {
             <div
               key={g}
               onClick={() => openGame(g)}
-              className={`relative flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden rounded-[clamp(10px,0.85vw,18px)] p-[clamp(10px,0.8vw,18px)] transition-all duration-500 ${ACTIONABLE} ${
+              className={`relative flex min-h-0 flex-col gap-[clamp(4px,0.4vw,8px)] overflow-hidden [container-type:inline-size] rounded-[clamp(10px,0.85vw,18px)] p-[clamp(10px,0.8vw,18px)] transition-all duration-500 ${ACTIONABLE} ${
                 hot ? "bg-green-600/10 shadow-[0_0_0_2px_hsl(142_60%_45%/0.45)]" : lead ? "bg-background" : "border border-dashed border-foreground/15"
               } ${lit ? "shadow-[0_0_0_3px_hsl(var(--primary))] scale-[1.02]" : ""}`}
             >
@@ -187,7 +187,7 @@ export function GamesTile() {
                 </span>
               )}
               <div className="relative z-[1] flex items-center justify-between gap-2">
-                <span className={`truncate font-semibold text-[clamp(14px,1.05vw,23px)] ${lead ? "" : "text-muted-foreground"}`}>
+                <span className={`truncate font-semibold text-[clamp(13px,4.3cqw,23px)] ${lead ? "" : "text-muted-foreground"}`}>
                   {GAME_NAMES[g] ?? g}
                 </span>
                 {board.length > 0 && (
@@ -209,10 +209,10 @@ export function GamesTile() {
           );
         })}
         {/* Ninth slot: something to nudge people with */}
-        <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col ${challenges.length ? "justify-start" : "justify-center"} gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(10px,0.85vw,18px)] ${challenges.length ? "bg-background" : "bg-primary/[0.07]"} p-[clamp(10px,0.8vw,18px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
+        <div onClick={() => navigate("/play?tab=games")} className={`flex min-h-0 flex-col [container-type:inline-size] ${challenges.length ? "justify-start" : "justify-center"} gap-[clamp(6px,0.5vw,10px)] rounded-[clamp(10px,0.85vw,18px)] ${challenges.length ? "bg-background" : "bg-primary/[0.07]"} p-[clamp(10px,0.8vw,18px)] text-[clamp(12px,0.9vw,19px)] leading-snug ${ACTIONABLE}`}>
           {challenges.length > 0 ? (
             <>
-              <span className="flex items-center gap-[0.4em] font-semibold text-[clamp(14px,1.05vw,23px)]">
+              <span className="flex items-center gap-[0.4em] font-semibold text-[clamp(13px,4.3cqw,23px)]">
                 <Swords className="h-[1em] w-[1em] text-primary" />
                 Challenges
               </span>
@@ -220,11 +220,11 @@ export function GamesTile() {
                 {challenges.map((c, i) => (
                   <div
                     key={`${c.key}-${c.at}`}
-                    className={`flex items-center gap-[clamp(6px,0.5vw,10px)] py-[clamp(4px,0.4vw,9px)] text-[clamp(13px,0.95vw,20px)] ${
+                    className={`flex items-center gap-[clamp(5px,2cqw,10px)] py-[clamp(4px,1.4cqw,9px)] text-[clamp(12px,3.6cqw,20px)] ${
                       i > 0 ? "border-t border-foreground/[0.07]" : ""
                     } ${c.status === "open" ? "" : "text-muted-foreground"}`}
                   >
-                    <span className="max-w-[40%] truncate font-medium">{c.from}</span>
+                    <span className="min-w-0 truncate font-medium">{c.from}</span>
                     <Swords className="h-[0.9em] w-[0.9em] shrink-0 text-primary/70" aria-label="challenged" />
                     <span className="min-w-0 flex-1 truncate font-medium">{c.to}</span>
                     {icons[iconKey(c.game)] ? (
