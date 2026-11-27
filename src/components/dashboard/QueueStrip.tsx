@@ -6,16 +6,18 @@ type QueueItem = { id: string; title: string; thumbnail_url: string | null };
 type Drag = {
   from: number;
   to: number;
-  dy: number; // how far the dragged thumbnail is from its own slot, in px
+  dy: number; // how far the dragged thumbnail is from its own slot, in px (along the strip)
   slot: number; // one thumbnail plus the gap, in px
   settling: boolean; // let go: gliding into its new slot
 };
 
 const SLIDE = "transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1)"; // small, liquid overshoot
 const SETTLE_MS = 200;
-const EDGE = 28; // px from the top/bottom edge where dragging starts scrolling
+const EDGE = 28; // px from either end where dragging starts scrolling
 
 /**
+ * The thumbnail strip of the queue: a row under the video (horizontal), or a column (vertical).
+ * The rest of this note describes the column; the row works the same way along its length.
  * The slim thumbnail strip next to Now playing. It scrolls when there are more songs than fit,
  * with a soft blur at whichever end has more songs behind it. Put the ＋ right after it in a
  * flex column: the strip shrinks to fit, so the ＋ sits below the last song and never scrolls away.
@@ -26,11 +28,17 @@ export function QueueStrip({
   items,
   canReorder,
   onReorder,
+  direction = "vertical",
 }: {
   items: QueueItem[];
   canReorder: boolean;
   onReorder: (ids: string[], onFail: () => void) => void;
+  direction?: "vertical" | "horizontal";
 }) {
+  const row = direction === "horizontal";
+  // Everything below reads positions along the strip: x for the row, y for the column
+  const along = (e: { clientX: number; clientY: number }) => (row ? e.clientX : e.clientY);
+  const scrollPos = (el: HTMLElement) => (row ? el.scrollLeft : el.scrollTop);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -56,20 +64,29 @@ export function QueueStrip({
     const el = scrollRef.current;
     if (!el) return;
     const update = () =>
-      setEnds({
-        top: el.scrollTop > 2,
-        bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 2,
-      });
+      setEnds(
+        row
+          ? { top: el.scrollLeft > 2, bottom: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 }
+          : { top: el.scrollTop > 2, bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 2 },
+      );
     update();
     el.addEventListener("scroll", update, { passive: true });
     const ro = new ResizeObserver(update);
     ro.observe(el);
     if (listRef.current) ro.observe(listRef.current);
+    // The row: a mouse wheel scrolls it sideways
+    const wheel = (e: WheelEvent) => {
+      if (!row || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
     return () => {
       el.removeEventListener("scroll", update);
+      el.removeEventListener("wheel", wheel);
       ro.disconnect();
     };
-  }, []);
+  }, [row]);
 
   /* ── Drag to reorder (mouse and pen; touch scrolls) ── */
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -92,20 +109,22 @@ export function QueueStrip({
     const s = g.current;
     const el = scrollRef.current;
     if (!s || !el || !s.started) return;
-    const dy = s.lastY - s.startY + (el.scrollTop - s.startScroll);
+    const dy = s.lastY - s.startY + (scrollPos(el) - s.startScroll);
     setDrag({ from: s.from, to: targetFor(s.from, dy, s.slot), dy, slot: s.slot, settling: false });
   };
 
-  // Near the top or bottom edge, keep scrolling while you hold the song there
+  // Near either end, keep scrolling while you hold the song there
   const autoScroll = () => {
     const s = g.current;
     const el = scrollRef.current;
     if (!s || !el) return;
     const r = el.getBoundingClientRect();
+    const [start, end] = row ? [r.left, r.right] : [r.top, r.bottom];
     const speed =
-      s.lastY < r.top + EDGE ? -Math.ceil((r.top + EDGE - s.lastY) / 4) : s.lastY > r.bottom - EDGE ? Math.ceil((s.lastY - (r.bottom - EDGE)) / 4) : 0;
+      s.lastY < start + EDGE ? -Math.ceil((start + EDGE - s.lastY) / 4) : s.lastY > end - EDGE ? Math.ceil((s.lastY - (end - EDGE)) / 4) : 0;
     if (speed) {
-      el.scrollTop += speed;
+      if (row) el.scrollLeft += speed;
+      else el.scrollTop += speed;
       recompute();
     }
     s.raf = requestAnimationFrame(autoScroll);
@@ -116,14 +135,14 @@ export function QueueStrip({
     const el = scrollRef.current;
     const list = listRef.current;
     if (!el || !list) return;
-    const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
+    const gap = parseFloat(row ? getComputedStyle(list).columnGap : getComputedStyle(list).rowGap) || 0;
     e.currentTarget.setPointerCapture(e.pointerId);
     g.current = {
       from: idx,
-      startY: e.clientY,
-      startScroll: el.scrollTop,
-      lastY: e.clientY,
-      slot: e.currentTarget.offsetHeight + gap,
+      startY: along(e),
+      startScroll: scrollPos(el),
+      lastY: along(e),
+      slot: (row ? e.currentTarget.offsetWidth : e.currentTarget.offsetHeight) + gap,
       started: false,
       raf: 0,
     };
@@ -132,9 +151,9 @@ export function QueueStrip({
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const s = g.current;
     if (!s) return;
-    s.lastY = e.clientY;
+    s.lastY = along(e);
     if (!s.started) {
-      if (Math.abs(e.clientY - s.startY) < 4) return; // a click, not a drag
+      if (Math.abs(along(e) - s.startY) < 4) return; // a click, not a drag
       s.started = true;
       s.raf = requestAnimationFrame(autoScroll);
     }
@@ -176,10 +195,12 @@ export function QueueStrip({
   };
 
   return (
-    <div className="relative flex min-h-0 shrink flex-col">
+    <div className={`relative flex min-h-0 min-w-0 ${row ? "flex-1" : "shrink flex-col"}`}>
       <div
         ref={scrollRef}
-        className="min-h-0 overflow-y-auto overscroll-contain px-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={`min-h-0 min-w-0 overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          row ? "flex-1 overflow-x-auto py-[2px]" : "overflow-y-auto px-[2px]"
+        }`}
       >
         <Liquid
           ref={listRef}
@@ -187,7 +208,7 @@ export function QueueStrip({
           contrast={18}
           fill="hsl(var(--secondary))"
           filterPadding={32}
-          className="flex flex-col gap-[clamp(6px,0.5vw,10px)]"
+          className={`flex gap-[clamp(6px,0.5vw,10px)] ${row ? "w-max flex-row" : "flex-col"}`}
         >
           {shown.map((item, idx) => {
             const isDragged = drag?.from === idx;
@@ -206,10 +227,10 @@ export function QueueStrip({
                   onPointerCancel={onPointerUp}
                   style={{
                     zIndex: isDragged ? 10 : undefined, // stays above the songs it passes
-                    transform: `translateY(${y}px) scale(${isDragged && !drag?.settling ? 1.03 : 1})`,
+                    transform: `${row ? "translateX" : "translateY"}(${y}px) scale(${isDragged && !drag?.settling ? 1.03 : 1})`,
                     transition: instant || (isDragged && !drag?.settling) ? "none" : isDragged ? `transform ${SETTLE_MS}ms ease-out` : SLIDE,
                   }}
-                  className={`relative w-full select-none rounded-[clamp(4px,0.4vw,8px)] ${
+                  className={`relative select-none rounded-[clamp(4px,0.4vw,8px)] ${row ? "h-[clamp(36px,2.8vw,60px)] aspect-video shrink-0" : "w-full"} ${
                     canReorder ? (isDragged ? "cursor-grabbing" : "cursor-grab") : ""
                   } ${isDragged && !drag?.settling ? "shadow-[0_10px_24px_-12px_hsl(var(--foreground)/0.45)]" : ""}`}
                 >
@@ -218,10 +239,10 @@ export function QueueStrip({
                       src={item.thumbnail_url}
                       alt={item.title}
                       draggable={false}
-                      className="pointer-events-none w-full aspect-video rounded-[inherit] object-cover"
+                      className={`pointer-events-none aspect-video rounded-[inherit] object-cover ${row ? "h-full" : "w-full"}`}
                     />
                   ) : (
-                    <div className="w-full aspect-video rounded-[inherit] bg-secondary" />
+                    <div className={`aspect-video rounded-[inherit] bg-secondary ${row ? "h-full" : "w-full"}`} />
                   )}
                   <span className="absolute left-[3px] top-[3px] rounded-full bg-background/85 px-[0.4em] text-[clamp(9px,0.6vw,13px)] font-semibold tabular-nums">
                     {drag && !isDragged ? idx + 1 + (y > 0 ? 1 : y < 0 ? -1 : 0) : drag ? drag.to + 1 : idx + 1}
@@ -234,18 +255,37 @@ export function QueueStrip({
       </div>
 
       {/* Soft ends: a light blur that fades in where songs continue past the edge */}
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-[clamp(16px,1.4vw,28px)] bg-gradient-to-b from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black,transparent)] transition-opacity duration-300 ${
-          ends.top ? "opacity-100" : "opacity-0"
-        }`}
-      />
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 bottom-0 h-[clamp(16px,1.4vw,28px)] bg-gradient-to-t from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_top,black,transparent)] transition-opacity duration-300 ${
-          ends.bottom ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {row ? (
+        <>
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 left-0 w-[clamp(16px,1.4vw,28px)] bg-gradient-to-r from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_right,black,transparent)] transition-opacity duration-300 ${
+              ends.top ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 right-0 w-[clamp(16px,1.4vw,28px)] bg-gradient-to-l from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_left,black,transparent)] transition-opacity duration-300 ${
+              ends.bottom ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        </>
+      ) : (
+        <>
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-x-0 top-0 h-[clamp(16px,1.4vw,28px)] bg-gradient-to-b from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black,transparent)] transition-opacity duration-300 ${
+              ends.top ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-x-0 bottom-0 h-[clamp(16px,1.4vw,28px)] bg-gradient-to-t from-[hsl(var(--card))] to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_top,black,transparent)] transition-opacity duration-300 ${
+              ends.bottom ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        </>
+      )}
     </div>
   );
 }

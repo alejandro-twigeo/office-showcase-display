@@ -9,6 +9,7 @@ import { parseQueuedBy } from "@/lib/dedication";
 import { useNavigate } from "react-router-dom";
 import { ACTIONABLE, useMe } from "@/hooks/useMe";
 import { QueueAdder } from "./QueueAdder";
+import { QueueStrip } from "./QueueStrip";
 import { NowPlayingIcon } from "./NowPlayingIcon";
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
@@ -66,7 +67,7 @@ function loadYouTubeAPI(onReady: () => void) {
 /* ── Component ────────────────────────────────────────────────────────────────────── */
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
-  const { currentVideo, queue, addToQueue } = useYoutubeQueue();
+  const { currentVideo, queue, addToQueue, reorderQueue } = useYoutubeQueue();
   const me = useMe();
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
@@ -416,18 +417,17 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
         {currentVideo && (
           <div className="hidden lg:flex shrink-0 items-center gap-[clamp(6px,0.5vw,10px)]">
             <span className="shrink-0 text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Up next</span>
-            <div className="flex min-w-0 flex-1 gap-[clamp(6px,0.5vw,10px)] overflow-hidden [mask-image:linear-gradient(to_right,black_85%,transparent)]">
-              {queue.length === 0 ? (
-                <span className="truncate text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Nothing queued yet</span>
-              ) : (
-                queue.map((q, i) => (
-                  <div key={q.id} title={q.title} className="relative h-[clamp(36px,2.8vw,60px)] aspect-video shrink-0 overflow-hidden rounded-[clamp(6px,0.5vw,10px)] bg-secondary">
-                    {q.thumbnail_url && <img src={q.thumbnail_url} alt="" className="h-full w-full object-cover" />}
-                    <span className="absolute left-[0.3em] top-[0.3em] grid h-[1.5em] w-[1.5em] place-items-center rounded-full bg-white/85 font-semibold text-[clamp(9px,0.6vw,13px)]">{i + 1}</span>
-                  </div>
-                ))
-              )}
-            </div>
+            {queue.length === 0 ? (
+              <span className="min-w-0 flex-1 truncate text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Nothing queued yet</span>
+            ) : (
+              // Scrolls sideways when there are more than fit; on a laptop, drag to reorder
+              <QueueStrip
+                direction="horizontal"
+                items={queue}
+                canReorder={!!me}
+                onReorder={(ids, onFail) => reorderQueue.mutate(ids, { onError: onFail })}
+              />
+            )}
             <div className="flex w-[clamp(80px,6vw,130px)] shrink-0 gap-[clamp(4px,0.4vw,8px)]">
               {!confirmSkip && (
                 <div className="min-w-0 flex-1">
