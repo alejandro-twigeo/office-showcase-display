@@ -13,13 +13,18 @@ import { PlantStatus } from '../components/dashboard/PlantStatus';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
 import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Newspaper, Shield, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
 import { useDeviceId } from '@/hooks/useDeviceId';
 import { usePresenceTrack } from '@/hooks/usePresenceCount';
 
 type TabValue = 'guess' | 'polls' | 'youtube' | 'vibes' | 'news' | 'chat';
+
+/** Links from the TV page: /play?tab=chat, /play?game=sudoku */
+const TAB_FROM_LINK: Record<string, TabValue> = {
+  games: 'guess', ranks: 'guess', polls: 'polls', music: 'youtube', news: 'news', kudos: 'vibes', chat: 'chat',
+};
 
 class DesktopSectionBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -56,9 +61,11 @@ export default function PlayPage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const deviceId = useDeviceId();
-  const [activeTab, setActiveTab] = useState<TabValue>('guess');
+  const [params] = useSearchParams();
+  const linkedGame = params.get('game');
+  const [activeTab, setActiveTab] = useState<TabValue>(() => TAB_FROM_LINK[params.get('tab') ?? ''] ?? 'guess');
   const [showProfile, setShowProfile] = useState(false);
-  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>('other');
+  const [gamesSubTab, setGamesSubTab] = useState<'easy' | 'hard' | 'other'>(linkedGame === 'geoguessr' ? 'easy' : 'other');
   const [gamesResetKey, setGamesResetKey] = useState(0);
 
   usePresenceTrack('app', {
@@ -284,7 +291,7 @@ export default function PlayPage() {
             <div className="space-y-4">
               <GuessMap playerName={player.name} onActiveTabChange={(tab) => {
                 setGamesSubTab(tab);
-              }} forcedTab={gamesSubTab} resetKey={gamesResetKey} />
+              }} forcedTab={gamesSubTab} resetKey={gamesResetKey} initialGame={linkedGame && linkedGame !== 'geoguessr' ? linkedGame : null} />
             </div>
           )}
           {activeTab === 'polls' && <PollSection playerName={player.name} />}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { BarChart3, Youtube, Heart, Newspaper, Gamepad2, LogOut, UserCog, Shield, Monitor, Target, Trophy, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
 import { PollSection } from './PollSection';
@@ -35,6 +35,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type TabValue = 'games' | 'polls' | 'youtube' | 'vibes' | 'news' | 'leaderboards' | 'chat';
 
+/** Links from the TV page: /play?tab=chat, /play?game=sudoku */
+const TAB_FROM_LINK: Record<string, TabValue> = {
+  games: 'games', ranks: 'leaderboards', polls: 'polls', music: 'youtube', news: 'news', kudos: 'vibes', chat: 'chat',
+};
+
 interface MobilePlayLayoutProps {
   player: Player;
   logout: () => void;
@@ -43,10 +48,11 @@ interface MobilePlayLayoutProps {
 
 export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLayoutProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabValue>('games');
+  const [params] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabValue>(() => TAB_FROM_LINK[params.get('tab') ?? ''] ?? 'games');
   const [showProfile, setShowProfile] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<string | null>(() => params.get('game'));
   const { icons } = useGameIcons();
   const { activeRound } = useRounds();
 
