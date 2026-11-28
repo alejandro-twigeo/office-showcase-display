@@ -29,11 +29,14 @@ export function QueueStrip({
   canReorder,
   onReorder,
   direction = "vertical",
+  onLocked,
 }: {
   items: QueueItem[];
   canReorder: boolean;
   onReorder: (ids: string[], onFail: () => void) => void;
   direction?: "vertical" | "horizontal";
+  /** Someone tried to drag on a screen where they can't reorder (not logged in): tell them why */
+  onLocked?: () => void;
 }) {
   const row = direction === "horizontal";
   // Everything below reads positions along the strip: x for the row, y for the column
@@ -131,7 +134,8 @@ export function QueueStrip({
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>, idx: number) => {
-    if (!canReorder || e.button !== 0 || e.pointerType === "touch" || drag?.settling) return;
+    if (e.button !== 0 || e.pointerType === "touch" || drag?.settling) return;
+    if (!canReorder) return onLocked?.();
     const el = scrollRef.current;
     const list = listRef.current;
     if (!el || !list) return;
@@ -220,7 +224,7 @@ export function QueueStrip({
                 move={{ springiness: 0.55, wobble: 0.45, stretch: 0.3, trail: 0.5 }}
               >
                 <div
-                  title={`${idx + 1}. ${item.title}${canReorder ? "  (drag to reorder)" : ""}`}
+                  title={`${idx + 1}. ${item.title}${canReorder ? "  (drag to reorder)" : onLocked ? "  (log in on this screen to reorder)" : ""}`}
                   onPointerDown={(e) => onPointerDown(e, idx)}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}

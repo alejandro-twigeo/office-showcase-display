@@ -98,6 +98,15 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     await tvRpc("tv_advance_queue", { p_current: currentVideo.id });
     setSkipping(false);
   };
+  // A short note over the video: why a drag didn't work, or that a new order couldn't be saved
+  const [queueNote, setQueueNote] = useState<"login" | "failed" | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>();
+  const showNote = (n: "login" | "failed") => {
+    setQueueNote(n);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setQueueNote(null), 4000);
+  };
+  useEffect(() => () => clearTimeout(noteTimer.current), []);
   const skipIcon = skipping ? <Loader2 className="h-[55%] w-auto animate-spin" /> : <SkipForward className="h-[50%] w-auto shrink-0 fill-current" />;
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -385,6 +394,24 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 Turn sound on
               </button>
             )}
+            {/* Dragging the queue: you need to be logged in on this screen, or the save failed */}
+            {queueNote && (
+              <div
+                key={queueNote}
+                className="absolute bottom-[clamp(8px,0.7vw,14px)] left-1/2 z-10 flex -translate-x-1/2 items-center gap-[0.8em] whitespace-nowrap rounded-full bg-[hsl(var(--card))] py-[0.4em] pl-[1em] pr-[0.4em] text-[clamp(12px,0.85vw,18px)] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)] animate-in fade-in slide-in-from-bottom-2 duration-300"
+              >
+                {queueNote === "login" ? (
+                  <>
+                    <span>Log in on this screen to reorder songs</span>
+                    <button type="button" onClick={openMusic} className="rounded-full bg-primary px-[0.9em] py-[0.25em] font-semibold text-primary-foreground">
+                      Log in
+                    </button>
+                  </>
+                ) : (
+                  <span className="pr-[0.6em]">Couldn&rsquo;t save the new order. Try again.</span>
+                )}
+              </div>
+            )}
             {/* Someone just added a song: a pill over the video for a few seconds */}
             {spotlight && (
               <div
@@ -425,7 +452,15 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 direction="horizontal"
                 items={queue}
                 canReorder={!!me}
-                onReorder={(ids, onFail) => reorderQueue.mutate(ids, { onError: onFail })}
+                onLocked={() => showNote("login")}
+                onReorder={(ids, onFail) =>
+                  reorderQueue.mutate(ids, {
+                    onError: () => {
+                      onFail();
+                      showNote("failed");
+                    },
+                  })
+                }
               />
             )}
             <div className="flex w-[clamp(80px,6vw,130px)] shrink-0 gap-[clamp(4px,0.4vw,8px)]">

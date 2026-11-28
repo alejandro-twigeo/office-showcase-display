@@ -284,13 +284,18 @@ export function useYoutubeQueue() {
     mutationFn: async (orderedIds: string[]) => {
       // Assign evenly spaced timestamps to preserve order
       const base = Date.now();
-      await Promise.all(
+      const results = await Promise.all(
         orderedIds.map((id, idx) =>
           ytQueue()
             .update({ queued_at: new Date(base + idx * 1000).toISOString() })
             .eq("id", id)
+            .select("id")
         )
       );
+      // A refused write comes back as an error, or (when not allowed) as zero rows changed:
+      // throw either way so the caller can undo the move and say so
+      const failed = results.find((r: { error: unknown; data: unknown[] | null }) => r.error || !r.data?.length);
+      if (failed) throw failed.error ?? new Error("The new order wasn't saved");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["video-queue"] });
