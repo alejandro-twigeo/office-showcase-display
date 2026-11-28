@@ -3,6 +3,7 @@ import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
 import { ListMusic, Volume2, SkipForward, Loader2 } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSpotlight, GameDemoOverlay } from "./GameSpotlight";
 import { parseQueuedBy } from "@/lib/dedication";
@@ -86,6 +87,12 @@ function loadYouTubeAPI(onReady: () => void) {
 
 export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing: boolean) => void } = {}) {
   const { currentVideo, queue, addToQueue, reorderQueue } = useYoutubeQueue();
+  const queryClient = useQueryClient();
+  // Read the queue again from the database (the live updates can drop on a TV that slept)
+  const refreshQueue = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["current-video"] });
+    queryClient.invalidateQueries({ queryKey: ["video-queue"] });
+  }, [queryClient]);
   const me = useMe();
   // Lets the layout give Now playing more room while something is actually playing
   useEffect(() => {
@@ -200,12 +207,19 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   }, [currentVideo?.video_id, queue.length]);
 
   // Next song: the TV isn't logged in, so it uses the database function made for exactly this.
-  // The queue updates itself through realtime afterwards.
-  const handleVideoEnd = useCallback(() => {
+  // Then it catches up with the clock and reads the queue again, so the next song loads even if the
+  // live updates from the database didn't come through.
+  const handleVideoEnd = useCallback(async () => {
     if (hasAdvancedRef.current) return;
     hasAdvancedRef.current = true;
-    tvRpc("tv_advance_queue", { p_current: currentVideoIdRef.current ?? null });
-  }, []);
+    try {
+      await tvRpc("tv_advance_queue", { p_current: currentVideoIdRef.current ?? null });
+      await tvRpc("music_catch_up", {});
+    } catch {
+      /* the watchdog below tries again */
+    }
+    refreshQueue();
+  }, [refreshQueue]);
 
   // Keep currentVideoIdRef in sync so the stale-closure-safe callback always has the latest id
   useEffect(() => {
@@ -347,29 +361,42 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   }, [currentVideo?.id]);
 
   // Catch up with the clock: when this screen opens, and every half minute, songs whose time is over
-  // count as played and the right song is playing (also when nobody had the page open)
+  // count as played and the right song is playing (also when nobody had the page open). Then read the
+  // queue again, in case a live update was missed.
   useEffect(() => {
-    const catchUp = () => tvRpc("music_catch_up", {}).then(() => undefined, () => undefined);
+    const catchUp = () => tvRpc("music_catch_up", {}).then(refreshQueue, refreshQueue);
     catchUp();
     const id = setInterval(catchUp, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [refreshQueue]);
 
-  // Stay on the clock: every few seconds, if this screen drifted (or someone paused it), jump back
-  // to where the song is for everyone, and keep it playing
+  // Watchdog, every few seconds:
+  //  - the song has ended (or its time on the clock is up) but nothing moved on: move on again
+  //  - this screen drifted from the clock, or got paused: jump back to where the song is for everyone
   useEffect(() => {
     if (!currentVideo?.id) return;
     const id = setInterval(() => {
       const p = playerRef.current;
+      if (!p || !playerReadyRef.current) return;
+      const state = p.getPlayerState(); // 0 ended, 1 playing, 2 paused, 3 buffering
+      if (state === 0) {
+        hasAdvancedRef.current = false; // the last try didn't take: try again
+        handleVideoEnd();
+        return;
+      }
       const song = clockRef.current;
-      if (!p || !playerReadyRef.current || !song?.started_at) return;
-      const state = p.getPlayerState(); // 1 playing, 2 paused, 3 buffering
-      if (state === 2) p.playVideo();
+      if (!song?.started_at) return;
       const at = positionOf(song);
+      const length = song.duration_seconds ?? p.getDuration();
+      if (length > 0 && at > length + 2) {
+        handleVideoEnd();
+        return;
+      }
+      if (state === 2) p.playVideo();
       if (state !== 3 && Math.abs(p.getCurrentTime() - at) > MAX_DRIFT_S) p.seekTo(at, true);
     }, SYNC_EVERY_MS);
     return () => clearInterval(id);
-  }, [currentVideo?.id]);
+  }, [currentVideo?.id, handleVideoEnd]);
 
   // Cleanup on unmount
   useEffect(() => {
