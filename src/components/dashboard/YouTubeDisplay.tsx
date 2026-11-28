@@ -34,14 +34,27 @@ type YTPlayer = {
   unMute: () => void;
   getPlayerState: () => number;
   getCurrentTime: () => number;
+  getDuration: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   setSize: (width: number, height: number) => void;
   destroy: () => void;
 };
 
-// The TV isn't logged in, so it only changes the queue through two database functions
+// The TV isn't logged in, so it only changes the queue through database functions made for it
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const tvRpc = (fn: string, args: Record<string, unknown>) => (supabase as any).rpc(fn, args);
+
+/**
+ * The shared music runs on the server's clock: each song has the time it started and its length
+ * (see drizzle/migrations/0006_08_music_clock.sql). Every screen plays from "now minus start",
+ * so all screens are in sync, nobody can pause it, and a song is over when its time is up,
+ * whether anyone is watching or not. What's missed is missed.
+ */
+type ClockSong = { id: string; started_at?: string | null; duration_seconds?: number | null; current_time_seconds?: number | null };
+const positionOf = (s: ClockSong | null | undefined) =>
+  s?.started_at ? Math.max(0, (Date.now() - Date.parse(s.started_at)) / 1000) : s?.current_time_seconds ?? 0;
+const SYNC_EVERY_MS = 10_000;
+const MAX_DRIFT_S = 3;
 
 const ytAPIReadyCallbacks: Array<() => void> = [];
 let ytAPILoaded = false;
@@ -118,6 +131,21 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   const playerReadyRef = useRef(false);
   const hasAdvancedRef = useRef(false);
   const currentVideoIdRef = useRef<string | undefined>(undefined);
+  // The song playing, with its start time and length, for the player's callbacks
+  const clockRef = useRef<ClockSong | null>(null);
+  clockRef.current = (currentVideo as ClockSong | null) ?? null;
+  // Tell the server how long the song is, once per song, as soon as the player knows
+  const durationSentFor = useRef<string | null>(null);
+  const reportDuration = useCallback(() => {
+    const p = playerRef.current;
+    const song = clockRef.current;
+    if (!p || !song || song.duration_seconds || durationSentFor.current === song.id) return;
+    const d = Math.round(p.getDuration?.() ?? 0);
+    if (d > 0) {
+      durationSentFor.current = song.id;
+      tvRpc("tv_set_duration", { p_id: song.id, p_seconds: d });
+    }
+  }, []);
   const pendingVideoIdRef = useRef<string | undefined>(undefined);
   // True when the TV browser refused to autoplay with sound and we fell back to muted
   const [soundBlocked, setSoundBlocked] = useState(false);
@@ -209,7 +237,8 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     if (videoId === activeVideoIdRef.current && playerRef.current) return;
 
     activeVideoIdRef.current = videoId;
-    const resumeAt = currentVideo!.current_time_seconds ?? 0;
+    // Start where the song is for everyone, by the clock
+    const resumeAt = Math.floor(positionOf(currentVideo as ClockSong));
 
     const initPlayer = () => {
       if (!containerRef.current) return;
@@ -246,16 +275,21 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
         videoId,
         playerVars: {
           autoplay: 1,
-          controls: 1,
+          // No controls and no keyboard: the shared music can't be paused or scrubbed from one screen
+          controls: 0,
+          disablekb: 1,
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          iv_load_policy: 3,
           start: resumeAt,
         },
         events: {
           onReady: () => {
             playerReadyRef.current = true;
-            // Explicitly start playback — autoplay param is often blocked by browser policy
+            // Jump to the exact spot on the clock (the start parameter is whole seconds), then play.
+            // Autoplay is often blocked by the browser, so ask explicitly.
+            playerRef.current?.seekTo(positionOf(clockRef.current), true);
             playerRef.current?.playVideo();
             ensurePlaying();
             // If a new video was requested while player was initializing, load it now
@@ -270,9 +304,14 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
             handleVideoEnd();
           },
           onStateChange: (event: { data: number }) => {
-            // YT.PlayerState.ENDED === 0
+            // YT.PlayerState: 0 ended, 1 playing, 2 paused
             if (event.data === 0) {
               handleVideoEnd();
+            } else if (event.data === 1) {
+              reportDuration();
+            } else if (event.data === 2) {
+              // Nobody pauses the shared music
+              playerRef.current?.playVideo();
             }
           },
         },
@@ -307,19 +346,29 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     };
   }, [currentVideo?.id]);
 
-  // Periodically persist playback position (every 5s)
+  // Catch up with the clock: when this screen opens, and every half minute, songs whose time is over
+  // count as played and the right song is playing (also when nobody had the page open)
+  useEffect(() => {
+    const catchUp = () => tvRpc("music_catch_up", {}).then(() => undefined, () => undefined);
+    catchUp();
+    const id = setInterval(catchUp, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Stay on the clock: every few seconds, if this screen drifted (or someone paused it), jump back
+  // to where the song is for everyone, and keep it playing
   useEffect(() => {
     if (!currentVideo?.id) return;
-    const id = currentVideo.id;
-    const interval = setInterval(async () => {
-      if (!playerRef.current || !playerReadyRef.current) return;
-      try {
-        const seconds = Math.floor(playerRef.current.getCurrentTime());
-        // only saves the position of the video that is playing
-        await tvRpc("tv_save_position", { p_id: id, p_seconds: seconds });
-      } catch { /* ignore */ }
-    }, 5000);
-    return () => clearInterval(interval);
+    const id = setInterval(() => {
+      const p = playerRef.current;
+      const song = clockRef.current;
+      if (!p || !playerReadyRef.current || !song?.started_at) return;
+      const state = p.getPlayerState(); // 1 playing, 2 paused, 3 buffering
+      if (state === 2) p.playVideo();
+      const at = positionOf(song);
+      if (state !== 3 && Math.abs(p.getCurrentTime() - at) > MAX_DRIFT_S) p.seekTo(at, true);
+    }, SYNC_EVERY_MS);
+    return () => clearInterval(id);
   }, [currentVideo?.id]);
 
   // Cleanup on unmount
@@ -399,7 +448,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           <div className="relative w-full shrink-0 aspect-video max-h-[58vh]">
             <div
               ref={containerRef}
-              className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden [&_iframe]:!h-full [&_iframe]:!w-full"
+              className="absolute inset-0 bg-secondary rounded-[clamp(10px,0.9vw,18px)] overflow-hidden [&_iframe]:!h-full [&_iframe]:!w-full [&_iframe]:pointer-events-none"
             />
             {soundBlocked && (
               <button

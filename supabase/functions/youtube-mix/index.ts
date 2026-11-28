@@ -27,8 +27,11 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-/** The video ids in YouTube's Mix for one song (empty if YouTube didn't answer) */
-async function mixFor(seed: string): Promise<string[]> {
+/** "3:45" or "1:02:03" → seconds */
+const toSeconds = (t: string) => t.split(":").reduce((acc, n) => acc * 60 + Number(n), 0);
+
+/** The songs in YouTube's Mix for one song, with their length when the page shows it (empty if YouTube didn't answer) */
+async function mixFor(seed: string): Promise<{ id: string; secs: number | null }[]> {
   try {
     // The cookies skip the EU consent page
     const res = await fetch(`https://www.youtube.com/watch?v=${seed}&list=RD${seed}`, {
@@ -39,10 +42,19 @@ async function mixFor(seed: string): Promise<string[]> {
       },
     });
     const html = await res.text();
-    // The Mix list itself; if YouTube changes its page, fall back to the related videos on it
-    let ids = Array.from(html.matchAll(/"playlistPanelVideoRenderer":\{.*?"videoId":"([\w-]{11})"/g), (m) => m[1]);
-    if (ids.length === 0) ids = Array.from(html.matchAll(/"videoId":"([\w-]{11})"/g), (m) => m[1]);
-    return ids;
+    // The Mix list itself: one entry per song, with its id and length ("lengthText": "3:45")
+    const songs = html
+      .split('"playlistPanelVideoRenderer":{')
+      .slice(1)
+      .map((chunk) => {
+        const id = chunk.match(/"videoId":"([\w-]{11})"/)?.[1];
+        const len = chunk.match(/"lengthText":\{.*?"simpleText":"(\d+(?::\d+)+)"/)?.[1];
+        return id ? { id, secs: len ? toSeconds(len) : null } : null;
+      })
+      .filter((x): x is { id: string; secs: number | null } => !!x);
+    if (songs.length) return songs;
+    // If YouTube changes its page, fall back to the related videos on it (no lengths)
+    return Array.from(html.matchAll(/"videoId":"([\w-]{11})"/g), (m) => ({ id: m[1], secs: null }));
   } catch {
     return [];
   }
@@ -94,10 +106,13 @@ Deno.serve(async (req) => {
     // Take candidates from each seed's Mix in turn, so the picks blend the room's taste
     const lists = await Promise.all(seeds.map(mixFor));
     const candidates: string[] = [];
+    const lengths = new Map<string, number>(); // seconds, so the music clock knows when each song ends
     for (let i = 0; candidates.length < need * 2 && lists.some((l) => i < l.length); i++) {
       for (const l of lists) {
-        const id = l[i];
-        if (id && !avoid.has(id) && !candidates.includes(id)) candidates.push(id);
+        const song = l[i];
+        if (!song) continue;
+        if (song.secs) lengths.set(song.id, song.secs);
+        if (!avoid.has(song.id) && !candidates.includes(song.id)) candidates.push(song.id);
       }
     }
 
@@ -138,10 +153,15 @@ Deno.serve(async (req) => {
         is_deleted: false,
         status: "queued",
         queued_at: new Date(base + i * 1000).toISOString(), // keeps the Mix order
+        duration_seconds: lengths.get(m.id) ?? null,
       }));
     if (add.length === 0) return json({ added: 0, reason: "no mix found" });
 
-    const { error } = await supabase.from("youtube_queue").insert(add);
+    let { error } = await supabase.from("youtube_queue").insert(add);
+    // Before the music-clock database change is in, the table has no length column yet
+    if (error && /duration_seconds/.test(error.message)) {
+      ({ error } = await supabase.from("youtube_queue").insert(add.map(({ duration_seconds: _d, ...row }) => row)));
+    }
     if (error) throw error;
     return json({ added: add.length });
   } catch (err) {

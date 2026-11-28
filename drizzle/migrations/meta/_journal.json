@@ -43,6 +43,13 @@
       "when": 1795775765467,
       "tag": "0005_07_kudos_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795880000000,
+      "tag": "0006_08_music_clock",
+      "breakpoints": true
     }
   ]
 }
