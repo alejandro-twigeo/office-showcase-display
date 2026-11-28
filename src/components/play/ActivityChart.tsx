@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,12 +144,39 @@ function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof use
   return { rows, names };
 }
 
+/* ── Tooltip: the day, then the lines you're looking at, highest first ─────────── */
+
+type TipItem = { dataKey?: string | number; value?: number | string; color?: string };
+function ChartTip({ active, payload, label, only, me }: { active?: boolean; payload?: TipItem[]; label?: string; only: Set<string> | null; me: string }) {
+  if (!active || !payload?.length) return null;
+  const items = payload
+    .filter((p) => !only || only.has(String(p.dataKey)))
+    .sort((x, y) => Number(y.value ?? 0) - Number(x.value ?? 0));
+  if (!items.length) return null;
+  return (
+    <div className="min-w-[9rem] rounded-xl border border-white/80 bg-white/95 px-3 py-2 text-xs shadow-[0_12px_30px_-16px_rgba(0,0,0,0.35)]">
+      <p className="mb-1 font-medium text-muted-foreground">{shortDate(String(label))}</p>
+      {items.map((p) => (
+        <p key={String(p.dataKey)} className="flex items-center gap-2 leading-5">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
+          <span className="min-w-0 flex-1 truncate">{p.dataKey === me ? "You" : p.dataKey}</span>
+          <span className="tabular-nums font-semibold">{p.value} pts</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /* ── The chart ───────────────────────────────────────────────────────────────── */
 
 /** Ranking points earned each workday over the last 30 days, by city, department or person. */
 export function ActivityChart({ playerName }: { playerName: string }) {
   const [by, setBy] = useState<By>("city");
-  const [focus, setFocus] = useState<string | null>(null);
+  // Picked lines (click a name; ⌘/Ctrl+click, or tap on a phone, to pick more). Empty: all lines.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  // Hovering a name (or a line) previews it
+  const [hover, setHover] = useState<string | null>(null);
+  const lastPointer = useRef<string>("mouse");
   const a = useOfficeActivity();
   const { data: depts } = useDepartments(!USE_SAMPLE && by === "department");
   const days = useMemo(workdays, []);
@@ -162,6 +189,21 @@ export function ActivityChart({ playerName }: { playerName: string }) {
     by === "people" ? (name === playerName ? PALETTE[0] : PALETTE[(i % (PALETTE.length - 1)) + 1]) : PALETTE[i % PALETTE.length];
   const totals = names.map((n) => rows.reduce((s, r) => s + Number(r[n] ?? 0), 0));
   const empty = totals.every((t) => t === 0);
+  // What stands out right now: the hovered name, else the picked ones, else everything
+  const lit: Set<string> | null = hover ? new Set([hover]) : picked.size ? picked : null;
+  const pick = (n: string, e: React.MouseEvent) => {
+    const many = e.metaKey || e.ctrlKey || lastPointer.current === "touch";
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (many) {
+        if (next.has(n)) next.delete(n);
+        else next.add(n);
+        return next;
+      }
+      // A plain click: just this one, or back to all if it was the only one
+      return cur.size === 1 && cur.has(n) ? new Set() : new Set([n]);
+    });
+  };
 
   return (
     <section className="glass-panel rounded-2xl p-3 sm:p-4">
@@ -180,7 +222,8 @@ export function ActivityChart({ playerName }: { playerName: string }) {
               type="button"
               onClick={() => {
                 setBy(k);
-                setFocus(null);
+                setPicked(new Set());
+                setHover(null);
               }}
               aria-current={by === k ? "page" : undefined}
               className="seg-tab h-7 px-3 text-xs"
@@ -216,18 +259,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
               />
               <Tooltip
                 cursor={{ stroke: "hsl(var(--foreground) / 0.15)", strokeWidth: 1 }}
-                labelFormatter={(d) => shortDate(String(d))}
-                formatter={(v, n) => [`${v} pts`, n === playerName ? "You" : n]}
-                itemSorter={(item) => -Number(item.value ?? 0)}
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "1px solid hsl(0 0% 100% / 0.8)",
-                  background: "hsl(0 0% 100% / 0.92)",
-                  boxShadow: "0 12px 30px -16px rgba(0,0,0,0.35)",
-                  fontSize: 12,
-                  padding: "8px 10px",
-                }}
-                itemStyle={{ padding: 0 }}
+                content={<ChartTip only={lit} me={playerName} />}
               />
               {names.map((n, i) => (
                 <Line
@@ -235,10 +267,13 @@ export function ActivityChart({ playerName }: { playerName: string }) {
                   type="monotone"
                   dataKey={n}
                   stroke={colour(n, i)}
-                  strokeWidth={n === playerName || focus === n ? 2.6 : 1.8}
-                  strokeOpacity={focus && focus !== n ? 0.15 : 1}
+                  strokeWidth={lit?.has(n) ? 2.8 : n === playerName ? 2.4 : 1.8}
+                  strokeOpacity={lit && !lit.has(n) ? 0.12 : 1}
                   dot={false}
-                  activeDot={{ r: 3.5, strokeWidth: 0 }}
+                  activeDot={lit && !lit.has(n) ? false : { r: 3.5, strokeWidth: 0 }}
+                  onMouseEnter={() => setHover(n)}
+                  onMouseLeave={() => setHover(null)}
+                  style={{ transition: "stroke-opacity 200ms ease, stroke-width 200ms ease", cursor: "pointer" }}
                   // Off: recharts can draw nothing when it animates before the box has its width
                   isAnimationActive={false}
                 />
@@ -248,23 +283,36 @@ export function ActivityChart({ playerName }: { playerName: string }) {
         </div>
       )}
 
-      {/* Legend: tap one to bring its line forward, with its total for the month */}
+      {/* Legend, with each total for the month. Hover a name to preview its line; click to pick it;
+          ⌘/Ctrl+click (or tap on a phone) to pick several; click the only picked one again to show all */}
       {!empty && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {names.map((n, i) => (
             <button
               key={n}
               type="button"
-              onClick={() => setFocus((f) => (f === n ? null : n))}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
-                focus === n ? "bg-white shadow-sm" : "bg-foreground/[0.04] hover:bg-white/70"
-              } ${focus && focus !== n ? "opacity-50" : ""}`}
+              onPointerDown={(e) => (lastPointer.current = e.pointerType)}
+              onClick={(e) => pick(n, e)}
+              // Mouse only: a tap on a phone shouldn't leave a preview stuck on
+              onPointerEnter={(e) => e.pointerType === "mouse" && setHover(n)}
+              onPointerLeave={() => setHover(null)}
+              aria-pressed={picked.has(n)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-all ${
+                picked.has(n) ? "bg-white shadow-sm ring-1 ring-foreground/10" : "bg-foreground/[0.04] hover:bg-white/70"
+              } ${lit && !lit.has(n) ? "opacity-45" : ""}`}
             >
               <span className="h-2 w-2 rounded-full" style={{ background: colour(n, i) }} />
               <span className="font-medium">{n === playerName ? "You" : n}</span>
               <span className="tabular-nums text-muted-foreground">{totals[i]}</span>
             </button>
           ))}
+          {picked.size > 0 ? (
+            <button type="button" onClick={() => setPicked(new Set())} className="px-1.5 text-xs font-medium text-primary hover:underline">
+              Show all
+            </button>
+          ) : (
+            <span className="hidden px-1.5 text-[0.7rem] text-muted-foreground/80 sm:inline">⌘ or Ctrl + click to compare</span>
+          )}
         </div>
       )}
     </section>
