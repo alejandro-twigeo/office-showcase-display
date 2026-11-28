@@ -5,15 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOfficeActivity, OFFICES, pointsFor, type PlayEvent } from "@/hooks/useOfficeActivity";
 import { todayDate } from "@/hooks/useMinigameScore";
 
-/**
- * SAMPLE DATA: true shows made-up numbers so the chart can be judged before there's a month of
- * real play. Set to false to chart the real games from the last 30 days (the code below is ready).
- */
-const USE_SAMPLE = true;
-
 const DAYS = 30;
-type By = "city" | "department" | "people";
-const BY_LABEL: Record<By, string> = { city: "City", department: "Department", people: "People" };
+type By = "office" | "department" | "people";
+const BY_LABEL: Record<By, string> = { office: "Office", department: "Department", people: "People" };
 
 /* Soft, distinct line colours; the first goes to the top group (or to you, by people) */
 const PALETTE = ["hsl(var(--primary))", "#3D8BFF", "#17C3AE", "#9A62FF", "#F2588E", "#E0A100", "#7A8699"];
@@ -41,55 +35,7 @@ function workdays(): string[] {
   return out;
 }
 
-/* ── Sample data: steady, believable curves (same every load) ─────────────────── */
-
-function seeded(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 2 ** 32;
-  };
-}
-
-const SAMPLE_GROUPS: Record<By, { name: string; base: number }[]> = {
-  city: [
-    { name: "Stockholm", base: 38 },
-    { name: "Varna", base: 26 },
-    { name: "New York", base: 16 },
-  ],
-  department: [
-    { name: "Analytics", base: 24 },
-    { name: "Paid Social", base: 20 },
-    { name: "Creative", base: 16 },
-    { name: "Engineering", base: 12 },
-    { name: "Operations", base: 8 },
-  ],
-  people: [
-    { name: "Lisa Sandahl", base: 9 },
-    { name: "Emma", base: 7.5 },
-    { name: "Giacomo", base: 6 },
-    { name: "Martin", base: 5 },
-    { name: "Sara", base: 4 },
-  ],
-};
-
-function sampleSeries(by: By, days: string[], me: string) {
-  const groups = SAMPLE_GROUPS[by].map((g) => ({ ...g }));
-  if (by === "people" && !groups.some((g) => g.name === me)) groups.splice(1, 0, { name: me, base: 8 });
-  const rows = days.map((day) => ({ day }) as Record<string, number | string>);
-  groups.forEach((g, gi) => {
-    const rnd = seeded(gi * 97 + by.length * 13 + 7);
-    days.forEach((_, i) => {
-      const trend = 0.75 + (0.5 * i) / Math.max(1, days.length - 1); // the office warms up over the month
-      const wave = 1 + 0.18 * Math.sin(i / 2.2 + gi);
-      const noise = 0.7 + rnd() * 0.6;
-      rows[i][g.name] = Math.max(0, Math.round(g.base * trend * wave * noise));
-    });
-  });
-  return { rows, names: groups.map((g) => g.name) };
-}
-
-/* ── Real data: ranking points per workday, grouped ──────────────────────────── */
+/* ── Ranking points per workday, grouped ──────────────────────────────────────── */
 
 function useDepartments(enabled: boolean) {
   return useQuery({
@@ -106,7 +52,7 @@ function useDepartments(enabled: boolean) {
 function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof useOfficeActivity>, depts: Map<string, string> | undefined) {
   const first = days[0];
   const groupOf = (player: string) =>
-    by === "city"
+    by === "office"
       ? OFFICES[a.players.get(player)?.office ?? ""]?.city ?? "Other"
       : by === "department"
         ? depts?.get(player) ?? "Other"
@@ -169,20 +115,20 @@ function ChartTip({ active, payload, label, only, me }: { active?: boolean; payl
 
 /* ── The chart ───────────────────────────────────────────────────────────────── */
 
-/** Ranking points earned each workday over the last 30 days, by city, department or person. */
+/** Ranking points earned each workday over the last 30 days, by office, department or person. */
 export function ActivityChart({ playerName }: { playerName: string }) {
-  const [by, setBy] = useState<By>("city");
+  const [by, setBy] = useState<By>("office");
   // Picked lines (click a name; ⌘/Ctrl+click, or tap on a phone, to pick more). Empty: all lines.
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Hovering a name (or a line) previews it
   const [hover, setHover] = useState<string | null>(null);
   const lastPointer = useRef<string>("mouse");
   const a = useOfficeActivity();
-  const { data: depts } = useDepartments(!USE_SAMPLE && by === "department");
+  const { data: depts } = useDepartments(by === "department");
   const days = useMemo(workdays, []);
 
   const { rows, names } = useMemo(
-    () => (USE_SAMPLE ? sampleSeries(by, days, playerName) : realSeries(by, days, playerName, a, depts)),
+    () => realSeries(by, days, playerName, a, depts),
     [by, days, playerName, a, depts],
   );
   const colour = (name: string, i: number) =>
@@ -209,10 +155,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
     <section className="glass-panel rounded-2xl p-3 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            Points
-            {USE_SAMPLE && <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">Sample data</span>}
-          </p>
+          <p className="text-sm font-semibold">Points</p>
           <p className="text-xs text-muted-foreground">Earned each workday, last 30 days</p>
         </div>
         <div className="grid w-full grid-cols-3 gap-0.5 rounded-full bg-foreground/[0.05] p-1 sm:w-auto">
