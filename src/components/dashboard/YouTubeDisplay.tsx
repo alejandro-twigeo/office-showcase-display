@@ -12,6 +12,9 @@ import { QueueAdder } from "./QueueAdder";
 import { QueueStrip } from "./QueueStrip";
 import { NowPlayingIcon } from "./NowPlayingIcon";
 
+/** queued_by on songs that YouTube Mix added (see supabase/functions/youtube-mix) */
+const MIX_BY = "🎵 YouTube Mix";
+
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
 declare global {
@@ -145,7 +148,8 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   const spotlightTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     const seen = seenQueueIdsRef.current;
-    const added = [...queue].reverse().find((q) => !seen.has(q.id));
+    // Songs YouTube Mix adds on its own don't get the "Just added" spotlight, only songs people add
+    const added = [...queue].reverse().find((q) => !seen.has(q.id) && q.queued_by !== MIX_BY);
     queue.forEach((q) => seen.add(q.id)); // only ever grows, so refetch blips don't count as new
     // Whatever is in the queue when the TV loads isn't "just added"
     if (!added || Date.now() - mountedAtRef.current < 8000) return;
@@ -154,6 +158,16 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     spotlightTimerRef.current = setTimeout(() => setSpotlight(null), 10_000);
   }, [queue]);
   useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
+
+  // When the last queued song starts and nothing else is waiting, keep the music going with YouTube's
+  // own Mix for that song (a backend function adds a few songs; it does nothing if people have queued more)
+  const mixAskedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const v = currentVideo?.video_id;
+    if (!v || queue.length > 0 || mixAskedFor.current === v) return;
+    mixAskedFor.current = v;
+    supabase.functions.invoke("youtube-mix", { body: { seed: v } }).catch(() => {});
+  }, [currentVideo?.video_id, queue.length]);
 
   // Next song: the TV isn't logged in, so it uses the database function made for exactly this.
   // The queue updates itself through realtime afterwards.

@@ -29,11 +29,6 @@ const HOT_MS = 3 * 60_000;
 // All eight games get a card (3 × 3 grid); the ninth slot holds the challenges, a streak or the QR
 const SHOWN = 8;
 
-/** 0–5 bars for how much has been played in the last hour */
-function activityLevel(n: number) {
-  return [1, 3, 6, 10, 15].filter((t) => n >= t).length;
-}
-
 export function ActivityMeter({ level, label }: { level: number; label?: string }) {
   return (
     <span className="flex items-center gap-[clamp(6px,0.5vw,10px)] text-muted-foreground text-[clamp(12px,0.8vw,16px)]">
@@ -182,8 +177,6 @@ export function GamesTile() {
       ]),
     [a.players, a.todayByGame, a.challenges]
   );
-  const todayCount = [...a.todayByGame.values()].reduce((s, l) => s + l.length, 0);
-  const lastHour = a.events.filter((e) => e.day === a.today && now - Date.parse(e.at) < 3_600_000).length;
 
   const games = useMemo(() => {
     const played = ALL_GAMES.filter((g) => (a.todayByGame.get(g)?.length ?? 0) > 0).sort(
@@ -205,13 +198,6 @@ export function GamesTile() {
 
   return (
     <Card className="h-full min-h-0 flex flex-col p-[clamp(12px,1.05vw,24px)] gap-[clamp(8px,0.65vw,14px)]">
-      <div className="flex items-center justify-between gap-3">
-        <span className="tile-label">
-          Games · <CountUp value={todayCount} /> played today
-        </span>
-        <ActivityMeter level={activityLevel(lastHour)} label="Activity" />
-      </div>
-
       <div className="grid flex-1 min-h-0 grid-cols-3 grid-rows-3 gap-[clamp(6px,0.55vw,12px)]">
         {games.shown.map((g) => {
           const board = a.todayByGame.get(g) ?? [];

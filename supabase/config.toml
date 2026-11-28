@@ -14,3 +14,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.generate-daily-poll]
 verify_jwt = false
+[functions.youtube-mix]
+verify_jwt = false
