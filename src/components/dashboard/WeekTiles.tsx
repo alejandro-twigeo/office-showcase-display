@@ -74,6 +74,7 @@ function useNudge(a: ReturnType<typeof useOfficeActivity>, names: Record<string,
 
 /**
  * This week at a glance: who's leading, the office goal, and the office race.
+ * Compact (the TV): just who's leading, with 2nd and 3rd.
  * Shown in the news tile when there's no news, and every other minute when there is.
  */
 export function ThisWeekCard({ compact = false, ranking = false, riddle = false }: { compact?: boolean; ranking?: boolean; riddle?: boolean }) {
@@ -147,8 +148,8 @@ export function ThisWeekCard({ compact = false, ranking = false, riddle = false 
         </p>
       )}
 
-      {/* Office goal */}
-      <div className="space-y-[clamp(5px,0.4vw,8px)]">
+      {/* Office goal (the TV's compact card leaves it out, so the chat gets the room) */}
+      <div className={`space-y-[clamp(5px,0.4vw,8px)] ${compact ? "hidden" : ""}`}>
         <div className="flex items-baseline justify-between gap-2 text-[clamp(13px,0.95vw,20px)]">
           <span className="font-medium">{goalDone ? `Goal reached: ${OFFICE_GOAL_REWARD}` : `Office goal: ${OFFICE_GOAL_REWARD}`}</span>
           <span className="tabular-nums text-muted-foreground">

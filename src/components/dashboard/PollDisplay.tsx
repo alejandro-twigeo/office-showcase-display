@@ -10,6 +10,59 @@ import { AvatarStack } from "@/components/AvatarStack";
 
 export const ROTATE_SECONDS = 30;
 
+/**
+ * One line of text that fits its box. When it's too long it glides left to show the end,
+ * waits, and glides back, over and over. Short text just sits still.
+ */
+function AutoScrollText({ text, className = "" }: { text: string; className?: string }) {
+  const box = useRef<HTMLSpanElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  // Too long to fit: the cut-off end fades instead of stopping hard against the %
+  const [over, setOver] = useState(false);
+  useEffect(() => {
+    const b = box.current;
+    const t = inner.current;
+    if (!b || !t) return;
+    let anim: Animation | undefined;
+    const run = () => {
+      anim?.cancel();
+      const d = t.offsetWidth - b.clientWidth;
+      setOver(d > 2);
+      if (d <= 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const move = Math.max(1200, d * 35); // ~35 ms per px: slow enough to read
+      const hold = 1800;
+      const total = 2 * (move + hold);
+      anim = t.animate(
+        [
+          { transform: "translateX(0)", offset: 0 },
+          { transform: "translateX(0)", offset: hold / total },
+          { transform: `translateX(${-d}px)`, offset: (hold + move) / total },
+          { transform: `translateX(${-d}px)`, offset: (2 * hold + move) / total },
+          { transform: "translateX(0)", offset: 1 },
+        ],
+        { duration: total, iterations: Infinity, easing: "ease-in-out" },
+      );
+    };
+    run();
+    const ro = new ResizeObserver(run);
+    ro.observe(b);
+    return () => {
+      ro.disconnect();
+      anim?.cancel();
+    };
+  }, [text]);
+  return (
+    <span
+      ref={box}
+      className={`block min-w-0 overflow-hidden whitespace-nowrap ${over ? "[mask-image:linear-gradient(to_right,black_calc(100%_-_1.4em),transparent)]" : ""} ${className}`}
+    >
+      <span ref={inner} className="inline-block">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 export function PollDisplay() {
   const { activePolls, isLoading } = usePolls();
 
@@ -165,7 +218,8 @@ export function PollDisplay() {
           {rows.length === 0 ? (
             <p className="text-muted-foreground text-[clamp(14px,1vw,20px)]">No answers yet. Add yours from the Play page</p>
           ) : (
-            <div className="min-h-0 flex flex-col gap-[clamp(5px,0.4vw,9px)] overflow-hidden">
+            // Answers in a 2×2 grid; a long one glides sideways to show the rest
+            <div className="min-h-0 grid grid-cols-2 content-start gap-[clamp(5px,0.4vw,9px)] overflow-hidden">
               {rows.map(({ key, label, count }) => {
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
                 const leading = count > 0 && count === topCount;
@@ -184,11 +238,12 @@ export function PollDisplay() {
                         className={`absolute inset-y-0 left-0 rounded-[inherit] transition-[width] duration-700 ease-out ${leading ? "bg-primary/35" : "bg-foreground/[0.09]"}`}
                         style={{ width: `${pct}%` }}
                       />
-                      <span className={`relative min-w-0 flex-1 truncate px-[clamp(10px,0.8vw,16px)] text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}>
-                        {mine && <span className="text-primary">✓ </span>}
-                        {label}
-                      </span>
-                      <span className={`relative shrink-0 pr-[clamp(10px,0.8vw,16px)] tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
+                      {mine && <span className="relative shrink-0 pl-[clamp(10px,0.8vw,16px)] text-primary text-[clamp(13px,0.95vw,20px)] font-semibold">✓</span>}
+                      <AutoScrollText
+                        text={label}
+                        className={`relative flex-1 ${mine ? "pl-[0.35em]" : "pl-[clamp(10px,0.8vw,16px)]"} pr-[0.5em] text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "font-medium"}`}
+                      />
+                      <span className={`relative shrink-0 pl-[0.3em] pr-[clamp(8px,0.7vw,14px)] tabular-nums text-[clamp(13px,0.95vw,20px)] ${leading ? "font-semibold" : "text-muted-foreground"}`}>
                         <CountUp value={pct} />%
                       </span>
                     </div>

@@ -74,7 +74,7 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
  * and one tile per column takes whatever room is left, so there's no empty space:
  *  - Play: games with their podiums (fills), then both riddles / GeoGuessr photos
  *  - Together (a little wider than the others): now playing (compact, or a 16:9 video with the queue under it), then kudos (fills)
- *  - This week: who's leading (with 2nd and 3rd) and the fika goal, the poll (news is a chat topic now),
+ *  - This week: who's leading (with 2nd and 3rd), the poll (answers 2×2; news is a chat topic now),
  *    and the office chat filling the rest. Every tile keeps its place, chat or no chat.
  */
 function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "polls" | "flow" }) {
@@ -131,8 +131,9 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
             <TvFeatureDisplay mode={tvFeatureMode} />
           </div>
         ) : (
-          // The poll, at a fixed height
-          <div className={`${desktop ? "h-[260px]" : "min-h-[280px] lg:min-h-0 lg:h-[clamp(250px,18.5vw,400px)]"} shrink-0 overflow-hidden rounded-xl`}>
+          // The poll: as tall as it needs (answers 2×2, so a question on one or two lines both fit), up to a cap.
+          // The chat gets the rest
+          <div className={`${desktop ? "max-h-[260px]" : "min-h-[220px] lg:min-h-0 lg:max-h-[clamp(250px,18.5vw,400px)]"} shrink-0 overflow-hidden rounded-xl`}>
             <PollNewsSlot tvFeatureMode={tvFeatureMode} />
           </div>
         )}
