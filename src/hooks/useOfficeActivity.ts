@@ -33,7 +33,7 @@ export const GAME_NAMES: Record<string, string> = {
 /** Rows in minigame_scores that aren't games */
 const NOT_GAMES = new Set(["challenge", "team_riddle"]);
 
-/* ── Types ──────────────────────────────────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────────────────────────────────── */
 
 export interface PlayEvent {
   player: string;
@@ -101,7 +101,7 @@ function workdayStreak(days: Set<string>, today: string): number {
  * Ranking points per game per day: 1st 5, 2nd 3, 3rd 2, everyone else who played 1.
  * A game only scores on a day when at least two people played it: winning alone isn't a win.
  */
-function pointsFor(events: PlayEvent[]): Map<string, number> {
+export function pointsFor(events: PlayEvent[]): Map<string, number> {
   const groups = new Map<string, PlayEvent[]>();
   for (const e of events) {
     const k = `${e.game}|${e.day}`;

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useOfficeActivity, OFFICES } from "@/hooks/useOfficeActivity";
+import { useOfficeActivity, OFFICES, pointsFor, type PlayEvent } from "@/hooks/useOfficeActivity";
 import { todayDate } from "@/hooks/useMinigameScore";
 
 /**
@@ -53,29 +53,29 @@ function seeded(seed: number) {
 
 const SAMPLE_GROUPS: Record<By, { name: string; base: number }[]> = {
   city: [
-    { name: "Stockholm", base: 9 },
-    { name: "Varna", base: 6 },
-    { name: "New York", base: 4 },
+    { name: "Stockholm", base: 38 },
+    { name: "Varna", base: 26 },
+    { name: "New York", base: 16 },
   ],
   department: [
-    { name: "Analytics", base: 6 },
-    { name: "Paid Social", base: 5 },
-    { name: "Creative", base: 4 },
-    { name: "Engineering", base: 3 },
-    { name: "Operations", base: 2 },
+    { name: "Analytics", base: 24 },
+    { name: "Paid Social", base: 20 },
+    { name: "Creative", base: 16 },
+    { name: "Engineering", base: 12 },
+    { name: "Operations", base: 8 },
   ],
   people: [
-    { name: "Lisa Sandahl", base: 3.2 },
-    { name: "Emma", base: 2.6 },
-    { name: "Giacomo", base: 2.2 },
-    { name: "Martin", base: 1.8 },
-    { name: "Sara", base: 1.4 },
+    { name: "Lisa Sandahl", base: 9 },
+    { name: "Emma", base: 7.5 },
+    { name: "Giacomo", base: 6 },
+    { name: "Martin", base: 5 },
+    { name: "Sara", base: 4 },
   ],
 };
 
 function sampleSeries(by: By, days: string[], me: string) {
   const groups = SAMPLE_GROUPS[by].map((g) => ({ ...g }));
-  if (by === "people" && !groups.some((g) => g.name === me)) groups.splice(1, 0, { name: me, base: 2.9 });
+  if (by === "people" && !groups.some((g) => g.name === me)) groups.splice(1, 0, { name: me, base: 8 });
   const rows = days.map((day) => ({ day }) as Record<string, number | string>);
   groups.forEach((g, gi) => {
     const rnd = seeded(gi * 97 + by.length * 13 + 7);
@@ -89,7 +89,7 @@ function sampleSeries(by: By, days: string[], me: string) {
   return { rows, names: groups.map((g) => g.name) };
 }
 
-/* ── Real data: games played per workday, grouped ─────────────────────────────── */
+/* ── Real data: ranking points per workday, grouped ──────────────────────────── */
 
 function useDepartments(enabled: boolean) {
   return useQuery({
@@ -111,14 +111,22 @@ function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof use
       : by === "department"
         ? depts?.get(player) ?? "Other"
         : player;
+  // The same points as the weekly ranking (1st 5, 2nd 3, 3rd 2, others 1; a game only scores
+  // on a day when 2+ people played it), worked out day by day
+  const eventsByDay = new Map<string, PlayEvent[]>();
+  for (const e of a.events) {
+    if (e.day < first || !isWorkday(e.day)) continue;
+    (eventsByDay.get(e.day) ?? eventsByDay.set(e.day, []).get(e.day)!).push(e);
+  }
   const counts = new Map<string, Map<string, number>>();
   const totals = new Map<string, number>();
-  for (const e of a.events) {
-    if (e.game === "riddle" || e.day < first || !isWorkday(e.day)) continue;
-    const g = groupOf(e.player);
-    const byDay = counts.get(g) ?? counts.set(g, new Map()).get(g)!;
-    byDay.set(e.day, (byDay.get(e.day) ?? 0) + 1);
-    totals.set(g, (totals.get(g) ?? 0) + 1);
+  for (const [day, list] of eventsByDay) {
+    for (const [player, pts] of pointsFor(list)) {
+      const g = groupOf(player);
+      const byDay = counts.get(g) ?? counts.set(g, new Map()).get(g)!;
+      byDay.set(day, (byDay.get(day) ?? 0) + pts);
+      totals.set(g, (totals.get(g) ?? 0) + pts);
+    }
   }
   let names = [...totals.entries()].sort((x, y) => y[1] - x[1]).map(([n]) => n);
   // People: the five most active, and always you
@@ -138,7 +146,7 @@ function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof use
 
 /* ── The chart ───────────────────────────────────────────────────────────────── */
 
-/** Games played each workday over the last 30 days, by city, department or person. */
+/** Ranking points earned each workday over the last 30 days, by city, department or person. */
 export function ActivityChart({ playerName }: { playerName: string }) {
   const [by, setBy] = useState<By>("city");
   const [focus, setFocus] = useState<string | null>(null);
@@ -160,10 +168,10 @@ export function ActivityChart({ playerName }: { playerName: string }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold">
-            Games played
+            Points
             {USE_SAMPLE && <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground">Sample data</span>}
           </p>
-          <p className="text-xs text-muted-foreground">Each workday, last 30 days</p>
+          <p className="text-xs text-muted-foreground">Earned each workday, last 30 days</p>
         </div>
         <div className="grid w-full grid-cols-3 gap-0.5 rounded-full bg-foreground/[0.05] p-1 sm:w-auto">
           {(Object.keys(BY_LABEL) as By[]).map((k) => (
@@ -184,7 +192,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
       </div>
 
       {empty ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">No games in the last 30 days yet</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">No points in the last 30 days yet</p>
       ) : (
         <div className="mt-3 h-44 sm:h-52">
           <ResponsiveContainer width="100%" height="100%">
@@ -209,7 +217,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
               <Tooltip
                 cursor={{ stroke: "hsl(var(--foreground) / 0.15)", strokeWidth: 1 }}
                 labelFormatter={(d) => shortDate(String(d))}
-                formatter={(v, n) => [v, n === playerName ? "You" : n]}
+                formatter={(v, n) => [`${v} pts`, n === playerName ? "You" : n]}
                 itemSorter={(item) => -Number(item.value ?? 0)}
                 contentStyle={{
                   borderRadius: 12,
