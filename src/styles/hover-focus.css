@@ -11,8 +11,8 @@
   .tv-2027 :is(.bg-card, .glass) {
     transition: filter 0.3s ease, opacity 0.3s ease;
   }
-  /* Every tile and clickable thing that isn't the hovered one, and doesn't hold it */
-  .tv-2027:has(.actionable:hover) :is(.bg-card, .glass, .actionable):not(:hover):not(:has(.actionable:hover)) {
+  /* Every other tile frosts; the tile you're in stays clear as a whole (all the poll's answers, say) */
+  .tv-2027:has(.actionable:hover) :is(.bg-card, .glass):not(:hover):not(:has(.actionable:hover)) {
     filter: blur(1.5px) saturate(0.85);
     opacity: 0.7;
   }

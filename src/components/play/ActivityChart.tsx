@@ -4,6 +4,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { supabase } from "@/integrations/supabase/client";
 import { useOfficeActivity, OFFICES, pointsFor, type PlayEvent } from "@/hooks/useOfficeActivity";
 import { todayDate } from "@/hooks/useMinigameScore";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 const DAYS = 30;
 type By = "office" | "department" | "people";
@@ -11,6 +12,32 @@ const BY_LABEL: Record<By, string> = { office: "Office", department: "Department
 
 /* Soft, distinct line colours; the first goes to the top group (or to you, by people) */
 const PALETTE = ["hsl(var(--primary))", "#3D8BFF", "#17C3AE", "#9A62FF", "#F2588E", "#E0A100", "#7A8699"];
+
+/* What sits at the end of each line: the office's flag, the department's icon, the person's avatar */
+const FLAG_BY_CITY = Object.fromEntries(Object.values(OFFICES).map((o) => [o.city, o.flag]));
+const DEPT_ICON: Record<string, string> = { Analytics: "📊", Business: "💼", Creative: "🎨", "People & Culture": "🤝" };
+const MARK = 22; // px
+
+function EndMark({ x, y, emoji, avatar, name, faded }: { x: number; y: number; emoji?: string; avatar?: string | null; name: string; faded: boolean }) {
+  return (
+    <foreignObject
+      x={x + 4}
+      y={y - MARK / 2}
+      width={MARK}
+      height={MARK}
+      pointerEvents="none"
+      style={{ overflow: "visible", opacity: faded ? 0.2 : 1, transition: "opacity 200ms ease" }}
+    >
+      <div style={{ width: MARK, height: MARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {emoji ? (
+          <span style={{ fontSize: MARK * 0.78, lineHeight: 1 }}>{emoji}</span>
+        ) : (
+          <PlayerAvatar avatar={avatar} name={name} size={MARK} still />
+        )}
+      </div>
+    </foreignObject>
+  );
+}
 
 const addDays = (day: string, n: number) => {
   const d = new Date(`${day}T00:00:00Z`);
@@ -135,6 +162,13 @@ export function ActivityChart({ playerName }: { playerName: string }) {
     by === "people" ? (name === playerName ? PALETTE[0] : PALETTE[(i % (PALETTE.length - 1)) + 1]) : PALETTE[i % PALETTE.length];
   const totals = names.map((n) => rows.reduce((s, r) => s + Number(r[n] ?? 0), 0));
   const empty = totals.every((t) => t === 0);
+  // The end of each line wears its flag, department icon or avatar
+  const markFor = (n: string) =>
+    by === "office"
+      ? { emoji: FLAG_BY_CITY[n] ?? "🏢" }
+      : by === "department"
+        ? { emoji: DEPT_ICON[n] ?? "👥" }
+        : { avatar: a.players.get(n)?.avatar ?? null };
   // What stands out right now: the hovered name, else the picked ones, else everything
   const lit: Set<string> | null = hover ? new Set([hover]) : picked.size ? picked : null;
   const pick = (n: string, e: React.MouseEvent) => {
@@ -182,7 +216,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
       ) : (
         <div className="mt-3 h-44 sm:h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rows} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
+            <LineChart data={rows} margin={{ top: 12, right: 30, bottom: 0, left: -18 }}>
               <CartesianGrid vertical={false} stroke="hsl(var(--foreground) / 0.06)" />
               <XAxis
                 dataKey="day"
@@ -214,6 +248,13 @@ export function ActivityChart({ playerName }: { playerName: string }) {
                   strokeOpacity={lit && !lit.has(n) ? 0.12 : 1}
                   dot={false}
                   activeDot={lit && !lit.has(n) ? false : { r: 3.5, strokeWidth: 0 }}
+                  label={(p: { x?: number; y?: number; index?: number }) =>
+                    p.index === rows.length - 1 && p.x != null && p.y != null ? (
+                      <EndMark key={`mark-${n}`} x={p.x} y={p.y} name={n} faded={!!lit && !lit.has(n)} {...markFor(n)} />
+                    ) : (
+                      <g key={`nomark-${n}-${p.index}`} />
+                    )
+                  }
                   onMouseEnter={() => setHover(n)}
                   onMouseLeave={() => setHover(null)}
                   style={{ transition: "stroke-opacity 200ms ease, stroke-width 200ms ease", cursor: "pointer" }}
