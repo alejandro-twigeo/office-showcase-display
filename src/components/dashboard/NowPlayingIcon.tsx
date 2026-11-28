@@ -35,7 +35,9 @@ export function NowPlayingIcon({ songId }: { songId?: string }) {
       ref={img}
       title="Now playing"
       onMouseEnter={pinch}
-      className="h-[clamp(22px,1.6vw,32px)] w-[clamp(22px,1.6vw,32px)] shrink-0 select-none text-primary"
+      // The size is set here as well as in the class: it must never grow to fill the row
+      style={{ width: "clamp(22px, 1.6vw, 32px)", height: "clamp(22px, 1.6vw, 32px)" }}
+      className="shrink-0 select-none text-primary"
     />
   );
 }

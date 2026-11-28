@@ -11,7 +11,8 @@ import { PositiveMessagesSection } from '../components/play/PositiveMessagesSect
 import { ChatSection } from '../components/play/ChatSection';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 
-import { MapPin, BarChart3, Youtube, Monitor, Heart, LogOut, UserCog, Gamepad2, Shield, MessageCircle } from 'lucide-react';
+import { MapPin, BarChart3, Monitor, LogOut, UserCog, Gamepad2, Shield } from 'lucide-react';
+import { MusicTabIcon, HeartTabIcon, PeaceTabIcon } from '@/components/HandTabIcons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OFFICE_FLAGS } from '@/hooks/usePlayer';
 import { ProfileEditor } from '@/components/play/ProfileEditor';
@@ -112,9 +113,9 @@ export default function PlayPage() {
   const tabs = [
     { value: 'guess' as const, icon: Gamepad2, label: 'Games' },
     { value: 'polls' as const, icon: BarChart3, label: 'Polls' },
-    { value: 'youtube' as const, icon: Youtube, label: 'Music' },
-    { value: 'vibes' as const, icon: Heart, label: 'Kudos' },
-    { value: 'chat' as const, icon: MessageCircle, label: 'Chat' },
+    { value: 'youtube' as const, icon: MusicTabIcon, label: 'Music' },
+    { value: 'vibes' as const, icon: HeartTabIcon, label: 'Kudos' },
+    { value: 'chat' as const, icon: PeaceTabIcon, label: 'Chat' },
   ].filter((t) => !(wide && t.value === 'chat')); // on desktop the chat is always open on the right
   // A link to the chat on desktop: the chat is already there, so the left side shows the games
   const shownTab: TabValue = wide && activeTab === 'chat' ? 'guess' : activeTab;
@@ -147,7 +148,7 @@ export default function PlayPage() {
                 aria-current={shownTab === value ? 'page' : undefined}
                 className="seg-tab h-9 px-3.5 text-sm"
               >
-                <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'fill-primary' : ''}`} />
+                <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'text-primary' : ''}`} />
                 {label}
               </button>
             ))}
@@ -203,7 +204,7 @@ export default function PlayPage() {
               aria-current={shownTab === value ? 'page' : undefined}
               className="seg-tab h-9 px-2 text-sm"
             >
-              <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'fill-primary' : ''}`} />
+              <Icon className={`h-4 w-4 ${value === 'vibes' && shownTab === 'vibes' ? 'text-primary' : ''}`} />
               <span className="hidden sm:inline">{label}</span>
             </button>
           ))}

@@ -1,6 +1,7 @@
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { useState, useRef, useEffect } from 'react';
-import { BarChart3, Youtube, Heart, Gamepad2, LogOut, UserCog, Shield, Monitor, Trophy, MessageCircle } from 'lucide-react';
+import { BarChart3, Gamepad2, LogOut, UserCog, Shield, Monitor, Trophy } from 'lucide-react';
+import { MusicTabIcon, HeartTabIcon, PeaceTabIcon } from '@/components/HandTabIcons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Player } from '@/hooks/usePlayer';
 import { GuessMap } from './GuessMap';
@@ -23,7 +24,6 @@ import riddleIcon from '@/assets/riddle-icon.svg';
 import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
 import { TeamRiddleGame } from './games/TeamRiddleGame';
 import { PlayHub } from './PlayHub';
-import { ActivityChart } from './ActivityChart';
 import { TipPopup } from './TipPopup';
 import { GameTile } from './GameTile';
 
@@ -66,13 +66,13 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
     return () => window.removeEventListener('resize', setAppHeight);
   }, []);
 
-  const tabs: { value: TabValue; icon: typeof Gamepad2; label: string }[] = [
+  const tabs: { value: TabValue; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
     { value: 'games', icon: Gamepad2, label: 'Games' },
     { value: 'leaderboards', icon: Trophy, label: 'Ranks' },
     { value: 'polls', icon: BarChart3, label: 'Polls' },
-    { value: 'youtube', icon: Youtube, label: 'Music' },
-    { value: 'vibes', icon: Heart, label: 'Kudos' },
-    { value: 'chat', icon: MessageCircle, label: 'Chat' },
+    { value: 'youtube', icon: MusicTabIcon, label: 'Music' },
+    { value: 'vibes', icon: HeartTabIcon, label: 'Kudos' },
+    { value: 'chat', icon: PeaceTabIcon, label: 'Chat' },
   ];
 
   const renderGameContent = () => {
@@ -98,7 +98,6 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               />
             ))}
           </div>
-          <ActivityChart playerName={player.name} />
         </div>
       );
     }
@@ -207,7 +206,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
                 aria-current={isActive ? 'page' : undefined}
                 className="seg-tab flex-col gap-1 rounded-[1.4rem] px-0.5 active:scale-95"
               >
-                <Icon className={`h-[1.35rem] w-[1.35rem] lg:h-7 lg:w-7 ${value === 'vibes' && isActive ? 'fill-primary' : ''}`} />
+                <Icon className={`h-[1.35rem] w-[1.35rem] lg:h-7 lg:w-7 ${value === 'vibes' && isActive ? 'text-primary' : ''}`} />
                 <span className="text-[0.66rem] font-semibold leading-none lg:text-xs">{label}</span>
               </button>
             );
