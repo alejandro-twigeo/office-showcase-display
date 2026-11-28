@@ -14,6 +14,8 @@ import { NowPlayingIcon } from "./NowPlayingIcon";
 
 /** queued_by on songs that YouTube Mix added (see supabase/functions/youtube-mix) */
 const MIX_BY = "🎵 YouTube Mix";
+/** How many songs YouTube Mix keeps waiting in "Up next" */
+const MIX_TARGET = 10;
 
 /* ── YouTube IFrame API bootstrap ───────────────────────────────────────── */
 
@@ -159,12 +161,12 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
   }, [queue]);
   useEffect(() => () => clearTimeout(spotlightTimerRef.current), []);
 
-  // When the last queued song starts and nothing else is waiting, keep the music going with YouTube's
-  // own Mix for that song (a backend function adds a few songs; it does nothing if people have queued more)
+  // Keep "Up next" at 10 songs with YouTube's own Mix: each time a song starts and fewer than 10 are
+  // waiting, a backend function tops it up (people's songs still play first, see youtube-mix)
   const mixAskedFor = useRef<string | null>(null);
   useEffect(() => {
     const v = currentVideo?.video_id;
-    if (!v || queue.length > 0 || mixAskedFor.current === v) return;
+    if (!v || queue.length >= MIX_TARGET || mixAskedFor.current === v) return;
     mixAskedFor.current = v;
     supabase.functions.invoke("youtube-mix", { body: { seed: v } }).catch(() => {});
   }, [currentVideo?.video_id, queue.length]);
