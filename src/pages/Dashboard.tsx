@@ -5,7 +5,8 @@ import { TvFeatureDisplay } from "@/components/dashboard/TvFeatureDisplay";
 import { Clock } from "@/components/dashboard/Clock";
 import { OfficeStrip } from "@/components/dashboard/OfficeStrip";
 import { GamesTile } from "@/components/dashboard/GamesTile";
-import { PlaySideTile } from "@/components/dashboard/StreetViewDisplay";
+import { PlaySideTile, GeoTile } from "@/components/dashboard/StreetViewDisplay";
+import { RiddlesPanel } from "@/components/dashboard/RiddlesPanel";
 import { ThisWeekCard } from "@/components/dashboard/WeekTiles";
 import { PlayQr } from "@/components/dashboard/JoinCard";
 import { useAutoReload } from "@/hooks/useAutoReload";
@@ -69,6 +70,49 @@ function PollNewsSlot({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
   );
 }
 
+/** Phones (narrower than 1024px): one column, in this order */
+const NARROW = "(max-width: 1023.98px)";
+function useNarrow() {
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia(NARROW).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(NARROW);
+    const on = () => setNarrow(mql.matches);
+    mql.addEventListener("change", on);
+    return () => mql.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
+
+/**
+ * The TV page on a phone: one column, each tile at a fixed height so everything inside has room.
+ * Chat first, then kudos, the poll, both riddles, this week's leader, the games and the GeoGuessr photos.
+ * No music player here: a phone opening the TV page shouldn't start playing the office music.
+ */
+function PhoneZones({ tvFeatureMode }: { tvFeatureMode: "polls" | "flow" }) {
+  const { messages: chat, now, post: postChat } = useChat();
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="h-[440px]">
+        <ChatTile messages={chat} now={now} onSend={(body, me) => postChat.mutate({ body, created_by: me })} />
+      </div>
+      <div className="h-[320px]">
+        <KudosTile />
+      </div>
+      <div className="min-h-[220px] overflow-hidden rounded-xl">
+        <PollNewsSlot tvFeatureMode={tvFeatureMode} />
+      </div>
+      <div className="h-[300px]">
+        <RiddlesPanel />
+      </div>
+      <ThisWeekCard compact />
+      <div className="h-[560px]">
+        <GamesTile />
+      </div>
+      <GeoTile className="h-[300px]" />
+    </div>
+  );
+}
+
 /**
  * The three zones. Every section has a fixed home. Tiles are as tall as their content,
  * and one tile per column takes whatever room is left, so there's no empty space:
@@ -90,6 +134,10 @@ function Zones({ desktop, tvFeatureMode }: { desktop: boolean; tvFeatureMode: "p
   const fit = "shrink-0";
   // The chat always has its home at the bottom of This week (quiet or not), so nothing moves around
   const { messages: chat, now, post: postChat } = useChat();
+
+  // Phones get their own single column (see PhoneZones)
+  const narrow = useNarrow();
+  if (!desktop && narrow) return <PhoneZones tvFeatureMode={tvFeatureMode} />;
 
   // Columns are fixed shares (minmax(0, …)), so nothing inside can push one wider than its share
   return (

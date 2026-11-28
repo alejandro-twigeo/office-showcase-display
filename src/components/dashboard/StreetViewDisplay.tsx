@@ -177,6 +177,19 @@ export function PlaySideTile() {
   );
 }
 
+/** Phones: the GeoGuessr photos as their own tile (not taking turns with the riddles). Nothing when there's no round. */
+export function GeoTile({ className = "" }: { className?: string }) {
+  const navigate = useNavigate();
+  const { activeLocation: easy } = useActiveLocation(1);
+  const { activeLocation: hard } = useActiveLocation(3);
+  if (!easy?.pano_id && !hard?.pano_id) return null;
+  return (
+    <div onClick={() => navigate("/play?game=geoguessr")} className={`rounded-xl ${ACTIONABLE} ${className}`}>
+      <GeoCard easy={easy} hard={hard} fillHeight />
+    </div>
+  );
+}
+
 export function StreetViewDisplay({ forceDesktop = false }: { forceDesktop?: boolean }) {
   const { activeLocation: easy, isLoading: easyLoading } = useActiveLocation(1);
   const { activeLocation: hard, isLoading: hardLoading } = useActiveLocation(3);
