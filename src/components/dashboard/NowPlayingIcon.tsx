@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { nowPlayingIcon } from "@/assets/nowPlayingIcon";
+import { MusicIcon } from "@/components/HandIcons";
 
 // The icon's own pinch: squeeze in, spring out, settle
 const PINCH: Keyframe[] = [
@@ -11,11 +11,12 @@ const PINCH: Keyframe[] = [
 ];
 
 /**
- * The small icon in front of "Now playing". It sits still, and does a little pinch once when a
- * new song starts (and on hover on a laptop), so nothing loops forever on the TV.
+ * The small music notes in front of the song playing (hand-drawn, see HandIcons). They sit still,
+ * and do a little pinch once when a new song starts (and on hover on a laptop), so nothing loops
+ * forever on the TV.
  */
 export function NowPlayingIcon({ songId }: { songId?: string }) {
-  const img = useRef<HTMLImageElement>(null);
+  const img = useRef<SVGSVGElement>(null);
 
   const pinch = () => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -30,13 +31,11 @@ export function NowPlayingIcon({ songId }: { songId?: string }) {
   }, [songId]);
 
   return (
-    <img
+    <MusicIcon
       ref={img}
-      src={nowPlayingIcon}
-      alt="Now playing"
-      draggable={false}
+      title="Now playing"
       onMouseEnter={pinch}
-      className="h-auto w-[clamp(20px,1.4vw,28px)] shrink-0 select-none"
+      className="h-[clamp(22px,1.6vw,32px)] w-[clamp(22px,1.6vw,32px)] shrink-0 select-none text-primary"
     />
   );
 }

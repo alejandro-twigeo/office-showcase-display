@@ -8,7 +8,8 @@ import { useIsAdmin } from "@/hooks/usePlayer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, Trash2, Loader2, Newspaper, ArrowUpRight } from "lucide-react";
+import { Send, Trash2, Loader2, Newspaper, ArrowUpRight } from "lucide-react";
+import { PeaceIcon } from "@/components/HandIcons";
 import { useNewsTopic } from "@/hooks/useNewsTopic";
 import { MentionText } from "@/components/MentionText";
 import { CHAT_STARTERS } from "@/lib/chatStarters";
@@ -90,7 +91,7 @@ export function ChatSection({ playerName, fill = false }: { playerName: string; 
     <Card className={`flex flex-col ${fill ? "h-full min-h-0" : ""}`}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <MessageCircle className="h-4 w-4 text-primary" />
+          <PeaceIcon className="h-5 w-5 text-primary" />
           Chat
         </CardTitle>
         <p className="text-xs text-muted-foreground">Everyone at the office, and on the TV. It clears after 2 hours without messages.</p>

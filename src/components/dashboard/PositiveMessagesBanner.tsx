@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useMe, ACTIONABLE } from "@/hooks/useMe";
 import { useKudosReactions } from "@/hooks/useKudosReactions";
 import { ReactionBar } from "@/components/ReactionBar";
-import { HandHeart } from "@/components/Squiggles";
+import { HeartFaceIcon } from "@/components/HandIcons";
 
 const EMPTY_MSG = "Give someone kudos this week. Type @ and their name";
 const CELEBRATE_MS = 8000;
@@ -252,7 +252,8 @@ export function KudosTile() {
   return (
     <Card onClick={openKudos} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${ACTIONABLE}`}>
       <span className="tile-label flex items-center gap-[0.4em]">
-        <HandHeart key={latest?.id ?? "none"} className="h-[1.15em] w-auto" />
+        {/* A little pop each time new kudos arrive */}
+        <HeartFaceIcon key={latest?.id ?? "none"} className="h-[1.6em] w-[1.6em] text-primary animate-in zoom-in-50 duration-500" />
         Kudos
       </span>
       {latest ? (

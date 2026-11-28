@@ -9,6 +9,7 @@ import { chatAgo, CHAT_MAX_LEN, useChatTyping, type ChatMessage } from "@/hooks/
 import { TypingDots } from "@/components/TypingDots";
 import { useNewsTopic } from "@/hooks/useNewsTopic";
 import { ArrowUpRight, Newspaper } from "lucide-react";
+import { PeaceIcon } from "@/components/HandIcons";
 import { MentionText } from "@/components/MentionText";
 import { starterAt } from "@/lib/chatStarters";
 import { ChatBubble, ChatSpeaker } from "@/components/ChatBubble";
@@ -47,7 +48,10 @@ export function ChatTile({ messages, now, onSend }: { messages: ChatMessage[]; n
 
   return (
     <Card onClick={open} className={`h-full min-h-0 flex flex-col overflow-hidden p-[clamp(11px,0.95vw,22px)] gap-[clamp(8px,0.7vw,14px)] ${composing ? "" : ACTIONABLE}`}>
-      <span className="tile-label">💬 Chat</span>
+      <span className="tile-label flex items-center gap-[0.4em]">
+        <PeaceIcon className="h-[1.6em] w-[1.6em] text-primary" />
+        Chat
+      </span>
       {topic && (
         <a
           key={topic.url}
