@@ -23,6 +23,7 @@ import riddleIcon from '@/assets/riddle-icon.svg';
 import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
 import { TeamRiddleGame } from './games/TeamRiddleGame';
 import { PlayHub } from './PlayHub';
+import { ActivityChart } from './ActivityChart';
 import { TipPopup } from './TipPopup';
 import { GameTile } from './GameTile';
 
@@ -97,6 +98,7 @@ export function MobilePlayLayout({ player, logout, updateProfile }: MobilePlayLa
               />
             ))}
           </div>
+          <ActivityChart playerName={player.name} />
         </div>
       );
     }

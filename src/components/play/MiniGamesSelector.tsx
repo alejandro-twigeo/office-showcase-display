@@ -12,6 +12,7 @@ import riddleIcon from '@/assets/riddle-icon.svg';
 import teamRiddleIcon from '@/assets/team-riddle-icon.svg';
 import { TeamRiddleGame } from './games/TeamRiddleGame';
 import { PlayHub } from './PlayHub';
+import { ActivityChart } from './ActivityChart';
 
 /** Built-in icons for games that don't have one uploaded in Manager yet */
 const LOCAL_ICONS: Record<string, string> = { riddle: riddleIcon, team_riddle: teamRiddleIcon };
@@ -92,6 +93,9 @@ export const MiniGamesSelector = forwardRef<MiniGamesSelectorHandle, MiniGamesSe
           />
         ))}
       </div>
+
+      {/* How the office has been playing: the last 30 days, by city, department or person */}
+      <ActivityChart playerName={playerName} />
 
       <MiniGamesLeaderboardGrid />
     </div>
