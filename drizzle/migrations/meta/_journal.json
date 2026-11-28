@@ -50,6 +50,13 @@
       "when": 1795880000000,
       "tag": "0006_08_music_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795890000000,
+      "tag": "0007_09_music_pause",
+      "breakpoints": true
     }
   ]
 }

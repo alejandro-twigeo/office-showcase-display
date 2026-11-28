@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { useYoutubeQueue } from "@/hooks/useYoutubeQueue";
-import { ListMusic, Volume2, SkipForward, Loader2 } from "lucide-react";
+import { ListMusic, Volume2, SkipForward, Loader2, Pause, Play, Square, X } from "lucide-react";
 import partitureVideo from "@/assets/partiture.mp4";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ declare global {
 type YTPlayer = {
   loadVideoById: (videoId: string, startSeconds?: number) => void;
   playVideo: () => void;
+  pauseVideo: () => void;
   mute: () => void;
   unMute: () => void;
   getPlayerState: () => number;
@@ -48,12 +49,22 @@ const tvRpc = (fn: string, args: Record<string, unknown>) => (supabase as any).r
 /**
  * The shared music runs on the server's clock: each song has the time it started and its length
  * (see drizzle/migrations/0006_08_music_clock.sql). Every screen plays from "now minus start",
- * so all screens are in sync, nobody can pause it, and a song is over when its time is up,
- * whether anyone is watching or not. What's missed is missed.
+ * so all screens are in sync, and a song is over when its time is up, whether anyone is watching
+ * or not. What's missed is missed. Pause is for everyone at once (the ⏸ button), never one screen.
  */
-type ClockSong = { id: string; started_at?: string | null; duration_seconds?: number | null; current_time_seconds?: number | null };
+type ClockSong = {
+  id: string;
+  started_at?: string | null;
+  duration_seconds?: number | null;
+  current_time_seconds?: number | null;
+  // Paused for everyone (see drizzle/migrations/0007_09_music_pause.sql): the clock stands still
+  paused_at?: string | null;
+  paused_by?: string | null;
+};
 const positionOf = (s: ClockSong | null | undefined) =>
-  s?.started_at ? Math.max(0, (Date.now() - Date.parse(s.started_at)) / 1000) : s?.current_time_seconds ?? 0;
+  s?.started_at
+    ? Math.max(0, ((s.paused_at ? Date.parse(s.paused_at) : Date.now()) - Date.parse(s.started_at)) / 1000)
+    : s?.current_time_seconds ?? 0;
 const SYNC_EVERY_MS = 10_000;
 const MAX_DRIFT_S = 3;
 
@@ -123,6 +134,25 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     await tvRpc("tv_advance_queue", { p_current: currentVideo.id });
     setSkipping(false);
   };
+  // ⏸ Pause / ▶ Resume for everyone, and ⏹ Stop, which first asks whether to clear the queue.
+  // Logged in only (on the TV it opens the Play page). Pause stops the clock, so every screen holds.
+  const paused = !!(currentVideo as ClockSong | null)?.paused_at;
+  const [stopAsk, setStopAsk] = useState(false);
+  useEffect(() => setStopAsk(false), [currentVideo?.id]);
+  const music = async (fn: "music_pause" | "music_resume" | "music_stop", e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!me) return openMusic();
+    await tvRpc(fn, {});
+    refreshQueue();
+  };
+  const togglePause = (e: React.MouseEvent) => music(paused ? "music_resume" : "music_pause", e);
+  const askStop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!me) return openMusic();
+    setStopAsk(true);
+    if (!paused) music("music_pause"); // the music holds while you decide
+  };
+
   // A short note over the video: why a drag didn't work, or that a new order couldn't be saved
   const [queueNote, setQueueNote] = useState<"login" | "failed" | null>(null);
   const noteTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -132,6 +162,10 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     noteTimer.current = setTimeout(() => setQueueNote(null), 4000);
   };
   useEffect(() => () => clearTimeout(noteTimer.current), []);
+  // The round-cornered square buttons under the video (⏸ ⏭ ⏹)
+  const ctrlBase =
+    "flex h-[clamp(26px,1.9vw,40px)] shrink-0 items-center justify-center gap-[0.3em] rounded-[clamp(4px,0.4vw,8px)] font-semibold text-[clamp(11px,0.8vw,17px)] transition-colors";
+  const ctrl = `${ctrlBase} w-[clamp(26px,1.9vw,40px)] border border-primary/35 text-primary [@media(hover:hover)]:hover:bg-primary/[0.08]`;
   const skipIcon = skipping ? <Loader2 className="h-[55%] w-auto animate-spin" /> : <SkipForward className="h-[50%] w-auto shrink-0 fill-current" />;
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -304,8 +338,12 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
             // Jump to the exact spot on the clock (the start parameter is whole seconds), then play.
             // Autoplay is often blocked by the browser, so ask explicitly.
             playerRef.current?.seekTo(positionOf(clockRef.current), true);
-            playerRef.current?.playVideo();
-            ensurePlaying();
+            if (clockRef.current?.paused_at) {
+              playerRef.current?.pauseVideo();
+            } else {
+              playerRef.current?.playVideo();
+              ensurePlaying();
+            }
             // If a new video was requested while player was initializing, load it now
             if (pendingVideoIdRef.current && pendingVideoIdRef.current !== videoId) {
               playerRef.current?.loadVideoById(pendingVideoIdRef.current);
@@ -323,8 +361,8 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
               handleVideoEnd();
             } else if (event.data === 1) {
               reportDuration();
-            } else if (event.data === 2) {
-              // Nobody pauses the shared music
+            } else if (event.data === 2 && !clockRef.current?.paused_at) {
+              // Only the shared Pause button pauses the music, not a single screen
               playerRef.current?.playVideo();
             }
           },
@@ -385,6 +423,10 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
         return;
       }
       const song = clockRef.current;
+      if (song?.paused_at) {
+        if (state === 1 || state === 3) p.pauseVideo();
+        return;
+      }
       if (!song?.started_at) return;
       const at = positionOf(song);
       const length = song.duration_seconds ?? p.getDuration();
@@ -397,6 +439,19 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
     }, SYNC_EVERY_MS);
     return () => clearInterval(id);
   }, [currentVideo?.id, handleVideoEnd]);
+
+  // Pause / resume from any screen: every screen follows at once
+  const pausedAt = (currentVideo as ClockSong | null)?.paused_at ?? null;
+  useEffect(() => {
+    const p = playerRef.current;
+    if (!p || !playerReadyRef.current) return;
+    if (pausedAt) {
+      p.pauseVideo();
+    } else {
+      p.seekTo(positionOf(clockRef.current), true);
+      p.playVideo();
+    }
+  }, [pausedAt]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -430,6 +485,16 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
         {/* (⏭ and) ＋ up here on small screens, and on big ones while nothing plays; with a video they sit under it */}
         <span className={`ml-auto ${currentVideo ? "lg:hidden" : ""}`} />
         <span className={`flex items-center gap-1.5 ${currentVideo ? "lg:hidden" : ""}`}>
+          {currentVideo && (
+            <button
+              type="button"
+              onClick={togglePause}
+              aria-label={paused ? "Resume the music" : "Pause the music"}
+              className="flex h-[clamp(24px,1.7vw,36px)] w-[clamp(24px,1.7vw,36px)] shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary"
+            >
+              {paused ? <Play className="ml-[6%] h-[50%] w-[50%] fill-current" /> : <Pause className="h-[50%] w-[50%] fill-current" />}
+            </button>
+          )}
           {currentVideo && (
             <button
               type="button"
@@ -486,6 +551,15 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 Turn sound on
               </button>
             )}
+            {/* Paused for everyone: say so, and by whom */}
+            {paused && (
+              <div className="absolute inset-0 z-[5] flex items-center justify-center rounded-[clamp(10px,0.9vw,18px)] bg-black/25 animate-in fade-in duration-300">
+                <span className="flex items-center gap-[0.5em] rounded-full bg-[hsl(var(--card))] px-[1em] py-[0.45em] font-semibold text-[clamp(13px,1vw,20px)] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.45)]">
+                  <Pause className="h-[1em] w-[1em] fill-current text-primary" />
+                  Paused{(currentVideo as ClockSong | null)?.paused_by ? ` by ${(currentVideo as ClockSong).paused_by!.split(" ")[0]}` : ""}
+                </span>
+              </div>
+            )}
             {/* Dragging the queue: you need to be logged in on this screen, or the save failed */}
             {queueNote && (
               <div
@@ -532,7 +606,7 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
           </div>
         )}
 
-        {/* Big screens: up next as a row of thumbnails, with ⏭ and ＋ at the end (while it asks "Skip?", ⏭ takes both slots) */}
+        {/* Big screens: up next as a row of thumbnails, with ⏸ ⏭ ⏹ ＋ at the end */}
         {currentVideo && (
           <div className="hidden lg:flex shrink-0 items-center gap-[clamp(6px,0.5vw,10px)]">
             <span className="shrink-0 text-muted-foreground text-[clamp(11px,0.8vw,16px)]">Up next</span>
@@ -555,23 +629,74 @@ export function YouTubeDisplay({ onPlayingChange }: { onPlayingChange?: (playing
                 }
               />
             )}
-            <div className="flex w-[clamp(80px,6vw,130px)] shrink-0 gap-[clamp(4px,0.4vw,8px)]">
-              <button
-                type="button"
-                onClick={skip}
-                aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
-                title={me ? "Skip to the next song" : "Skip on the Play page"}
-                className={`flex h-[clamp(26px,1.9vw,40px)] min-w-0 flex-1 items-center justify-center gap-[0.3em] rounded-[clamp(4px,0.4vw,8px)] bg-primary text-primary-foreground font-semibold text-[clamp(11px,0.8vw,17px)] transition-colors [@media(hover:hover)]:hover:bg-primary/90 ${confirmSkip ? "animate-in fade-in duration-150" : ""}`}
-              >
-                {skipIcon}
-                {confirmSkip && "Skip?"}
-              </button>
-              {!confirmSkip && (
-                <div className="min-w-0 flex-1">
+            {stopAsk ? (
+              // Stop: the music is already paused; clear the queue, or just keep it paused
+              <div className="flex shrink-0 items-center gap-[clamp(4px,0.4vw,8px)] text-[clamp(11px,0.8vw,17px)] animate-in fade-in duration-150">
+                <span className="font-medium">Clear the queue too?</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    setStopAsk(false);
+                    music("music_stop", e);
+                  }}
+                  className="h-[clamp(26px,1.9vw,40px)] rounded-[clamp(4px,0.4vw,8px)] bg-primary px-[0.9em] font-semibold text-primary-foreground"
+                >
+                  Stop &amp; clear
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStopAsk(false);
+                  }}
+                  className="h-[clamp(26px,1.9vw,40px)] rounded-[clamp(4px,0.4vw,8px)] border border-primary/35 px-[0.9em] font-semibold text-primary"
+                >
+                  Keep paused
+                </button>
+                <button
+                  type="button"
+                  aria-label="Cancel and play on"
+                  title="Cancel and play on"
+                  onClick={(e) => {
+                    setStopAsk(false);
+                    music("music_resume", e);
+                  }}
+                  className="flex h-[clamp(26px,1.9vw,40px)] w-[clamp(26px,1.9vw,40px)] items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/[0.06]"
+                >
+                  <X className="h-[55%] w-[55%]" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex shrink-0 gap-[clamp(4px,0.4vw,8px)]">
+                {/* ⏸ / ▶ for everyone */}
+                <button
+                  type="button"
+                  onClick={togglePause}
+                  aria-label={paused ? "Resume the music" : "Pause the music"}
+                  title={me ? (paused ? "Resume for everyone" : "Pause for everyone") : "Pause on the Play page"}
+                  className={ctrl}
+                >
+                  {paused ? <Play className="ml-[6%] h-[48%] w-[48%] fill-current" /> : <Pause className="h-[48%] w-[48%] fill-current" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={skip}
+                  aria-label={confirmSkip ? "Click again to skip" : "Skip to the next song"}
+                  title={me ? "Skip to the next song" : "Skip on the Play page"}
+                  className={`${ctrlBase} bg-primary text-primary-foreground [@media(hover:hover)]:hover:bg-primary/90 ${confirmSkip ? "px-[0.7em] animate-in fade-in duration-150" : "w-[clamp(26px,1.9vw,40px)]"}`}
+                >
+                  {skipIcon}
+                  {confirmSkip && "Skip?"}
+                </button>
+                {/* ⏹ Stop: pauses, then asks whether to clear the queue */}
+                <button type="button" onClick={askStop} aria-label="Stop the music" title={me ? "Stop the music" : "Stop on the Play page"} className={ctrl}>
+                  <Square className="h-[42%] w-[42%] fill-current" />
+                </button>
+                <div className="w-[clamp(26px,1.9vw,40px)]">
                   <QueueAdder variant="slot" me={me} onLogin={openMusic} onAdd={addSong} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
