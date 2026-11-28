@@ -4,21 +4,21 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { supabase } from "@/integrations/supabase/client";
 import { useOfficeActivity, OFFICES, pointsFor, type PlayEvent } from "@/hooks/useOfficeActivity";
 import { todayDate } from "@/hooks/useMinigameScore";
-import { PlayerAvatar } from "@/components/PlayerAvatar";
 
 const DAYS = 30;
-type By = "office" | "department" | "people";
-const BY_LABEL: Record<By, string> = { office: "Office", department: "Department", people: "People" };
+// By office or by department (not by person: the chart is about teams, the weekly ranking covers people)
+type By = "office" | "department";
+const BY_LABEL: Record<By, string> = { office: "Office", department: "Department" };
 
-/* Soft, distinct line colours; the first goes to the top group (or to you, by people) */
+/* Soft, distinct line colours; the first goes to the top group */
 const PALETTE = ["hsl(var(--primary))", "#3D8BFF", "#17C3AE", "#9A62FF", "#F2588E", "#E0A100", "#7A8699"];
 
-/* What sits at the end of each line: the office's flag, the department's icon, the person's avatar */
+/* What sits at the end of each line: the office's flag or the department's icon */
 const FLAG_BY_CITY = Object.fromEntries(Object.values(OFFICES).map((o) => [o.city, o.flag]));
 const DEPT_ICON: Record<string, string> = { Analytics: "📊", Business: "💼", Creative: "🎨", "People & Culture": "🤝" };
 const MARK = 22; // px
 
-function EndMark({ x, y, emoji, avatar, name, faded }: { x: number; y: number; emoji?: string; avatar?: string | null; name: string; faded: boolean }) {
+function EndMark({ x, y, emoji, faded }: { x: number; y: number; emoji: string; faded: boolean }) {
   return (
     <foreignObject
       x={x + 4}
@@ -29,11 +29,7 @@ function EndMark({ x, y, emoji, avatar, name, faded }: { x: number; y: number; e
       style={{ overflow: "visible", opacity: faded ? 0.2 : 1, transition: "opacity 200ms ease" }}
     >
       <div style={{ width: MARK, height: MARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {emoji ? (
-          <span style={{ fontSize: MARK * 0.78, lineHeight: 1 }}>{emoji}</span>
-        ) : (
-          <PlayerAvatar avatar={avatar} name={name} size={MARK} still />
-        )}
+        <span style={{ fontSize: MARK * 0.78, lineHeight: 1 }}>{emoji}</span>
       </div>
     </foreignObject>
   );
@@ -76,14 +72,10 @@ function useDepartments(enabled: boolean) {
   });
 }
 
-function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof useOfficeActivity>, depts: Map<string, string> | undefined) {
+function realSeries(by: By, days: string[], a: ReturnType<typeof useOfficeActivity>, depts: Map<string, string> | undefined) {
   const first = days[0];
   const groupOf = (player: string) =>
-    by === "office"
-      ? OFFICES[a.players.get(player)?.office ?? ""]?.city ?? "Other"
-      : by === "department"
-        ? depts?.get(player) ?? "Other"
-        : player;
+    by === "office" ? OFFICES[a.players.get(player)?.office ?? ""]?.city ?? "Other" : depts?.get(player) ?? "Other";
   // The same points as the weekly ranking (1st 5, 2nd 3, 3rd 2, others 1; a game only scores
   // on a day when 2+ people played it), worked out day by day
   const eventsByDay = new Map<string, PlayEvent[]>();
@@ -101,14 +93,7 @@ function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof use
       totals.set(g, (totals.get(g) ?? 0) + pts);
     }
   }
-  let names = [...totals.entries()].sort((x, y) => y[1] - x[1]).map(([n]) => n);
-  // People: the five most active, and always you
-  if (by === "people") {
-    names = names.slice(0, 5);
-    if (!names.includes(me) && totals.has(me)) names.push(me);
-  } else {
-    names = names.slice(0, 7);
-  }
+  const names = [...totals.entries()].sort((x, y) => y[1] - x[1]).map(([n]) => n).slice(0, 7);
   const rows = days.map((day) => {
     const row: Record<string, number | string> = { day };
     for (const n of names) row[n] = counts.get(n)?.get(day) ?? 0;
@@ -120,7 +105,7 @@ function realSeries(by: By, days: string[], me: string, a: ReturnType<typeof use
 /* ── Tooltip: the day, then the lines you're looking at, highest first ─────────── */
 
 type TipItem = { dataKey?: string | number; value?: number | string; color?: string };
-function ChartTip({ active, payload, label, only, me }: { active?: boolean; payload?: TipItem[]; label?: string; only: Set<string> | null; me: string }) {
+function ChartTip({ active, payload, label, only }: { active?: boolean; payload?: TipItem[]; label?: string; only: Set<string> | null }) {
   if (!active || !payload?.length) return null;
   const items = payload
     .filter((p) => !only || only.has(String(p.dataKey)))
@@ -132,7 +117,7 @@ function ChartTip({ active, payload, label, only, me }: { active?: boolean; payl
       {items.map((p) => (
         <p key={String(p.dataKey)} className="flex items-center gap-2 leading-5">
           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
-          <span className="min-w-0 flex-1 truncate">{p.dataKey === me ? "You" : p.dataKey}</span>
+          <span className="min-w-0 flex-1 truncate">{p.dataKey}</span>
           <span className="tabular-nums font-semibold">{p.value} pts</span>
         </p>
       ))}
@@ -142,8 +127,9 @@ function ChartTip({ active, payload, label, only, me }: { active?: boolean; payl
 
 /* ── The chart ───────────────────────────────────────────────────────────────── */
 
-/** Ranking points earned each workday over the last 30 days, by office, department or person. */
-export function ActivityChart({ playerName }: { playerName: string }) {
+/** Ranking points earned each workday over the last 30 days, by office or department. */
+// playerName is kept so the callers don't change; the chart no longer has a by-person view
+export function ActivityChart(_props: { playerName: string }) {
   const [by, setBy] = useState<By>("office");
   // Picked lines (click a name; ⌘/Ctrl+click, or tap on a phone, to pick more). Empty: all lines.
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -155,20 +141,14 @@ export function ActivityChart({ playerName }: { playerName: string }) {
   const days = useMemo(workdays, []);
 
   const { rows, names } = useMemo(
-    () => realSeries(by, days, playerName, a, depts),
-    [by, days, playerName, a, depts],
+    () => realSeries(by, days, a, depts),
+    [by, days, a, depts],
   );
-  const colour = (name: string, i: number) =>
-    by === "people" ? (name === playerName ? PALETTE[0] : PALETTE[(i % (PALETTE.length - 1)) + 1]) : PALETTE[i % PALETTE.length];
+  const colour = (_name: string, i: number) => PALETTE[i % PALETTE.length];
   const totals = names.map((n) => rows.reduce((s, r) => s + Number(r[n] ?? 0), 0));
   const empty = totals.every((t) => t === 0);
-  // The end of each line wears its flag, department icon or avatar
-  const markFor = (n: string) =>
-    by === "office"
-      ? { emoji: FLAG_BY_CITY[n] ?? "🏢" }
-      : by === "department"
-        ? { emoji: DEPT_ICON[n] ?? "👥" }
-        : { avatar: a.players.get(n)?.avatar ?? null };
+  // The end of each line wears its flag or department icon
+  const markFor = (n: string) => (by === "office" ? FLAG_BY_CITY[n] ?? "🏢" : DEPT_ICON[n] ?? "👥");
   // What stands out right now: the hovered name, else the picked ones, else everything
   const lit: Set<string> | null = hover ? new Set([hover]) : picked.size ? picked : null;
   const pick = (n: string, e: React.MouseEvent) => {
@@ -192,7 +172,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
           <p className="text-sm font-semibold">Points</p>
           <p className="text-xs text-muted-foreground">Earned each workday, last 30 days</p>
         </div>
-        <div className="grid w-full grid-cols-3 gap-0.5 rounded-full bg-foreground/[0.05] p-1 sm:w-auto">
+        <div className="grid w-full grid-cols-2 gap-0.5 rounded-full bg-foreground/[0.05] p-1 sm:w-auto">
           {(Object.keys(BY_LABEL) as By[]).map((k) => (
             <button
               key={k}
@@ -236,7 +216,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
               />
               <Tooltip
                 cursor={{ stroke: "hsl(var(--foreground) / 0.15)", strokeWidth: 1 }}
-                content={<ChartTip only={lit} me={playerName} />}
+                content={<ChartTip only={lit} />}
               />
               {names.map((n, i) => (
                 <Line
@@ -244,13 +224,13 @@ export function ActivityChart({ playerName }: { playerName: string }) {
                   type="monotone"
                   dataKey={n}
                   stroke={colour(n, i)}
-                  strokeWidth={lit?.has(n) ? 2.8 : n === playerName ? 2.4 : 1.8}
+                  strokeWidth={lit?.has(n) ? 2.8 : 2}
                   strokeOpacity={lit && !lit.has(n) ? 0.12 : 1}
                   dot={false}
                   activeDot={lit && !lit.has(n) ? false : { r: 3.5, strokeWidth: 0 }}
                   label={(p: { x?: number; y?: number; index?: number }) =>
                     p.index === rows.length - 1 && p.x != null && p.y != null ? (
-                      <EndMark key={`mark-${n}`} x={p.x} y={p.y} name={n} faded={!!lit && !lit.has(n)} {...markFor(n)} />
+                      <EndMark key={`mark-${n}`} x={p.x} y={p.y} emoji={markFor(n)} faded={!!lit && !lit.has(n)} />
                     ) : (
                       <g key={`nomark-${n}-${p.index}`} />
                     )
@@ -286,7 +266,7 @@ export function ActivityChart({ playerName }: { playerName: string }) {
               } ${lit && !lit.has(n) ? "opacity-45" : ""}`}
             >
               <span className="h-2 w-2 rounded-full" style={{ background: colour(n, i) }} />
-              <span className="font-medium">{n === playerName ? "You" : n}</span>
+              <span className="font-medium">{n}</span>
               <span className="tabular-nums text-muted-foreground">{totals[i]}</span>
             </button>
           ))}
